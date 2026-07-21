@@ -174,7 +174,7 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
               <Button
                 size="sm"
                 variant="outline"
-                className="border-2 border-white text-white hover:bg-white hover:text-brand-black text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-6 font-semibold lg:text-lg lg:h-14 lg:px-8"
+                className="border-2 border-white bg-white text-brand-black hover:bg-gray-100 hover:text-brand-black text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-6 font-semibold lg:text-lg lg:h-14 lg:px-8"
                 asChild
               >
                 <Link href={`/producto/${currentProduct.slug}`}>

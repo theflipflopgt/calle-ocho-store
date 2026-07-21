@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import { PromoTicker } from "@/components/home/promo-ticker";
 import { NewArrivalsSlider } from "@/components/home/new-arrivals-slider";
 import { BrandsGrid } from "@/components/home/brands-grid";
 import { HeroMedia } from "@/components/home/hero-media";
@@ -32,9 +31,6 @@ export default async function Home() {
           <HeroMedia hero={homeContent.hero} />
         </section>
       )}
-
-      {/* Ticker Promocional - Scroll infinito */}
-      <PromoTicker />
 
       {/* Nuevos Lanzamientos - Slider horizontal */}
       <NewArrivalsSlider products={newArrivals} />
