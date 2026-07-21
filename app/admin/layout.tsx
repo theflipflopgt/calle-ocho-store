@@ -21,13 +21,11 @@ import {
   ChevronDown,
   Layers,
   ImageIcon,
-  Sparkles,
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Inicio', href: '/admin/inicio', icon: Home },
-  { name: 'Hero Carousel', href: '/admin/hero-carousel', icon: Sparkles },
+  { name: 'Inicio y Hero', href: '/admin/inicio#hero', icon: Home },
   {
     name: 'Productos',
     icon: Package,

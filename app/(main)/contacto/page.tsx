@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Mail, MessageCircle, PhoneCall } from 'lucide-react';
-import { BUSINESS_WHATSAPP_NUMBER } from '@/lib/constants/business';
+import { BUSINESS_WHATSAPP_DISPLAY, BUSINESS_WHATSAPP_NUMBER } from '@/lib/constants/business';
 
 export const metadata = {
   title: 'Contáctanos | Calle Ocho Store',
@@ -40,7 +40,7 @@ export default function ContactoPage() {
           >
             <MessageCircle className="mb-3 h-6 w-6 text-brand-blue" />
             <h2 className="mb-1 font-semibold text-brand-black">WhatsApp</h2>
-            <p className="text-sm text-gray-600">Escríbenos para atención rápida.</p>
+            <p className="text-sm text-gray-600">{BUSINESS_WHATSAPP_DISPLAY}</p>
           </Link>
 
           <Link

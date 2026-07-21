@@ -203,7 +203,7 @@ export default function AdminHomeContentPage() {
         </div>
       )}
 
-      <section className="rounded-xl border border-gray-200 bg-white p-6">
+      <section id="hero" className="scroll-mt-6 rounded-xl border border-gray-200 bg-white p-6">
         <div className="mb-5 flex items-center gap-2">
           <Video className="h-5 w-5 text-brand-blue" />
           <h2 className="font-semibold text-brand-black">Hero principal</h2>

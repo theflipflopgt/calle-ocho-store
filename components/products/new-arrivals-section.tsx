@@ -71,7 +71,7 @@ export function NewArrivalsSection({
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {products.map((product) => (
-            <div key={product.id} className="flex-shrink-0 w-[280px] snap-start">
+            <div key={product.id} className="flex h-auto flex-shrink-0 w-[280px] snap-start">
               <ProductCard
                 product={product}
                 onAddToWishlist={onAddToWishlist}

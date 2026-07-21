@@ -37,7 +37,7 @@ export function ProductCard({
 
   return (
     <div
-      className="group relative bg-white dark:bg-gray-800 rounded-lg overflow-hidden touch-manipulation shadow-sm hover:shadow-md dark:hover:shadow-gray-700/50 transition-all hover:-translate-y-1"
+      className="group relative flex h-full flex-col bg-white dark:bg-gray-800 rounded-lg overflow-hidden touch-manipulation shadow-sm hover:shadow-md dark:hover:shadow-gray-700/50 transition-all hover:-translate-y-1"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
@@ -207,7 +207,7 @@ export function ProductCard({
       </div>
 
       {/* Product Info */}
-      <div className="p-3 sm:p-4">
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
         {/* Color Selector */}
         {product.colors.length > 1 && (
           <div className="flex gap-1 sm:gap-1.5 mb-1.5 sm:mb-2">
@@ -235,13 +235,13 @@ export function ProductCard({
 
         {/* Name */}
         <Link href={`/producto/${product.slug}`}>
-          <h3 className="font-medium text-sm sm:text-base text-brand-black line-clamp-2 mb-1 sm:mb-2">
+          <h3 className="min-h-10 sm:min-h-12 font-medium text-sm sm:text-base leading-5 sm:leading-6 text-brand-black line-clamp-2 mb-1 sm:mb-2">
             {product.name}
           </h3>
         </Link>
 
         {/* Price */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="mt-auto flex items-center gap-2 flex-wrap">
           <span className="font-bold text-sm sm:text-base text-brand-black">
             {formatPrice(product.lowestPrice)}
           </span>

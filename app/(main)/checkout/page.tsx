@@ -60,6 +60,7 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResult | null>(null);
+  const [orderCreated, setOrderCreated] = useState(false);
 
   const [formData, setFormData] = useState<ShippingFormData>({
     recipientName: '',
@@ -113,10 +114,10 @@ export default function CheckoutPage() {
 
   // Redirigir si el carrito está vacío
   useEffect(() => {
-    if (!cartLoading && items.length === 0) {
-      router.push('/carrito');
+    if (!cartLoading && items.length === 0 && !orderCreated) {
+      router.replace('/carrito');
     }
-  }, [cartLoading, items.length, router]);
+  }, [cartLoading, items.length, orderCreated, router]);
 
   // Redirigir si no está autenticado
   useEffect(() => {
@@ -199,11 +200,14 @@ export default function CheckoutPage() {
 
       const order = result.order as OrderCreateResult;
 
-      // Limpiar carrito
-      await clearCart();
+      // Evitar que el efecto de carrito vacío interrumpa la confirmación.
+      setOrderCreated(true);
 
-      // Redirigir a confirmación
-      router.push(`/checkout/confirmacion?order=${encodeURIComponent(order.orderNumber)}`);
+      // Navegar primero a la pantalla de agradecimiento.
+      router.replace(`/checkout/confirmacion?order=${encodeURIComponent(order.orderNumber)}`);
+
+      // Limpiar el carrito sin bloquear la navegación.
+      void clearCart();
     } catch (err) {
       console.error('Error creating order:', err);
       setError(err instanceof Error ? err.message : 'Hubo un error al procesar tu orden. Por favor intenta de nuevo.');
@@ -223,7 +227,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!user || items.length === 0) {
+  if (!user || (items.length === 0 && !orderCreated)) {
     return null;
   }
 
