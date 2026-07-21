@@ -59,12 +59,21 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = body as OrderCreateInput;
+
+  if (payload.paymentMethod !== 'bank_transfer') {
+    return NextResponse.json(
+      { error: 'NeoPay todavía no está habilitado. Selecciona transferencia bancaria mientras se completa la certificación.' },
+      { status: 503 }
+    );
+  }
+
   const db = auth.supabase as any;
 
-  const { data, error } = await db.rpc('create_manual_order', {
+  const { data, error } = await db.rpc('create_checkout_order', {
     p_shipping: payload.shipping,
     p_customer_notes: payload.customerNotes || null,
     p_coupon_code: payload.couponCode?.trim() || null,
+    p_payment_method: payload.paymentMethod,
   });
 
   if (error || !data) {

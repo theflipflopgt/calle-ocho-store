@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { CouponInput } from '@/components/checkout/coupon-input';
 import { type CouponValidationResult } from '@/lib/coupons';
-import type { OrderCreateInput, OrderCreateResult } from '@/types/order-workflow';
+import type { CheckoutPaymentMethod, OrderCreateInput, OrderCreateResult } from '@/types/order-workflow';
 import {
   FREE_SHIPPING_THRESHOLD_GTQ,
   SHIPPING_COST_GTQ,
@@ -61,6 +61,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResult | null>(null);
   const [orderCreated, setOrderCreated] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('bank_transfer');
 
   const [formData, setFormData] = useState<ShippingFormData>({
     recipientName: '',
@@ -185,6 +186,7 @@ export default function CheckoutPage() {
         },
         customerNotes: formData.customerNotes || undefined,
         couponCode: appliedCoupon?.coupon?.code,
+        paymentMethod,
       };
 
       const response = await fetch('/api/orders/create', {
@@ -296,6 +298,8 @@ export default function CheckoutPage() {
               onPlaceOrder={handlePlaceOrder}
               isSubmitting={isSubmitting}
               error={error}
+              paymentMethod={paymentMethod}
+              onPaymentMethodChange={setPaymentMethod}
             />
           )}
 
@@ -553,6 +557,8 @@ function ReviewStep({
   onPlaceOrder,
   isSubmitting,
   error,
+  paymentMethod,
+  onPaymentMethodChange,
 }: {
   items: any[];
   formData: ShippingFormData;
@@ -560,6 +566,8 @@ function ReviewStep({
   onPlaceOrder: () => void;
   isSubmitting: boolean;
   error: string | null;
+  paymentMethod: CheckoutPaymentMethod;
+  onPaymentMethodChange: (method: CheckoutPaymentMethod) => void;
 }) {
   return (
     <div className="space-y-6">
@@ -653,9 +661,33 @@ function ReviewStep({
             Método de Pago
           </h2>
         </div>
-        <p className="text-sm text-gray-600">
-          {MANUAL_PAYMENT_LABEL}. Te contactaremos para coordinar el pago.
-        </p>
+        <div className="space-y-3">
+          <PaymentOption
+            id="bank_transfer"
+            title={MANUAL_PAYMENT_LABEL}
+            description="Recibirás los datos bancarios y tu pedido quedará pendiente de confirmación."
+            checked={paymentMethod === 'bank_transfer'}
+            onSelect={() => onPaymentMethodChange('bank_transfer')}
+          />
+          <PaymentOption
+            id="card"
+            title="Tarjeta de crédito o débito"
+            description="Visa y Mastercard mediante NeoPay de NeoNet Guatemala."
+            checked={paymentMethod === 'card'}
+            onSelect={() => onPaymentMethodChange('card')}
+            disabled
+            badge="Pendiente de activar NeoPay"
+          />
+          <PaymentOption
+            id="neocuotas"
+            title="NeoCuotas"
+            description="Programa de compras en cuotas de NeoPay, sujeto a aprobación y condiciones de NeoNet."
+            checked={paymentMethod === 'neocuotas'}
+            onSelect={() => onPaymentMethodChange('neocuotas')}
+            disabled
+            badge="Pendiente de activar NeoPay"
+          />
+        </div>
       </div>
 
       {/* Place Order Button */}
@@ -685,6 +717,57 @@ function ReviewStep({
         </Button>
       </div>
     </div>
+  );
+}
+
+
+function PaymentOption({
+  id,
+  title,
+  description,
+  checked,
+  onSelect,
+  disabled = false,
+  badge,
+}: {
+  id: CheckoutPaymentMethod;
+  title: string;
+  description: string;
+  checked: boolean;
+  onSelect: () => void;
+  disabled?: boolean;
+  badge?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      disabled={disabled}
+      aria-pressed={checked}
+      className={cn(
+        'w-full rounded-lg border p-4 text-left transition-colors',
+        checked ? 'border-brand-blue bg-blue-50/50' : 'border-gray-200 bg-white',
+        disabled ? 'cursor-not-allowed opacity-60' : 'hover:border-brand-blue'
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <span className={cn(
+          'mt-0.5 h-4 w-4 rounded-full border-2',
+          checked ? 'border-brand-blue bg-brand-blue ring-2 ring-white' : 'border-gray-300'
+        )} />
+        <span className="flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-brand-black">{title}</span>
+            {badge && (
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
+                {badge}
+              </span>
+            )}
+          </span>
+          <span className="mt-1 block text-sm text-gray-600">{description}</span>
+        </span>
+      </div>
+    </button>
   );
 }
 

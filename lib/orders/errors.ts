@@ -13,6 +13,8 @@ export const ORDER_ERROR_MESSAGES: Record<string, string> = {
   INVALID_STATUS: 'El estado solicitado no es válido.',
   INVALID_STATUS_TRANSITION: 'La transición de estado no está permitida.',
   ADMIN_ONLY: 'Esta acción requiere permisos de administrador.',
+  INVALID_PAYMENT_METHOD: 'Selecciona un método de pago válido.',
+  PAYMENT_GATEWAY_NOT_CONFIGURED: 'El pago con tarjeta todavía no está habilitado.',
 };
 
 export function mapOrderErrorMessage(raw: string | null | undefined): string {

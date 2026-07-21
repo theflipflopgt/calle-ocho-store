@@ -2,7 +2,6 @@ import { Suspense } from 'react';
 import { getProducts, getBrands, getCategories } from '@/lib/queries/products';
 import { ProductGrid } from '@/components/products/product-grid';
 import { CatalogFilters } from '@/components/products/catalog-filters';
-import { FreeShippingBand } from '@/components/layout/free-shipping-band';
 import { Loader2 } from 'lucide-react';
 
 interface PageProps {
@@ -75,7 +74,6 @@ export default async function HombrePage({ searchParams }: PageProps) {
         </p>
       </div>
 
-      <FreeShippingBand compact />
 
       <Suspense fallback={
         <div className="flex items-center justify-center py-20">

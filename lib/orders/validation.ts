@@ -55,5 +55,9 @@ export function validateOrderCreateInput(input: Partial<OrderCreateInput>): Vali
     return { valid: false, error: 'Las notas exceden el máximo permitido.' };
   }
 
+  if (!input.paymentMethod || !['bank_transfer', 'card', 'neocuotas'].includes(input.paymentMethod)) {
+    return { valid: false, error: 'Selecciona un método de pago válido.' };
+  }
+
   return { valid: true };
 }
