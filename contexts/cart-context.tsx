@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from './auth-context';
+import type { ProductWithDetails } from '@/types/product';
 
 interface CartItemVariant {
   id: string;
@@ -40,7 +41,7 @@ interface CartContextType {
   isOpen: boolean;
   itemCount: number;
   subtotal: number;
-  addItem: (variantId: string, quantity?: number) => Promise<boolean>;
+  addItem: (variantId: string, quantity?: number, productSnapshot?: ProductWithDetails) => Promise<boolean>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -58,6 +59,48 @@ interface GuestCartItem {
   variantId: string;
   quantity: number;
   addedAt: number;
+  productSnapshot?: ProductWithDetails;
+}
+
+function cartItemFromSnapshot(
+  variantId: string,
+  quantity: number,
+  product: ProductWithDetails
+): CartItem | null {
+  const color = product.colors.find((item) =>
+    item.variants.some((variant) => variant.id === variantId)
+  );
+  const variant = color?.variants.find((item) => item.id === variantId);
+
+  if (!color || !variant) return null;
+
+  return {
+    id: `guest-${variantId}`,
+    variant_id: variantId,
+    quantity,
+    price_at_add: product.lowestPrice || product.base_price,
+    variant: {
+      id: variant.id,
+      size_us: variant.size_us,
+      size_eu: variant.size_eu,
+      sku: variant.sku,
+      stock_quantity: variant.stock_quantity,
+      product_color: {
+        id: color.id,
+        color_name: color.color_name,
+        color_code: color.color_code || '',
+        images: color.images.map((image) => ({ image_url: image.image_url })),
+        product: {
+          id: product.id,
+          name: product.name,
+          slug: product.slug,
+          base_price: product.base_price,
+          compare_at_price: product.compare_at_price,
+          brand: { name: product.brand.name },
+        },
+      },
+    },
+  };
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -227,6 +270,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      const snapshotItems = guestCart
+        .map((item) =>
+          item.productSnapshot
+            ? cartItemFromSnapshot(item.variantId, item.quantity, item.productSnapshot)
+            : null
+        )
+        .filter(Boolean) as CartItem[];
+
+      if (snapshotItems.length === guestCart.length) {
+        setItems(snapshotItems);
+        setIsLoading(false);
+        return;
+      }
+
       // Fetch variant details
       const variantIds = guestCart.map(item => item.variantId);
       const { data: variants } = await supabase
@@ -284,8 +341,38 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Add item to cart
-  const addItem = useCallback(async (variantId: string, quantity = 1): Promise<boolean> => {
+  const addItem = useCallback(async (variantId: string, quantity = 1, productSnapshot?: ProductWithDetails): Promise<boolean> => {
     try {
+      if (!user && productSnapshot) {
+        const snapshotItem = cartItemFromSnapshot(variantId, quantity, productSnapshot);
+        if (!snapshotItem || snapshotItem.variant.stock_quantity < quantity) {
+          return false;
+        }
+
+        const guestCartJson = localStorage.getItem(GUEST_CART_KEY);
+        const guestCart: GuestCartItem[] = guestCartJson ? JSON.parse(guestCartJson) : [];
+        const existingIndex = guestCart.findIndex(item => item.variantId === variantId);
+
+        if (existingIndex >= 0) {
+          const nextQuantity = Math.min(
+            guestCart[existingIndex].quantity + quantity,
+            snapshotItem.variant.stock_quantity
+          );
+          guestCart[existingIndex] = {
+            ...guestCart[existingIndex],
+            quantity: nextQuantity,
+            productSnapshot,
+          };
+        } else {
+          guestCart.push({ variantId, quantity, addedAt: Date.now(), productSnapshot });
+        }
+
+        localStorage.setItem(GUEST_CART_KEY, JSON.stringify(guestCart));
+        await loadGuestCart();
+        setIsOpen(true);
+        return true;
+      }
+
       // Get variant details and price
       const { data: variant, error: variantError } = await supabase
         .from('product_variants')

@@ -28,7 +28,7 @@ export default async function MarcasPage() {
           <Link
             key={brand.id}
             href={`/marcas/${brand.slug}`}
-            className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 sm:p-6 flex flex-col items-center justify-center hover:border-brand-black dark:hover:border-gray-400 hover:shadow-lg transition-all aspect-square"
+            className="group bg-white dark:bg-white border border-gray-200 dark:border-gray-200 rounded-xl p-4 sm:p-6 flex flex-col items-center justify-center hover:border-brand-black hover:shadow-lg transition-all aspect-square"
           >
             {brand.logo_url ? (
               <div className="relative w-16 h-16 sm:w-20 sm:h-20 mb-3">
@@ -40,13 +40,13 @@ export default async function MarcasPage() {
                 />
               </div>
             ) : (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-3">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-3">
                 <span className="text-xl sm:text-2xl font-bold text-gray-400">
                   {brand.name.charAt(0)}
                 </span>
               </div>
             )}
-            <h2 className="font-semibold text-sm sm:text-base text-brand-black text-center">
+            <h2 className="font-semibold text-sm sm:text-base text-gray-900 text-center">
               {brand.name}
             </h2>
             {brand.country && (

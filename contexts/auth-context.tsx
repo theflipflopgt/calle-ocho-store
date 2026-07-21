@@ -103,8 +103,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         const fallbackProfile = await ensureProfile(authUser);
-        setProfile(fallbackProfile);
-        cacheProfile(fallbackProfile);
+        setProfile((currentProfile) =>
+          currentProfile?.id === authUser.id ? currentProfile : fallbackProfile
+        );
         return;
       }
 

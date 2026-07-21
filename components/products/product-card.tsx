@@ -26,9 +26,9 @@ export function ProductCard({
   const availableVariants = selectedColor?.variants?.filter(v => v.is_available !== false && v.stock_quantity > 0) || [];
 
   const handleQuickAdd = useCallback(async (variantId: string) => {
-    await onQuickAdd?.(variantId);
+    await onQuickAdd?.(variantId, product);
     setShowSizeSelector(false);
-  }, [onQuickAdd]);
+  }, [onQuickAdd, product]);
 
   // Toggle size selector on mobile tap
   const handleMobileQuickAdd = useCallback(() => {
@@ -112,7 +112,7 @@ export function ProductCard({
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
-            onAddToWishlist?.(product.id);
+            onAddToWishlist?.(product.id, product);
           }}
           aria-label={isInWishlist ? 'Quitar de favoritos' : 'Agregar a favoritos'}
         >

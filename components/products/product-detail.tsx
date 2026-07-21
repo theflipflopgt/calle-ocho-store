@@ -80,7 +80,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
     setIsAddingToCart(true);
     try {
-      const added = await addItem(selectedVariantId, quantity);
+      const added = await addItem(selectedVariantId, quantity, product);
       if (added) {
         setCartMessage('Producto agregado al carrito.');
         openCart();
@@ -382,7 +382,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
               "h-12 sm:h-14 w-12 sm:w-14 border-gray-200",
               isInWishlist(product.id) && "text-brand-red border-brand-red"
             )}
-            onClick={() => toggleWishlist(product.id)}
+            onClick={() => toggleWishlist(product.id, product)}
             aria-label={isInWishlist(product.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
           >
             <Heart className={cn("w-5 h-5", isInWishlist(product.id) && "fill-current")} />

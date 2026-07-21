@@ -42,7 +42,7 @@ export function Header() {
 
       {/* Main Header */}
       <div className="container mx-auto px-3 sm:px-4">
-        <div className="flex items-center justify-between gap-3 h-20 sm:h-24 md:h-24">
+        <div className="flex items-center justify-between gap-2 h-20 sm:h-24 md:h-24">
           {/* Logo - dark/light variants */}
           <Link href="/" className="flex-shrink-0" aria-label="Ir al inicio">
             <Image
@@ -50,7 +50,7 @@ export function Header() {
               alt="Calle Ocho Store"
               width={180}
               height={60}
-              className="h-[60px] w-[180px] object-contain dark:hidden"
+              className="h-[50px] w-[150px] object-contain sm:h-[60px] sm:w-[180px] dark:hidden"
               priority
             />
             <Image
@@ -58,7 +58,7 @@ export function Header() {
               alt="Calle Ocho Store"
               width={180}
               height={60}
-              className="hidden h-[60px] w-[180px] object-contain dark:block"
+              className="hidden h-[50px] w-[150px] object-contain sm:h-[60px] sm:w-[180px] dark:block"
               priority
             />
           </Link>
@@ -96,8 +96,8 @@ export function Header() {
             </div>
 
             {/* Wishlist - hidden on mobile, show on tablet+ */}
-            <Link href="/wishlist">
-              <Button size="icon" variant="ghost" className="hidden sm:flex text-brand-black dark:text-white w-9 h-9 sm:w-10 sm:h-10">
+            <Link href="/wishlist" aria-label="Ir a favoritos">
+              <Button size="icon" variant="ghost" className="flex text-brand-black dark:text-white w-9 h-9 sm:w-10 sm:h-10">
                 <Heart className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </Link>
@@ -117,8 +117,8 @@ export function Header() {
               )}
             </Button>
 
-            {/* User access - Desktop */}
-            <div className="hidden sm:flex items-center gap-2">
+            {/* User access - always visible */}
+            <div className="flex items-center gap-1 md:gap-2">
               {isLoading ? (
                 <Button variant="ghost" size="icon" className="text-brand-black dark:text-white" disabled>
                   <User className="h-5 w-5" />
@@ -134,14 +134,14 @@ export function Header() {
                     >
                       <Link href="/admin">
                         <LayoutDashboard className="h-4 w-4" />
-                        <span className="hidden md:inline">Panel Admin</span>
+                        <span className="hidden xl:inline">Panel Admin</span>
                       </Link>
                     </Button>
                   )}
                   <Button asChild variant="ghost" className="gap-2 text-brand-black dark:text-white">
                     <Link href="/cuenta" aria-label="Ir a mi cuenta">
                       <User className="h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="hidden md:inline text-sm">Hola, {displayName}</span>
+                      <span className="hidden lg:inline text-sm">Hola, {displayName}</span>
                     </Link>
                   </Button>
                   <Button
@@ -157,7 +157,7 @@ export function Header() {
               ) : (
                 <div className="flex items-center gap-2">
                   <Button asChild variant="ghost" size="sm" className="gap-2 text-brand-black dark:text-white">
-                    <Link href="/auth/login">
+                    <Link href="/auth/login" aria-label="Entrar a mi cuenta">
                       <User className="h-4 w-4" />
                       <span className="hidden md:inline">Entrar</span>
                     </Link>

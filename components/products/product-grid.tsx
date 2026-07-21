@@ -14,8 +14,8 @@ export function ProductGrid({ products, emptyMessage = 'No se encontraron produc
   const { addItem, openCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlistContext();
 
-  const handleQuickAdd = async (variantId: string) => {
-    const added = await addItem(variantId, 1);
+  const handleQuickAdd = async (variantId: string, product?: ProductWithDetails) => {
+    const added = await addItem(variantId, 1, product);
     if (added) {
       openCart();
     }

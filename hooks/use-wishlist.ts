@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import type { ProductWithDetails } from '@/types/product';
 
 interface WishlistItem {
   id: string;
   product_id: string;
   created_at: string | null;
+  productSnapshot?: ProductWithDetails;
 }
 
 export function useWishlist() {
@@ -16,11 +18,12 @@ export function useWishlist() {
   const supabase = useMemo(() => createClient(), []);
   const GUEST_WISHLIST_KEY = 'wishlist';
 
-  const addLocalWishlistItem = useCallback((productId: string) => {
+  const addLocalWishlistItem = useCallback((productId: string, productSnapshot?: ProductWithDetails) => {
     const newItem: WishlistItem = {
       id: crypto.randomUUID(),
       product_id: productId,
       created_at: new Date().toISOString(),
+      productSnapshot,
     };
 
     setItems(prev => {
@@ -92,7 +95,7 @@ export function useWishlist() {
     return items.some(item => item.product_id === productId);
   }, [items]);
 
-  const toggleWishlist = useCallback(async (productId: string) => {
+  const toggleWishlist = useCallback(async (productId: string, productSnapshot?: ProductWithDetails) => {
     const exists = isInWishlist(productId);
 
     if (userId) {
@@ -105,7 +108,7 @@ export function useWishlist() {
           .eq('product_id', productId);
         setItems(prev => prev.filter(item => item.product_id !== productId));
       } else {
-        const fallbackItem = addLocalWishlistItem(productId);
+        const fallbackItem = addLocalWishlistItem(productId, productSnapshot);
         const { data, error } = await supabase
           .from('wishlists')
           .insert({ user_id: userId, product_id: productId })
@@ -133,7 +136,7 @@ export function useWishlist() {
         setItems(newItems);
         localStorage.setItem(GUEST_WISHLIST_KEY, JSON.stringify(newItems));
       } else {
-        const newItem = addLocalWishlistItem(productId);
+        const newItem = addLocalWishlistItem(productId, productSnapshot);
         const newItems = [...items, newItem];
         localStorage.setItem(GUEST_WISHLIST_KEY, JSON.stringify(newItems));
       }

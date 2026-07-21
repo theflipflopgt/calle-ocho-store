@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, Trash2, ShoppingBag, Loader2, ArrowRight } from 'lucide-react';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useWishlistContext } from '@/contexts/wishlist-context';
 import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils/currency';
+import type { ProductWithDetails } from '@/types/product';
 
 interface WishlistProduct {
   id: string;
@@ -25,12 +26,35 @@ interface WishlistProduct {
   }[];
 }
 
+function wishlistProductFromSnapshot(product: ProductWithDetails): WishlistProduct {
+  return {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    base_price: product.base_price,
+    compare_at_price: product.compare_at_price,
+    brand: { name: product.brand.name, slug: product.brand.slug },
+    colors: product.colors.map((color) => ({
+      id: color.id,
+      color_name: color.color_name,
+      color_code: color.color_code || '',
+      images: color.images.map((image) => ({ image_url: image.image_url })),
+      variants: color.variants.map((variant) => ({
+        id: variant.id,
+        size_us: variant.size_us,
+        stock_quantity: variant.stock_quantity,
+        is_available: variant.is_available ?? true,
+      })),
+    })),
+  };
+}
+
 export default function WishlistPage() {
   const { items, loading: wishlistLoading, toggleWishlist, clearWishlist } = useWishlistContext();
   const [products, setProducts] = useState<WishlistProduct[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   // Fetch product details for wishlist items
   useEffect(() => {
@@ -42,6 +66,9 @@ export default function WishlistPage() {
       }
 
       const productIds = items.map(item => item.product_id);
+      const snapshotProducts = items
+        .filter((item) => item.productSnapshot)
+        .map((item) => wishlistProductFromSnapshot(item.productSnapshot!));
 
       const { data, error } = await supabase
         .from('products')
@@ -63,7 +90,12 @@ export default function WishlistPage() {
         .in('id', productIds);
 
       if (!error && data) {
-        setProducts(data as unknown as WishlistProduct[]);
+        const fetchedProducts = data as unknown as WishlistProduct[];
+        const fetchedIds = new Set(fetchedProducts.map((product) => product.id));
+        const missingSnapshots = snapshotProducts.filter((product) => !fetchedIds.has(product.id));
+        setProducts([...fetchedProducts, ...missingSnapshots]);
+      } else {
+        setProducts(snapshotProducts);
       }
       setIsLoadingProducts(false);
     }
