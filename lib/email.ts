@@ -3,6 +3,8 @@ import { render } from '@react-email/components';
 import OrderConfirmationEmail from '@/emails/order-confirmation';
 import NewOrderNotificationEmail from '@/emails/new-order-notification';
 import OrderShippedEmail from '@/emails/order-shipped';
+import OrderStatusUpdateEmail from '@/emails/order-status-update';
+import type { OrderStatus } from '@/types/order-workflow';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const emailFrom = process.env.EMAIL_FROM || 'Calle Ocho Store <pedidos@calleochostore.com>';
@@ -153,6 +155,57 @@ interface SendOrderShippedParams {
   orderNumber: string;
   trackingNumber?: string;
   estimatedDelivery?: string;
+}
+
+interface SendOrderStatusUpdateParams {
+  to: string;
+  customerName: string;
+  orderNumber: string;
+  status: OrderStatus;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+}
+
+const statusSubject: Record<OrderStatus, string> = {
+  pending: 'Tu pedido está pendiente',
+  paid: 'Pago confirmado',
+  processing: 'Estamos preparando tu pedido',
+  shipped: 'Tu pedido va en camino',
+  delivered: 'Pedido entregado',
+  cancelled: 'Pedido cancelado',
+  refunded: 'Reembolso actualizado',
+};
+
+export async function sendOrderStatusUpdateEmail(params: SendOrderStatusUpdateParams) {
+  try {
+    const emailHtml = await render(
+      OrderStatusUpdateEmail({
+        customerName: params.customerName,
+        orderNumber: params.orderNumber,
+        status: params.status,
+        trackingNumber: params.trackingNumber,
+        trackingUrl: params.trackingUrl,
+      })
+    );
+
+    const { data, error } = await resend.emails.send({
+      from: emailFrom,
+      to: params.to,
+      subject: `${statusSubject[params.status]} - Pedido ${params.orderNumber} - Calle Ocho Store`,
+      html: emailHtml,
+    });
+
+    if (error) {
+      console.error('Error sending order status update email:', error);
+      throw error;
+    }
+
+    console.log('Order status update email sent:', data);
+    return { success: true, data };
+  } catch (error) {
+    console.error('Failed to send order status update email:', error);
+    return { success: false, error };
+  }
 }
 
 export async function sendOrderShippedEmail(params: SendOrderShippedParams) {

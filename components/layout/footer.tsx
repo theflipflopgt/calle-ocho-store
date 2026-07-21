@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import { Facebook, Instagram, Mail } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { NewsletterForm } from '@/components/newsletter/newsletter-form';
 
 export function Footer() {
   return (
@@ -98,16 +97,7 @@ export function Footer() {
             <p className="text-xs sm:text-sm text-gray-400 mb-3 sm:mb-4">
               Recibe ofertas exclusivas y novedades
             </p>
-            <div className="flex flex-col gap-2">
-              <Input
-                type="email"
-                placeholder="Tu correo"
-                className="bg-white text-brand-black border-0 h-10 sm:h-11 text-sm"
-              />
-              <Button className="bg-white text-brand-black hover:bg-gray-200 font-semibold h-10 sm:h-11 text-sm">
-                Suscribirse
-              </Button>
-            </div>
+            <NewsletterForm />
           </div>
         </div>
       </div>

@@ -211,7 +211,7 @@ export default function OrderConfirmationEmail({
           {/* Contact */}
           <Section style={footer}>
             <Text style={footerText}>
-              ¿Necesitas ayuda? Contáctanos por WhatsApp: <Link href="https://wa.me/50212345678" style={link}>+502 1234-5678</Link>
+              ¿Necesitas ayuda? Contáctanos por WhatsApp: <Link href="https://wa.me/50252498898" style={link}>+502 5249 8898</Link>
             </Text>
             <Text style={footerText}>
               © 2026 Calle Ocho Store. Todos los derechos reservados.

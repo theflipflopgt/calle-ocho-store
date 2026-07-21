@@ -23,7 +23,7 @@ export async function BrandsGrid() {
         Nuestras Marcas
       </h2>
 
-      <div className="flex flex-wrap justify-center gap-4 lg:gap-6">
+      <div className="mx-auto grid max-w-6xl grid-cols-2 justify-items-center gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 lg:gap-6">
         {brands.map((brand) => {
           const isSvg = brand.logo_url?.endsWith('.svg');
 
@@ -31,7 +31,7 @@ export async function BrandsGrid() {
             <Link
               key={brand.id}
               href={`/marcas/${brand.slug}`}
-              className="group bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg hover:border-brand-blue transition-all duration-300 flex items-center justify-center aspect-square w-[calc(33.333%-1rem)] md:w-[calc(25%-1rem)] lg:w-[calc(16.666%-1.25rem)]"
+              className="group flex aspect-square w-full max-w-[150px] items-center justify-center rounded-lg border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-brand-blue hover:shadow-lg sm:max-w-[160px]"
             >
               {brand.logo_url ? (
                 isSvg ? (

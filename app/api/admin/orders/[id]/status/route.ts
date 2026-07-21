@@ -3,6 +3,7 @@ import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
 import { consumeRateLimit, getClientIpFromHeaders } from '@/lib/rate-limit';
 import { mapOrderErrorMessage } from '@/lib/orders/errors';
 import { appLogger } from '@/lib/logger';
+import { sendOrderStatusUpdateEmail } from '@/lib/email';
 import type { OrderStatus } from '@/types/order-workflow';
 
 interface StatusRequestBody {
@@ -97,6 +98,40 @@ export async function PATCH(
     adminUserId: auth.user.id,
     status: body.status,
   });
+
+  try {
+    const { data: order } = await db
+      .from('orders')
+      .select(`
+        order_number,
+        shipping_recipient_name,
+        tracking_number,
+        tracking_url,
+        profiles:user_id(email, full_name)
+      `)
+      .eq('id', id)
+      .single();
+
+    const customerEmail = order?.profiles?.email;
+    if (order && customerEmail) {
+      await sendOrderStatusUpdateEmail({
+        to: customerEmail,
+        customerName: order.profiles?.full_name || order.shipping_recipient_name,
+        orderNumber: order.order_number,
+        status: body.status,
+        trackingNumber: order.tracking_number,
+        trackingUrl: order.tracking_url,
+      });
+    }
+  } catch (emailError) {
+    appLogger.warn('admin.orders.status.email_failed', {
+      requestId,
+      orderId: id,
+      adminUserId: auth.user.id,
+      status: body.status,
+      error: emailError instanceof Error ? emailError.message : 'unknown_email_error',
+    });
+  }
 
   return NextResponse.json({ success: true, status: data });
 }
