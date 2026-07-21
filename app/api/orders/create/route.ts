@@ -69,11 +69,13 @@ export async function POST(request: NextRequest) {
 
   const db = auth.supabase as any;
 
-  const { data, error } = await db.rpc('create_checkout_order', {
+  // Bank transfers must keep working even when the optional NeoPay migration
+  // has not been applied yet. The existing production-safe RPC creates the
+  // order and its pending manual payment record atomically.
+  const { data, error } = await db.rpc('create_manual_order', {
     p_shipping: payload.shipping,
     p_customer_notes: payload.customerNotes || null,
     p_coupon_code: payload.couponCode?.trim() || null,
-    p_payment_method: payload.paymentMethod,
   });
 
   if (error || !data) {

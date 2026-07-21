@@ -8,10 +8,10 @@ import {
   AlertTriangle,
   Clock,
   Download,
-  FileText,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils/currency';
 import Link from 'next/link';
+import { CatalogExportButtons } from '@/components/admin/catalog-export-buttons';
 
 async function getDashboardStats() {
   const supabase = await createClient();
@@ -197,12 +197,7 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Link href="/api/admin/exports/catalog">
-          <div className="inline-flex h-10 w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-brand-black transition-colors hover:bg-gray-50 sm:w-auto">
-            <FileText className="mr-2 h-4 w-4" />
-            Catálogo PDF
-          </div>
-        </Link>
+        <CatalogExportButtons compact />
         <Link href="/api/admin/exports/products">
           <div className="inline-flex h-10 w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-brand-black transition-colors hover:bg-gray-50 sm:w-auto">
             <Download className="mr-2 h-4 w-4" />

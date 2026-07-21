@@ -226,6 +226,10 @@ export function rowsToCatalogProducts(rows: any[]) {
         brand: product.brands?.name || 'Sin marca',
         sku: product.sku || '',
         price: formatPrice(Number(product.base_price || 0)),
+        previousPrice:
+          Number(product.compare_at_price || 0) > Number(product.base_price || 0)
+            ? formatPrice(Number(product.compare_at_price || 0))
+            : null,
         status: product.status || '',
         imageUrl:
           color?.product_color_images

@@ -148,6 +148,7 @@ export interface CatalogPdfProduct {
   brand: string;
   sku: string;
   price: string;
+  previousPrice?: string | null;
   status: string;
   imageUrl?: string | null;
   variants: string[];
@@ -172,12 +173,12 @@ function drawImage(image: PdfImage, x: number, y: number, boxWidth: number, boxH
   ].join('\n');
 }
 
-function drawHeader(pageNumber: number, totalPages: number) {
+function drawHeader(pageNumber: number, totalPages: number, title: string) {
   return [
     rect(0, 742, 612, 50, '#111827'),
     rect(0, 735, 612, 7, '#1d4ed8'),
     text('calleOCHO', 42, 762, 22, 'F2', '#ffffff'),
-    text('Catálogo corporativo de calzado', 172, 766, 12, 'F1', '#bfdbfe'),
+    text(title, 172, 766, 12, 'F1', '#bfdbfe'),
     text(`Página ${pageNumber} de ${totalPages}`, 500, 766, 9, 'F1', '#bfdbfe'),
   ].join('\n');
 }
@@ -192,7 +193,7 @@ function drawFooter() {
   ].join('\n');
 }
 
-function drawProductCard(product: PreparedProduct, index: number) {
+function drawProductCard(product: PreparedProduct, index: number, showPreviousPrice = false) {
   const cardX = 42;
   const cardY = 520 - index * 178;
   const cardW = 528;
@@ -224,8 +225,13 @@ function drawProductCard(product: PreparedProduct, index: number) {
     commands.push(text(line, textX, topY - 20 - lineIndex * 15, 14, 'F2'));
   }
 
-  commands.push(text(product.price, textX, cardY + 78, 16, 'F2', '#111827'));
-  commands.push(text(`SKU: ${product.sku || 'N/D'}`, textX, cardY + 60, 9, 'F1', '#4b5563'));
+  if (showPreviousPrice && product.previousPrice) {
+    commands.push(text(`Antes: ${product.previousPrice}`, textX, cardY + 92, 9, 'F1', '#6b7280'));
+    commands.push(text(`Oferta: ${product.price}`, textX, cardY + 72, 16, 'F2', '#b91c1c'));
+  } else {
+    commands.push(text(product.price, textX, cardY + 78, 16, 'F2', '#111827'));
+  }
+  commands.push(text(`SKU: ${product.sku || 'N/D'}`, textX, cardY + 56, 9, 'F1', '#4b5563'));
   commands.push(rect(textX, cardY + 36, 88, 18, '#dcfce7'));
   commands.push(text('DISPONIBLE', textX + 12, cardY + 42, 8, 'F2', '#166534'));
 
@@ -352,7 +358,11 @@ function buildPdf(pages: string[], images: PdfImage[]): Buffer {
   return Buffer.concat(chunks);
 }
 
-export async function createCatalogPdf(products: CatalogPdfProduct[]): Promise<Buffer> {
+export async function createCatalogPdf(
+  products: CatalogPdfProduct[],
+  options: { title?: string; showPreviousPrice?: boolean } = {}
+): Promise<Buffer> {
+  const title = options.title || 'Catálogo Completo';
   const preparedProducts = await prepareProducts(products);
   const logo = await loadLogoJpeg();
   const allImages = [
@@ -367,7 +377,7 @@ export async function createCatalogPdf(products: CatalogPdfProduct[]): Promise<B
   if (preparedProducts.length === 0) {
     pages.push(
       [
-        drawHeader(1, 1),
+        drawHeader(1, 1, title),
         rect(42, 560, 528, 120, '#eff6ff'),
         text('No hay productos con stock disponible para catálogo.', 78, 620, 16, 'F2', '#111827'),
         text('Agrega stock a una talla para incluir el calzado en el PDF comercial.', 78, 596, 11, 'F1', '#374151'),
@@ -378,7 +388,7 @@ export async function createCatalogPdf(products: CatalogPdfProduct[]): Promise<B
     for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
       const pageProducts = preparedProducts.slice(pageIndex * perPage, pageIndex * perPage + perPage);
       const commands = [
-        drawHeader(pageIndex + 1, totalPages),
+        drawHeader(pageIndex + 1, totalPages, title),
         rect(42, 704, 528, 24, '#eff6ff'),
         text('Productos disponibles para venta empresarial', 58, 712, 11, 'F2', '#1d4ed8'),
       ];
@@ -388,7 +398,7 @@ export async function createCatalogPdf(products: CatalogPdfProduct[]): Promise<B
       }
 
       pageProducts.forEach((product, index) => {
-        commands.push(drawProductCard(product, index));
+        commands.push(drawProductCard(product, index, options.showPreviousPrice));
       });
 
       commands.push(drawFooter());

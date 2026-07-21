@@ -1,10 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-import { Download, FileText, Plus, Pencil, Eye, Search, Filter, Package } from 'lucide-react';
+import { Download, Plus, Pencil, Eye, Search, Filter, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatPrice } from '@/lib/utils/currency';
 import { DeleteProductButton } from './delete-button';
+import { CatalogExportButtons } from '@/components/admin/catalog-export-buttons';
 
 interface ProductsPageProps {
   searchParams: Promise<{ status?: string; brand?: string; category?: string; q?: string }>;
@@ -87,12 +88,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           <p className="text-gray-600 mt-1">{products.length} productos encontrados</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Link href="/api/admin/exports/catalog" className="w-full sm:w-auto">
-            <Button variant="outline" className="w-full sm:w-auto">
-              <FileText className="h-4 w-4 mr-2" />
-              Catálogo PDF
-            </Button>
-          </Link>
+          <CatalogExportButtons compact />
           <Link href="/api/admin/exports/products" className="w-full sm:w-auto">
             <Button variant="outline" className="w-full sm:w-auto">
               <Download className="h-4 w-4 mr-2" />
