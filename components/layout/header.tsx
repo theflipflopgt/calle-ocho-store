@@ -48,14 +48,14 @@ export function Header() {
 
       {/* Main Header */}
       <div className="container mx-auto px-3 sm:px-4">
-        <div className="flex items-center justify-between h-16 sm:h-20 md:h-24">
+        <div className="flex items-center justify-between h-20 sm:h-24 md:h-28">
           <Link href="/" className="flex-shrink-0">
             <Image
               src="/logo.png"
               alt="Calle Ocho Store"
-              width={120}
-              height={48}
-              className="h-8 sm:h-10 md:h-12 w-auto"
+              width={180}
+              height={180}
+              className="h-14 w-14 object-contain sm:h-16 sm:w-16 md:h-20 md:w-20"
               priority
             />
           </Link>

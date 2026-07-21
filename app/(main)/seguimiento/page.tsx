@@ -1,5 +1,6 @@
+import Image from 'next/image';
 import Link from 'next/link';
-import { PackageCheck } from 'lucide-react';
+import { CheckCircle2, Clock, PackageCheck, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
@@ -8,28 +9,45 @@ export const metadata = {
 };
 
 export default function SeguimientoPage() {
-  return (
-    <main className="container mx-auto px-4 py-10 sm:py-14">
-      <section className="mx-auto max-w-3xl">
-        <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-brand-blue">
-          <PackageCheck className="h-6 w-6" />
-        </div>
-        <h1 className="mb-3 text-3xl font-bold text-brand-black sm:text-4xl">
-          Estado del pedido
-        </h1>
-        <p className="mb-8 text-gray-600">
-          Desde tu cuenta puedes revisar tus pedidos, ver el estado actual y consultar los detalles de compra.
-        </p>
+  const statuses = [
+    ['Pendiente', 'Recibimos tu pedido y estamos validando la información.', Clock],
+    ['Pagado', 'El pago fue confirmado.', CheckCircle2],
+    ['En preparación', 'Estamos preparando tus productos.', PackageCheck],
+    ['Enviado', 'Tu pedido salió hacia la dirección registrada.', Truck],
+    ['Entregado', 'El pedido fue recibido correctamente.', CheckCircle2],
+  ] as const;
 
-        <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-brand-black">Estados principales</h2>
-          <ul className="space-y-3 text-sm text-gray-700">
-            <li><strong>Pendiente:</strong> recibimos tu pedido y estamos validando la información.</li>
-            <li><strong>Pagado:</strong> el pago fue confirmado.</li>
-            <li><strong>En preparación:</strong> estamos preparando tus productos.</li>
-            <li><strong>Enviado:</strong> tu pedido salió hacia la dirección registrada.</li>
-            <li><strong>Entregado:</strong> el pedido fue recibido correctamente.</li>
-          </ul>
+  return (
+    <main>
+      <section className="relative min-h-[340px] overflow-hidden">
+        <Image
+          src="https://images.unsplash.com/photo-1552346154-21d32810aba3?q=80&w=1800&auto=format&fit=crop"
+          alt="Seguimiento de pedido"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-transparent" />
+        <div className="container relative z-10 mx-auto flex min-h-[340px] items-center px-4 text-white">
+          <div className="max-w-2xl">
+            <PackageCheck className="mb-4 h-9 w-9" />
+            <h1 className="text-4xl font-bold sm:text-5xl">Estado del pedido</h1>
+            <p className="mt-4 text-lg text-white/90">
+              Revisa tus pedidos, el estado actual y los detalles de compra desde tu cuenta.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="container mx-auto px-4 py-12">
+        <div className="grid gap-4 md:grid-cols-5">
+          {statuses.map(([title, text, Icon]) => (
+            <div key={title} className="rounded-lg border border-gray-200 bg-white p-4">
+              <Icon className="mb-3 h-5 w-5 text-brand-blue" />
+              <h2 className="font-semibold text-brand-black">{title}</h2>
+              <p className="mt-1 text-sm text-gray-600">{text}</p>
+            </div>
+          ))}
         </div>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">

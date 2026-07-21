@@ -1,5 +1,6 @@
+import Image from 'next/image';
 import Link from 'next/link';
-import { Mail, MessageCircle } from 'lucide-react';
+import { Mail, MessageCircle, PhoneCall } from 'lucide-react';
 import { BUSINESS_WHATSAPP_NUMBER } from '@/lib/constants/business';
 
 export const metadata = {
@@ -9,15 +10,28 @@ export const metadata = {
 
 export default function ContactoPage() {
   return (
-    <main className="container mx-auto px-4 py-10 sm:py-14">
-      <section className="mx-auto max-w-3xl">
-        <h1 className="mb-3 text-3xl font-bold text-brand-black sm:text-4xl">
-          Contáctanos
-        </h1>
-        <p className="mb-8 text-gray-600">
-          Estamos para ayudarte con tallas, disponibilidad, pedidos, envíos y cambios.
-        </p>
+    <main>
+      <section className="relative min-h-[340px] overflow-hidden">
+        <Image
+          src="https://images.unsplash.com/photo-1523398002811-999ca8dec234?q=80&w=1800&auto=format&fit=crop"
+          alt="Atención de Calle Ocho Store"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-transparent" />
+        <div className="container relative z-10 mx-auto flex min-h-[340px] items-center px-4 text-white">
+          <div className="max-w-2xl">
+            <PhoneCall className="mb-4 h-9 w-9" />
+            <h1 className="text-4xl font-bold sm:text-5xl">Contáctanos</h1>
+            <p className="mt-4 text-lg text-white/90">
+              Estamos para ayudarte con tallas, disponibilidad, pedidos, envíos y cambios.
+            </p>
+          </div>
+        </div>
+      </section>
 
+      <section className="container mx-auto px-4 py-12">
         <div className="grid gap-4 sm:grid-cols-2">
           <Link
             href={`https://wa.me/${BUSINESS_WHATSAPP_NUMBER}`}

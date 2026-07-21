@@ -32,7 +32,13 @@ export const getProducts = cache(async function getProducts(options: GetProducts
 
   // Filtro por género
   if (options.gender) {
-    query = query.or(`gender.eq.${options.gender},gender.eq.unisex`);
+    const legacyGenderMap: Record<NonNullable<GetProductsOptions['gender']>, string> = {
+      hombre: 'men',
+      mujer: 'women',
+      ninos: 'kids',
+      unisex: 'unisex',
+    };
+    query = query.in('gender', Array.from(new Set([options.gender, legacyGenderMap[options.gender]])));
   }
 
   // Filtro por marca
@@ -87,8 +93,13 @@ export const getProducts = cache(async function getProducts(options: GetProducts
     return [];
   }
 
-  // Transformar los datos para calcular campos adicionales
-  return (data || []).map(transformProduct);
+  const products = (data || []).map(transformProduct);
+
+  if (options.onSale) {
+    return products.filter((product) => product.hasDiscount);
+  }
+
+  return products;
 });
 
 export const getProductBySlug = cache(async function getProductBySlug(slug: string): Promise<ProductWithDetails | null> {
@@ -191,7 +202,7 @@ function transformProduct(product: any): ProductWithDetails {
 
   // Calcular stock total
   let totalStock = 0;
-  let lowestPrice = product.base_price;
+  const lowestPrice = product.base_price;
   let isLowStock = false;
 
   colors.forEach((color: any) => {

@@ -54,8 +54,6 @@ interface ProductColor {
   product_variants: ProductVariant[];
 }
 
-type ProductGender = 'men' | 'women' | 'kids' | 'unisex';
-
 interface Product {
   id: string;
   brand_id: string;
@@ -102,6 +100,13 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
   const router = useRouter();
   const isEditing = !!product;
 
+  const normalizeGender = (gender?: string) => {
+    if (gender === 'men') return 'hombre';
+    if (gender === 'women') return 'mujer';
+    if (gender === 'kids') return 'ninos';
+    return gender || 'unisex';
+  };
+
   const [formData, setFormData] = useState({
     brand_id: product?.brand_id || '',
     category_id: product?.category_id || '',
@@ -112,7 +117,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     base_price: product?.base_price || 0,
     compare_at_price: product?.compare_at_price || '',
     status: product?.status || 'draft',
-    gender: product?.gender || 'unisex',
+    gender: normalizeGender(product?.gender),
     is_featured: product?.is_featured || false,
     meta_title: product?.meta_title || '',
     meta_description: product?.meta_description || '',
@@ -191,26 +196,6 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     });
   };
 
-  const generateVariantsForColor = (colorIndex: number) => {
-    const color = colors[colorIndex];
-    const existingSizes = new Set(color.product_variants.map((variant) => variant.size_us));
-    const variants: ProductVariant[] = [
-      ...color.product_variants,
-      ...STANDARD_SIZES.filter((size) => !existingSizes.has(size.us)).map((size) => ({
-        size_us: size.us,
-        size_eu: size.eu,
-        size_uk: size.uk,
-        size_cm: size.cm,
-        sku: `${formData.sku}-${color.sku_suffix}-${size.us}`.toUpperCase(),
-        stock_quantity: 0,
-        low_stock_threshold: 5,
-        price_override: null,
-        is_available: true,
-      })),
-    ];
-    updateColor(colorIndex, { product_variants: variants });
-  };
-
   const addVariantForSize = (colorIndex: number, size: (typeof STANDARD_SIZES)[number]) => {
     const color = colors[colorIndex];
     const alreadyExists = color.product_variants.some((variant) => variant.size_us === size.us);
@@ -284,6 +269,11 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     const supabase = createClient();
 
     try {
+      const compareAtPrice =
+        formData.compare_at_price && Number(formData.compare_at_price) > Number(formData.base_price)
+          ? Number(formData.compare_at_price)
+          : null;
+
       const productData = {
         brand_id: formData.brand_id,
         category_id: formData.category_id,
@@ -292,7 +282,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
         sku: formData.sku,
         description: formData.description || null,
         base_price: formData.base_price,
-        compare_at_price: formData.compare_at_price ? Number(formData.compare_at_price) : null,
+        compare_at_price: compareAtPrice,
         status: formData.status,
         gender: formData.gender,
         is_featured: formData.is_featured,
@@ -624,9 +614,9 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                   required
                 >
                   <option value="unisex">Unisex</option>
-                  <option value="men">Hombre</option>
-                  <option value="women">Mujer</option>
-                  <option value="kids">Niños</option>
+                  <option value="hombre">Hombre</option>
+                  <option value="mujer">Mujer</option>
+                  <option value="ninos">Niños</option>
                 </select>
               </div>
 
@@ -829,15 +819,9 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                       Selecciona solo las tallas que tienes para este color.
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => generateVariantsForColor(colorIndex)}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Todas
-                  </Button>
+                  <span className="text-xs font-medium text-gray-500">
+                    Ninguna talla se selecciona automáticamente.
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">

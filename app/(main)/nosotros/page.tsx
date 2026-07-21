@@ -1,3 +1,6 @@
+import Image from 'next/image';
+import { Heart, ShieldCheck, Sparkles } from 'lucide-react';
+
 export const metadata = {
   title: 'Nuestra historia | Calle Ocho Store',
   description: 'Conoce la historia y el propósito de Calle Ocho Store.',
@@ -5,27 +8,44 @@ export const metadata = {
 
 export default function NosotrosPage() {
   return (
-    <main className="container mx-auto px-4 py-10 sm:py-14">
-      <section className="mx-auto max-w-3xl">
-        <h1 className="mb-3 text-3xl font-bold text-brand-black sm:text-4xl">
-          Nuestra historia
-        </h1>
-        <p className="mb-6 text-gray-600">
-          Calle Ocho Store nace para acercar calzado urbano, cómodo y auténtico a quienes buscan estilo en cada paso.
-        </p>
-        <div className="space-y-5 text-gray-700">
-          <p>
-            Somos una tienda enfocada en tenis y sneakers de marcas reconocidas, con una experiencia de compra sencilla,
-            clara y pensada para Guatemala.
-          </p>
-          <p>
-            Nuestro objetivo es ayudarte a encontrar el par correcto, con información visible sobre talla, disponibilidad,
-            precio y estado del pedido.
-          </p>
-          <p>
-            Seguimos construyendo una tienda más ordenada, segura y fácil de administrar, para que cada compra se sienta
-            confiable de inicio a fin.
-          </p>
+    <main>
+      <section className="relative min-h-[380px] overflow-hidden">
+        <Image
+          src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1800&auto=format&fit=crop"
+          alt="Estilo urbano Calle Ocho Store"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-transparent" />
+        <div className="container relative z-10 mx-auto flex min-h-[380px] items-center px-4 text-white">
+          <div className="max-w-2xl">
+            <Sparkles className="mb-4 h-9 w-9" />
+            <h1 className="text-4xl font-bold sm:text-5xl">Nuestra historia</h1>
+            <p className="mt-4 text-lg text-white/90">
+              Calzado urbano, cómodo y auténtico para quienes buscan estilo en cada paso.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="container mx-auto px-4 py-12">
+        <div className="grid gap-5 md:grid-cols-3">
+          <div className="rounded-lg border border-gray-200 bg-white p-5">
+            <Heart className="mb-3 h-6 w-6 text-brand-blue" />
+            <h2 className="font-semibold text-brand-black">Enfoque</h2>
+            <p className="mt-2 text-gray-600">Tenis y sneakers de marcas reconocidas, con una experiencia sencilla y clara.</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-white p-5">
+            <ShieldCheck className="mb-3 h-6 w-6 text-brand-blue" />
+            <h2 className="font-semibold text-brand-black">Confianza</h2>
+            <p className="mt-2 text-gray-600">Información visible sobre talla, disponibilidad, precio y estado del pedido.</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-white p-5">
+            <Sparkles className="mb-3 h-6 w-6 text-brand-blue" />
+            <h2 className="font-semibold text-brand-black">Evolución</h2>
+            <p className="mt-2 text-gray-600">Seguimos construyendo una tienda más ordenada, segura y fácil de administrar.</p>
+          </div>
         </div>
       </section>
     </main>
