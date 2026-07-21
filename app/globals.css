@@ -99,7 +99,8 @@
   }
 
   .admin-shell {
-    @apply bg-gray-50 text-gray-900;
+    background-color: #f9fafb;
+    color: #111827;
   }
 
   .admin-shell .bg-white,
@@ -121,7 +122,13 @@
   .admin-shell input,
   .admin-shell textarea,
   .admin-shell select {
-    @apply bg-white text-gray-900 placeholder:text-gray-500;
+    background-color: #fff;
+    color: #111827;
+  }
+
+  .admin-shell input::placeholder,
+  .admin-shell textarea::placeholder {
+    color: #6b7280;
   }
 
   .admin-shell .bg-brand-blue,
