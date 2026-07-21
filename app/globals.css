@@ -81,11 +81,11 @@
   }
 
   .dark body:not(.admin-shell) .text-brand-black {
-    @apply text-white;
+    color: #fff;
   }
 
   .dark body:not(.admin-shell) .hover\:text-brand-black:hover {
-    @apply text-white;
+    color: #fff;
   }
 
   .dark .admin-shell .text-brand-black,
@@ -127,7 +127,7 @@
   .admin-shell .bg-brand-blue,
   .admin-shell .bg-brand-blue *,
   .admin-shell .text-white {
-    color: white;
+    color: #fff;
   }
 }
 
