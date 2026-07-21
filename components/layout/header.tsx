@@ -94,6 +94,19 @@ export function Header() {
               </Button>
             </Link>
 
+            {user && (
+              <Link href="/admin" className="hidden md:block">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2 border-brand-blue text-brand-blue hover:bg-blue-50"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  Admin
+                </Button>
+              </Link>
+            )}
+
             {/* Cart */}
             <Button
               size="icon"

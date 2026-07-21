@@ -271,9 +271,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
             <p className="text-sm font-medium text-brand-black">
               Talla: <span className="font-normal text-gray-600">{selectedVariant?.size_us || 'Selecciona una talla'}</span>
             </p>
-            <button className="text-xs sm:text-sm text-brand-blue hover:underline">
+            <Link href="/guia-de-tallas" className="text-base font-semibold text-brand-blue hover:underline">
               Guía de tallas
-            </button>
+            </Link>
           </div>
           <div className="flex flex-wrap gap-2">
             {variants.map((variant) => {

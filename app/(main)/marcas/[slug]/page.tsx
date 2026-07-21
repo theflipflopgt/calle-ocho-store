@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import { getProducts, getBrands, getCategories } from '@/lib/queries/products';
+import { getProducts, getCategories } from '@/lib/queries/products';
 import { ProductGrid } from '@/components/products/product-grid';
 import { CatalogFilters } from '@/components/products/catalog-filters';
 import { Loader2 } from 'lucide-react';
@@ -13,6 +13,7 @@ interface PageProps {
     categoria?: string;
     genero?: string;
     sort?: string;
+    talla?: string;
   }>;
 }
 
@@ -44,14 +45,14 @@ async function ProductsContent({
 }) {
   const params = await searchParams;
 
-  const [products, brands, categories] = await Promise.all([
+  const [products, categories] = await Promise.all([
     getProducts({
       brandSlug: slug,
       categorySlug: params.categoria,
       gender: params.genero as any,
       sortBy: params.sort as any,
+      size: params.talla,
     }),
-    getBrands(),
     getCategories(),
   ]);
 
@@ -64,6 +65,8 @@ async function ProductsContent({
         currentSort={params.sort}
         showGenderFilter={true}
         currentGender={params.genero}
+        currentSize={params.talla}
+        sizeGroup={params.genero === 'ninos' ? 'kids' : 'adult'}
       />
 
       <div className="flex-1">

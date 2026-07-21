@@ -5,10 +5,20 @@ import {
 } from '@/lib/home-content-defaults';
 
 function mergeHomeContent(content: Partial<HomeContent> | null | undefined): HomeContent {
+  const incomingHero: Partial<HomeContent['hero']> = content?.hero || {};
+
   return {
     hero: {
       ...DEFAULT_HOME_CONTENT.hero,
-      ...(content?.hero || {}),
+      ...incomingHero,
+      mode: incomingHero.mode === 'slider' ? 'slider' : 'video',
+      slides:
+        Array.isArray(incomingHero.slides) && incomingHero.slides.length > 0
+          ? incomingHero.slides.map((slide, index) => ({
+              ...DEFAULT_HOME_CONTENT.hero.slides[index % DEFAULT_HOME_CONTENT.hero.slides.length],
+              ...slide,
+            }))
+          : DEFAULT_HOME_CONTENT.hero.slides,
     },
     categories:
       Array.isArray(content?.categories) && content.categories.length > 0

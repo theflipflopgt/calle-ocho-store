@@ -78,23 +78,97 @@ interface ProductFormProps {
   categories: Category[];
 }
 
-// Standard US sizes for sneakers
-const STANDARD_SIZES = [
-  { us: 6, eu: 38.5, uk: 5.5, cm: 24 },
-  { us: 6.5, eu: 39, uk: 6, cm: 24.5 },
+type ShoeSize = {
+  us: number;
+  eu: number;
+  uk: number;
+  cm: number;
+};
+
+const WOMEN_SIZES: ShoeSize[] = [
+  { us: 5, eu: 34.5, uk: 2.5, cm: 22 },
+  { us: 5.5, eu: 35, uk: 3, cm: 22.5 },
+  { us: 6, eu: 36, uk: 3.5, cm: 23 },
+  { us: 6.5, eu: 36.5, uk: 4, cm: 23.5 },
+  { us: 7, eu: 37, uk: 4.5, cm: 24 },
+  { us: 7.5, eu: 38, uk: 5, cm: 24.5 },
+  { us: 8, eu: 38.5, uk: 5.5, cm: 25 },
+  { us: 8.5, eu: 39, uk: 6, cm: 25.5 },
+  { us: 9, eu: 39.5, uk: 6.5, cm: 26 },
+  { us: 9.5, eu: 40.5, uk: 7, cm: 26.5 },
+  { us: 10, eu: 41, uk: 7.5, cm: 27 },
+];
+
+const MEN_SIZES: ShoeSize[] = [
   { us: 7, eu: 40, uk: 6.5, cm: 25 },
   { us: 7.5, eu: 40.5, uk: 7, cm: 25.5 },
   { us: 8, eu: 41, uk: 7.5, cm: 26 },
-  { us: 8.5, eu: 42, uk: 8, cm: 26.5 },
-  { us: 9, eu: 42.5, uk: 8.5, cm: 27 },
-  { us: 9.5, eu: 43, uk: 9, cm: 27.5 },
-  { us: 10, eu: 44, uk: 9.5, cm: 28 },
-  { us: 10.5, eu: 44.5, uk: 10, cm: 28.5 },
-  { us: 11, eu: 45, uk: 10.5, cm: 29 },
-  { us: 11.5, eu: 45.5, uk: 11, cm: 29.5 },
+  { us: 8.5, eu: 41.5, uk: 8, cm: 26.5 },
+  { us: 9, eu: 42, uk: 8.5, cm: 27 },
+  { us: 9.5, eu: 42.5, uk: 9, cm: 27.5 },
+  { us: 10, eu: 43, uk: 9.5, cm: 28 },
+  { us: 10.5, eu: 44, uk: 10, cm: 28.5 },
+  { us: 11, eu: 44.5, uk: 10.5, cm: 29 },
+  { us: 11.5, eu: 45, uk: 11, cm: 29.5 },
   { us: 12, eu: 46, uk: 11.5, cm: 30 },
-  { us: 13, eu: 47.5, uk: 12.5, cm: 31 },
+  { us: 13, eu: 46.5, uk: 12.5, cm: 31 },
 ];
+
+const KIDS_SIZES: ShoeSize[] = [
+  { us: 8.5, eu: 26, uk: 8, cm: 14.5 },
+  { us: 9, eu: 26.5, uk: 8.5, cm: 15 },
+  { us: 9.5, eu: 27, uk: 9, cm: 15.5 },
+  { us: 10, eu: 27.5, uk: 9.5, cm: 16 },
+  { us: 10.5, eu: 28, uk: 10, cm: 16.5 },
+  { us: 11, eu: 28.5, uk: 10.5, cm: 17 },
+  { us: 11.5, eu: 29, uk: 11, cm: 16.5 },
+  { us: 12, eu: 29.7, uk: 11.5, cm: 17 },
+  { us: 12.5, eu: 30.5, uk: 12, cm: 17.5 },
+  { us: 13, eu: 31, uk: 12.5, cm: 18 },
+  { us: 13.5, eu: 31.5, uk: 13, cm: 18.5 },
+  { us: 1, eu: 33, uk: 13.5, cm: 19 },
+  { us: 1.5, eu: 33.5, uk: 1, cm: 19.5 },
+  { us: 2, eu: 34, uk: 1.5, cm: 20 },
+  { us: 2.5, eu: 34.7, uk: 2, cm: 20.5 },
+  { us: 3, eu: 35, uk: 2.5, cm: 21 },
+  { us: 3.5, eu: 35.5, uk: 3, cm: 21.5 },
+  { us: 4, eu: 36, uk: 3.5, cm: 22 },
+  { us: 4.5, eu: 37, uk: 4, cm: 22.5 },
+  { us: 5, eu: 37.5, uk: 4.5, cm: 23 },
+];
+
+const UNISEX_SIZES: ShoeSize[] = [
+  { us: 5, eu: 35, uk: 3, cm: 22.5 },
+  { us: 5.5, eu: 35, uk: 3, cm: 22.5 },
+  { us: 6, eu: 36, uk: 3.5, cm: 23 },
+  { us: 6.5, eu: 36.5, uk: 4, cm: 23.5 },
+  { us: 7, eu: 40, uk: 6.5, cm: 25 },
+  { us: 7.5, eu: 40.5, uk: 7, cm: 25.5 },
+  { us: 8, eu: 41, uk: 7.5, cm: 26 },
+  { us: 8.5, eu: 41.5, uk: 8, cm: 26.5 },
+  { us: 9, eu: 42, uk: 8.5, cm: 27 },
+  { us: 9.5, eu: 42.5, uk: 9, cm: 27.5 },
+  { us: 10, eu: 43, uk: 9.5, cm: 28 },
+  { us: 10.5, eu: 44, uk: 10, cm: 28.5 },
+  { us: 11, eu: 44.5, uk: 10.5, cm: 29 },
+  { us: 11.5, eu: 45, uk: 11, cm: 29.5 },
+  { us: 12, eu: 46, uk: 11.5, cm: 30 },
+  { us: 13, eu: 46.5, uk: 12.5, cm: 31 },
+];
+
+const getSizesForGender = (gender: string) => {
+  if (gender === 'hombre') return MEN_SIZES;
+  if (gender === 'mujer') return WOMEN_SIZES;
+  if (gender === 'ninos') return KIDS_SIZES;
+  return UNISEX_SIZES;
+};
+
+const getSizeGuideLabel = (gender: string) => {
+  if (gender === 'hombre') return 'Caballero';
+  if (gender === 'mujer') return 'Dama';
+  if (gender === 'ninos') return 'Niños';
+  return 'Unisex adulto';
+};
 
 export function ProductForm({ product, brands, categories }: ProductFormProps) {
   const router = useRouter();
@@ -131,6 +205,8 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'info' | 'colors' | 'seo'>('info');
+  const availableSizes = getSizesForGender(formData.gender);
+  const sizeGuideLabel = getSizeGuideLabel(formData.gender);
 
   const handleNameChange = (name: string) => {
     setFormData((prev) => ({
@@ -196,7 +272,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     });
   };
 
-  const addVariantForSize = (colorIndex: number, size: (typeof STANDARD_SIZES)[number]) => {
+  const addVariantForSize = (colorIndex: number, size: ShoeSize) => {
     const color = colors[colorIndex];
     const alreadyExists = color.product_variants.some((variant) => variant.size_us === size.us);
 
@@ -236,7 +312,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     });
   };
 
-  const toggleSizeForColor = (colorIndex: number, size: (typeof STANDARD_SIZES)[number]) => {
+  const toggleSizeForColor = (colorIndex: number, size: ShoeSize) => {
     const variantIndex = colors[colorIndex].product_variants.findIndex(
       (variant) => variant.size_us === size.us
     );
@@ -354,52 +430,98 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
           colorId = data.id;
         }
 
-        // Handle images
-        for (const image of color.product_color_images) {
-          if (!image.image_url) continue;
-
-          const imageData = {
+        const imageRows = color.product_color_images
+          .filter((image) => image.image_url)
+          .map((image) => ({
+            id: image.id,
             product_color_id: colorId,
             image_url: image.image_url,
             alt_text: image.alt_text || null,
             display_order: image.display_order ?? 0,
             image_type: image.image_type || 'front',
-          };
+          }));
 
-          if (image.id) {
-            await supabase
+        const existingImages = imageRows.filter((image) => image.id);
+        const newImages = imageRows
+          .filter((image) => !image.id)
+          .map((image) => ({
+            product_color_id: image.product_color_id,
+            image_url: image.image_url,
+            alt_text: image.alt_text,
+            display_order: image.display_order,
+            image_type: image.image_type,
+          }));
+
+        const imageUpdateResults = await Promise.all(
+          existingImages.map((image) => {
+            const { id, ...imageData } = image;
+            return supabase
               .from('product_color_images')
               .update(imageData)
-              .eq('id', image.id);
-          } else {
-            await supabase.from('product_color_images').insert(imageData);
-          }
+              .eq('id', id!);
+          })
+        );
+        const imageUpdateError = imageUpdateResults.find((result) => result.error)?.error;
+        if (imageUpdateError) throw imageUpdateError;
+
+        if (newImages.length > 0) {
+          const { error: insertImagesError } = await supabase
+            .from('product_color_images')
+            .insert(newImages);
+
+          if (insertImagesError) throw insertImagesError;
         }
 
-        // Handle variants
-        for (const variant of color.product_variants) {
-          const variantData = {
-            product_id: productId,
-            product_color_id: colorId,
+        const variantRows = color.product_variants.map((variant) => ({
+          id: variant.id,
+          product_id: productId,
+          product_color_id: colorId,
+          size_us: variant.size_us,
+          size_eu: variant.size_eu,
+          size_uk: variant.size_uk,
+          size_cm: variant.size_cm,
+          sku: variant.sku,
+          stock_quantity: variant.stock_quantity,
+          low_stock_threshold: variant.low_stock_threshold ?? 5,
+          price_override: variant.price_override || null,
+          is_available: variant.is_available ?? true,
+        }));
+
+        const existingVariants = variantRows.filter((variant) => variant.id);
+        const newVariants = variantRows
+          .filter((variant) => !variant.id)
+          .map((variant) => ({
+            product_id: variant.product_id,
+            product_color_id: variant.product_color_id,
             size_us: variant.size_us,
             size_eu: variant.size_eu,
             size_uk: variant.size_uk,
             size_cm: variant.size_cm,
             sku: variant.sku,
             stock_quantity: variant.stock_quantity,
-            low_stock_threshold: variant.low_stock_threshold ?? 5,
-            price_override: variant.price_override || null,
-            is_available: variant.is_available ?? true,
-          };
+            low_stock_threshold: variant.low_stock_threshold,
+            price_override: variant.price_override,
+            is_available: variant.is_available,
+          }));
 
-          if (variant.id) {
-            await supabase
+        const variantUpdateResults = await Promise.all(
+          existingVariants.map((variant) => {
+            const { id, ...variantData } = variant;
+            return supabase
               .from('product_variants')
               .update(variantData)
-              .eq('id', variant.id);
-          } else {
-            await supabase.from('product_variants').insert(variantData);
-          }
+              .eq('id', id!);
+          })
+        );
+        const variantUpdateError = variantUpdateResults.find((result) => result.error)?.error;
+        if (variantUpdateError) throw variantUpdateError;
+
+        if (newVariants.length > 0) {
+          const { error: insertVariantsError } = await supabase
+            .from('product_variants')
+            .insert(newVariants);
+
+          if (insertVariantsError) throw insertVariantsError;
         }
       }
 
@@ -816,7 +938,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                   <div>
                     <Label>Variantes (Tallas)</Label>
                     <p className="text-xs text-gray-500">
-                      Selecciona solo las tallas que tienes para este color.
+                      Guía aplicada: {sizeGuideLabel}. Selecciona solo las tallas que tienes para este color.
                     </p>
                   </div>
                   <span className="text-xs font-medium text-gray-500">
@@ -825,7 +947,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                 </div>
 
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
-                  {STANDARD_SIZES.map((size) => {
+                  {availableSizes.map((size) => {
                     const selected = color.product_variants.some(
                       (variant) => variant.size_us === size.us
                     );

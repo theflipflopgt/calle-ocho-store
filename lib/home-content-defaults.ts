@@ -8,8 +8,20 @@ export interface HomeCategoryContent {
   overlay: 'dark' | 'sale';
 }
 
+export interface HomeHeroSlide {
+  image: string;
+  mobileImage?: string;
+  alt: string;
+  titleLine1: string;
+  titleLine2: string;
+  subtitle: string;
+  buttonLabel: string;
+  buttonHref: string;
+}
+
 export interface HomeContent {
   hero: {
+    mode: 'video' | 'slider';
     desktopVideoSrc: string;
     mobileVideoSrc: string;
     fallbackImage: string;
@@ -18,12 +30,14 @@ export interface HomeContent {
     subtitle: string;
     buttonLabel: string;
     buttonHref: string;
+    slides: HomeHeroSlide[];
   };
   categories: HomeCategoryContent[];
 }
 
 export const DEFAULT_HOME_CONTENT: HomeContent = {
   hero: {
+    mode: 'video',
     desktopVideoSrc:
       'https://res.cloudinary.com/dv5nlnc0r/video/upload/q_auto,f_auto/v1770445271/video-h_ktgozh.mp4',
     mobileVideoSrc:
@@ -35,6 +49,32 @@ export const DEFAULT_HOME_CONTENT: HomeContent = {
     subtitle: 'Los mejores sneakers de las marcas más exclusivas',
     buttonLabel: 'COMPRAR AHORA',
     buttonHref: '/hombre',
+    slides: [
+      {
+        image:
+          'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop',
+        mobileImage:
+          'https://images.unsplash.com/photo-1514989940723-e8e51635b782?q=80&w=1200&auto=format&fit=crop',
+        alt: 'Tenis destacados calleOCHO',
+        titleLine1: 'Descubre tu',
+        titleLine2: 'Estilo Único',
+        subtitle: 'Los mejores sneakers de las marcas más exclusivas',
+        buttonLabel: 'COMPRAR AHORA',
+        buttonHref: '/hombre',
+      },
+      {
+        image:
+          'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?q=80&w=2071&auto=format&fit=crop',
+        mobileImage:
+          'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?q=80&w=1200&auto=format&fit=crop',
+        alt: 'Ofertas de calzado calleOCHO',
+        titleLine1: 'Nuevas',
+        titleLine2: 'Llegadas',
+        subtitle: 'Modelos listos para estrenar con asesoría de tallas',
+        buttonLabel: 'VER NOVEDADES',
+        buttonHref: '/hombre',
+      },
+    ],
   },
   categories: [
     {

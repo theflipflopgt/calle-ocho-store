@@ -10,6 +10,7 @@ interface GetProductsOptions {
   search?: string;
   limit?: number;
   offset?: number;
+  size?: string;
   sortBy?: 'newest' | 'price-asc' | 'price-desc' | 'name';
 }
 
@@ -95,11 +96,27 @@ export const getProducts = cache(async function getProducts(options: GetProducts
 
   const products = (data || []).map(transformProduct);
 
-  if (options.onSale) {
-    return products.filter((product) => product.hasDiscount);
+  let filteredProducts = products;
+
+  if (options.size) {
+    const selectedSize = Number(options.size);
+    filteredProducts = filteredProducts.filter((product) =>
+      product.colors.some((color) =>
+        color.variants.some(
+          (variant) =>
+            variant.size_us === selectedSize &&
+            variant.is_available &&
+            Number(variant.stock_quantity || 0) > 0
+        )
+      )
+    );
   }
 
-  return products;
+  if (options.onSale) {
+    filteredProducts = filteredProducts.filter((product) => product.hasDiscount);
+  }
+
+  return filteredProducts;
 });
 
 export const getProductBySlug = cache(async function getProductBySlug(slug: string): Promise<ProductWithDetails | null> {

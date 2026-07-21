@@ -32,6 +32,10 @@ export async function getProductExportRows(db: any) {
       categories:category_id (name),
       product_colors (
         color_name,
+        product_color_images (
+          image_url,
+          display_order
+        ),
         product_variants (
           sku,
           size_us,
@@ -223,6 +227,11 @@ export function rowsToCatalogProducts(rows: any[]) {
         sku: product.sku || '',
         price: formatPrice(Number(product.base_price || 0)),
         status: product.status || '',
+        imageUrl:
+          color?.product_color_images
+            ?.slice()
+            .sort((a: any, b: any) => Number(a.display_order || 0) - Number(b.display_order || 0))
+            ?.[0]?.image_url || null,
         variants: [] as string[],
       });
     }
@@ -230,9 +239,9 @@ export function rowsToCatalogProducts(rows: any[]) {
     if (variant?.is_available && Number(variant.stock_quantity || 0) > 0) {
       map
         .get(product.id)
-        .variants.push(`${color?.color_name || 'Color'} US ${variant.size_us} (${variant.stock_quantity})`);
+        .variants.push(`${color?.color_name || 'Color'} US ${variant.size_us} - ${variant.stock_quantity} disp.`);
     }
   }
 
-  return Array.from(map.values());
+  return Array.from(map.values()).filter((product) => product.variants.length > 0);
 }

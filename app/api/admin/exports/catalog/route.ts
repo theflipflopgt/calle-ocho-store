@@ -7,6 +7,8 @@ import {
 import { createCatalogPdf } from '@/lib/exports/pdf';
 import { exportDateStamp } from '@/lib/exports/xlsx';
 
+export const runtime = 'nodejs';
+
 export async function GET() {
   const auth = await requireAdminExport();
   if (auth.error) return auth.error;
@@ -16,7 +18,7 @@ export async function GET() {
     const products = rowsToCatalogProducts(
       rows.filter(({ product }) => product.status === 'active')
     );
-    const file = createCatalogPdf(products);
+    const file = await createCatalogPdf(products);
 
     return new NextResponse(new Uint8Array(file), {
       headers: {

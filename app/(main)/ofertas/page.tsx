@@ -10,6 +10,7 @@ interface PageProps {
     categoria?: string;
     genero?: string;
     sort?: string;
+    talla?: string;
   }>;
 }
 
@@ -28,6 +29,7 @@ async function ProductsContent({ searchParams }: { searchParams: PageProps['sear
       categorySlug: params.categoria,
       gender: params.genero as any,
       sortBy: params.sort as any,
+      size: params.talla,
     }),
     getBrands(),
     getCategories(),
@@ -43,6 +45,8 @@ async function ProductsContent({ searchParams }: { searchParams: PageProps['sear
         currentSort={params.sort}
         showGenderFilter={true}
         currentGender={params.genero}
+        currentSize={params.talla}
+        sizeGroup={params.genero === 'ninos' ? 'kids' : 'adult'}
       />
 
       <div className="flex-1">

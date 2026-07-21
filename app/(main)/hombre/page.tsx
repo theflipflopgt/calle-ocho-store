@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { getProducts, getBrands, getCategories } from '@/lib/queries/products';
 import { ProductGrid } from '@/components/products/product-grid';
 import { CatalogFilters } from '@/components/products/catalog-filters';
+import { FreeShippingBand } from '@/components/layout/free-shipping-band';
 import { Loader2 } from 'lucide-react';
 
 interface PageProps {
@@ -9,6 +10,7 @@ interface PageProps {
     marca?: string;
     categoria?: string;
     sort?: string;
+    talla?: string;
   }>;
 }
 
@@ -26,6 +28,7 @@ async function ProductsContent({ searchParams }: { searchParams: PageProps['sear
       brandSlug: params.marca,
       categorySlug: params.categoria,
       sortBy: params.sort as any,
+      size: params.talla,
     }),
     getBrands(),
     getCategories(),
@@ -39,11 +42,13 @@ async function ProductsContent({ searchParams }: { searchParams: PageProps['sear
         currentBrand={params.marca}
         currentCategory={params.categoria}
         currentSort={params.sort}
+        currentSize={params.talla}
+        sizeGroup="adult"
       />
 
       <div className="flex-1">
         <div className="mb-4 sm:mb-6">
-          <p className="text-sm text-gray-600">
+          <p className="text-base font-medium text-gray-700">
             {products.length} producto{products.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -62,13 +67,15 @@ export default async function HombrePage({ searchParams }: PageProps) {
     <main className="container mx-auto px-4 py-6 sm:py-8">
       {/* Header */}
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-black mb-2">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-brand-black mb-3">
           Tenis para Hombre
         </h1>
-        <p className="text-sm sm:text-base text-gray-600">
+        <p className="text-lg sm:text-xl text-gray-700">
           Encuentra el estilo perfecto para ti
         </p>
       </div>
+
+      <FreeShippingBand compact />
 
       <Suspense fallback={
         <div className="flex items-center justify-center py-20">

@@ -89,6 +89,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/guia-de-tallas" className="hover:text-white transition-colors">
+                  Guía de tallas
+                </Link>
+              </li>
+              <li>
                 <Link href="/devoluciones" className="hover:text-white transition-colors">
                   Devoluciones
                 </Link>

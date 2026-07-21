@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, Plus, Save, Trash2, Video } from 'lucide-react';
+import { ImageIcon, Loader2, Plus, Save, Trash2, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ import {
   DEFAULT_HOME_CONTENT,
   type HomeCategoryContent,
   type HomeContent,
+  type HomeHeroSlide,
 } from '@/lib/home-content-defaults';
 
 function blankCategory(order: number): HomeCategoryContent {
@@ -21,6 +22,19 @@ function blankCategory(order: number): HomeCategoryContent {
     image: '',
     alt: '',
     overlay: 'dark',
+  };
+}
+
+function blankSlide(order: number): HomeHeroSlide {
+  return {
+    image: '',
+    mobileImage: '',
+    alt: `Slide principal ${order}`,
+    titleLine1: 'Nueva',
+    titleLine2: 'Colección',
+    subtitle: 'Edita este texto desde el panel de inicio.',
+    buttonLabel: 'COMPRAR AHORA',
+    buttonHref: '/hombre',
   };
 }
 
@@ -45,6 +59,11 @@ export default function AdminHomeContentPage() {
           hero: {
             ...DEFAULT_HOME_CONTENT.hero,
             ...(data.content.hero || {}),
+            mode: data.content.hero?.mode === 'slider' ? 'slider' : 'video',
+            slides:
+              Array.isArray(data.content.hero?.slides) && data.content.hero.slides.length > 0
+                ? data.content.hero.slides
+                : DEFAULT_HOME_CONTENT.hero.slides,
           },
           categories:
             Array.isArray(data.content.categories) && data.content.categories.length > 0
@@ -63,6 +82,38 @@ export default function AdminHomeContentPage() {
     setContent((current) => ({
       ...current,
       hero: { ...current.hero, ...updates },
+    }));
+  };
+
+  const updateSlide = (index: number, updates: Partial<HomeHeroSlide>) => {
+    setContent((current) => ({
+      ...current,
+      hero: {
+        ...current.hero,
+        slides: current.hero.slides.map((slide, slideIndex) =>
+          slideIndex === index ? { ...slide, ...updates } : slide
+        ),
+      },
+    }));
+  };
+
+  const addSlide = () => {
+    setContent((current) => ({
+      ...current,
+      hero: {
+        ...current.hero,
+        slides: [...current.hero.slides, blankSlide(current.hero.slides.length + 1)],
+      },
+    }));
+  };
+
+  const removeSlide = (index: number) => {
+    setContent((current) => ({
+      ...current,
+      hero: {
+        ...current.hero,
+        slides: current.hero.slides.filter((_, slideIndex) => slideIndex !== index),
+      },
     }));
   };
 
@@ -162,6 +213,38 @@ export default function AdminHomeContentPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="space-y-2 lg:col-span-2">
+            <Label>Modo del hero</Label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => updateHero({ mode: 'video' })}
+                className={`rounded-lg border px-4 py-3 text-left transition-colors ${
+                  content.hero.mode === 'video'
+                    ? 'border-brand-blue bg-blue-50 text-brand-blue'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-brand-blue'
+                }`}
+              >
+                <Video className="mb-2 h-5 w-5" />
+                <span className="block font-semibold">Video actual</span>
+                <span className="text-sm">Mantiene el video de fondo como está.</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => updateHero({ mode: 'slider' })}
+                className={`rounded-lg border px-4 py-3 text-left transition-colors ${
+                  content.hero.mode === 'slider'
+                    ? 'border-brand-blue bg-blue-50 text-brand-blue'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-brand-blue'
+                }`}
+              >
+                <ImageIcon className="mb-2 h-5 w-5" />
+                <span className="block font-semibold">Slider con flechas</span>
+                <span className="text-sm">Muestra imágenes cambiantes con flechas y puntos.</span>
+              </button>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Video desktop</Label>
             <Input
@@ -223,6 +306,107 @@ export default function AdminHomeContentPage() {
               placeholder="/hombre"
             />
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-gray-200 bg-white p-6">
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5 text-brand-blue" />
+              <h2 className="font-semibold text-brand-black">Slides del hero</h2>
+            </div>
+            <p className="mt-1 text-sm text-gray-600">
+              Se usan solo cuando el modo del hero está en Slider con flechas.
+            </p>
+          </div>
+          <Button type="button" variant="outline" onClick={addSlide}>
+            <Plus className="mr-2 h-4 w-4" />
+            Agregar slide
+          </Button>
+        </div>
+
+        <div className="space-y-5">
+          {content.hero.slides.map((slide, index) => (
+            <div key={index} className="rounded-lg border border-gray-200 p-4">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <p className="font-medium text-brand-black">Slide {index + 1}</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeSlide(index)}
+                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                  disabled={content.hero.slides.length <= 1}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div className="space-y-2 lg:col-span-2">
+                  <Label>Imagen desktop</Label>
+                  <Input
+                    value={slide.image}
+                    onChange={(event) => updateSlide(index, { image: event.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="space-y-2 lg:col-span-2">
+                  <Label>Imagen móvil opcional</Label>
+                  <Input
+                    value={slide.mobileImage || ''}
+                    onChange={(event) => updateSlide(index, { mobileImage: event.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Titulo linea 1</Label>
+                  <Input
+                    value={slide.titleLine1}
+                    onChange={(event) => updateSlide(index, { titleLine1: event.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Titulo destacado</Label>
+                  <Input
+                    value={slide.titleLine2}
+                    onChange={(event) => updateSlide(index, { titleLine2: event.target.value })}
+                  />
+                </div>
+                <div className="space-y-2 lg:col-span-2">
+                  <Label>Texto corto</Label>
+                  <Textarea
+                    value={slide.subtitle}
+                    onChange={(event) => updateSlide(index, { subtitle: event.target.value })}
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Texto del botón</Label>
+                  <Input
+                    value={slide.buttonLabel}
+                    onChange={(event) => updateSlide(index, { buttonLabel: event.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Link del botón</Label>
+                  <Input
+                    value={slide.buttonHref}
+                    onChange={(event) => updateSlide(index, { buttonHref: event.target.value })}
+                    placeholder="/hombre"
+                  />
+                </div>
+                <div className="space-y-2 lg:col-span-2">
+                  <Label>Texto alternativo</Label>
+                  <Input
+                    value={slide.alt}
+                    onChange={(event) => updateSlide(index, { alt: event.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

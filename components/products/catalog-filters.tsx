@@ -18,6 +18,8 @@ interface CatalogFiltersProps {
   currentSort?: string;
   showGenderFilter?: boolean;
   currentGender?: string;
+  currentSize?: string;
+  sizeGroup?: 'adult' | 'kids';
 }
 
 const sortOptions = [
@@ -35,6 +37,8 @@ export function CatalogFilters({
   currentSort = 'newest',
   showGenderFilter = false,
   currentGender,
+  currentSize,
+  sizeGroup = 'adult',
 }: CatalogFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -54,7 +58,12 @@ export function CatalogFilters({
     router.push(window.location.pathname);
   };
 
-  const hasActiveFilters = currentBrand || currentCategory || (showGenderFilter && currentGender);
+  const sizeOptions =
+    sizeGroup === 'kids'
+      ? ['1', '1.5', '2', '2.5', '3', '3.5', '4', '4.5', '5', '8.5', '9', '9.5', '10', '10.5', '11', '11.5', '12', '12.5', '13', '13.5']
+      : ['5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10', '10.5', '11', '11.5', '12', '13'];
+
+  const hasActiveFilters = currentBrand || currentCategory || currentSize || (showGenderFilter && currentGender);
 
   const FilterSection = ({ title, children }: { title: string; children: React.ReactNode }) => {
     const [isOpen, setIsOpen] = useState(true);
@@ -64,7 +73,7 @@ export function CatalogFilters({
           onClick={() => setIsOpen(!isOpen)}
           className="flex items-center justify-between w-full text-left"
         >
-          <span className="font-medium text-sm text-brand-black">{title}</span>
+          <span className="text-base font-semibold text-brand-black">{title}</span>
           <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
         </button>
         {isOpen && <div className="mt-3 space-y-2">{children}</div>}
@@ -81,10 +90,10 @@ export function CatalogFilters({
             key={option.value}
             onClick={() => updateFilter('sort', option.value)}
             className={cn(
-              "block w-full text-left px-2 py-1.5 text-sm rounded transition-colors",
+              "block w-full rounded px-3 py-2 text-left text-base transition-colors",
               currentSort === option.value
                 ? "bg-brand-black text-white"
-                : "text-gray-700 hover:bg-gray-100"
+                : "text-gray-800 hover:bg-gray-100"
             )}
           >
             {option.label}
@@ -100,10 +109,10 @@ export function CatalogFilters({
               key={brand.id}
               onClick={() => updateFilter('marca', currentBrand === brand.slug ? null : brand.slug)}
               className={cn(
-                "block w-full text-left px-2 py-1.5 text-sm rounded transition-colors",
+                "block w-full rounded px-3 py-2 text-left text-base transition-colors",
                 currentBrand === brand.slug
                   ? "bg-brand-black text-white"
-                  : "text-gray-700 hover:bg-gray-100"
+                  : "text-gray-800 hover:bg-gray-100"
               )}
             >
               {brand.name}
@@ -120,10 +129,10 @@ export function CatalogFilters({
               key={category.id}
               onClick={() => updateFilter('categoria', currentCategory === category.slug ? null : category.slug)}
               className={cn(
-                "block w-full text-left px-2 py-1.5 text-sm rounded transition-colors",
+                "block w-full rounded px-3 py-2 text-left text-base transition-colors",
                 currentCategory === category.slug
                   ? "bg-brand-black text-white"
-                  : "text-gray-700 hover:bg-gray-100"
+                  : "text-gray-800 hover:bg-gray-100"
               )}
             >
               {category.name}
@@ -135,7 +144,7 @@ export function CatalogFilters({
       {/* Género (solo si se muestra) */}
       {showGenderFilter && (
         <FilterSection title="Género">
-          {['hombre', 'mujer', 'unisex'].map((gender) => (
+          {['hombre', 'mujer', 'ninos', 'unisex'].map((gender) => (
             <button
               key={gender}
               onClick={() => updateFilter('genero', currentGender === gender ? null : gender)}
@@ -146,11 +155,30 @@ export function CatalogFilters({
                   : "text-gray-700 hover:bg-gray-100"
               )}
             >
-              {gender}
+              {gender === 'ninos' ? 'Niños' : gender}
             </button>
           ))}
         </FilterSection>
       )}
+
+      <FilterSection title="Talla US">
+        <div className="grid grid-cols-3 gap-2">
+          {sizeOptions.map((size) => (
+            <button
+              key={size}
+              onClick={() => updateFilter('talla', currentSize === size ? null : size)}
+              className={cn(
+                "rounded-lg border px-3 py-2 text-center text-base font-semibold transition-colors",
+                currentSize === size
+                  ? "border-brand-black bg-brand-black text-white"
+                  : "border-gray-200 text-gray-800 hover:border-brand-blue hover:text-brand-blue"
+              )}
+            >
+              {size}
+            </button>
+          ))}
+        </div>
+      </FilterSection>
 
       {/* Limpiar filtros */}
       {hasActiveFilters && (
@@ -181,7 +209,7 @@ export function CatalogFilters({
           Filtros y ordenar
           {hasActiveFilters && (
             <span className="bg-brand-black text-white text-xs px-1.5 py-0.5 rounded-full">
-              {[currentBrand, currentCategory, currentGender].filter(Boolean).length}
+              {[currentBrand, currentCategory, currentGender, currentSize].filter(Boolean).length}
             </span>
           )}
         </Button>
@@ -196,7 +224,7 @@ export function CatalogFilters({
           />
           <div className="fixed inset-y-0 right-0 w-[300px] bg-white z-50 lg:hidden overflow-y-auto">
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="font-semibold text-brand-black">Filtros</h2>
+          <h2 className="text-lg font-semibold text-brand-black">Filtros</h2>
               <button
                 onClick={() => setMobileFiltersOpen(false)}
                 className="p-1 hover:bg-gray-100 rounded"
