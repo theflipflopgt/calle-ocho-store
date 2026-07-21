@@ -32,7 +32,7 @@ export default function CartPage() {
     return (
       <main className="container mx-auto px-4 py-8 sm:py-12">
         <div className="max-w-md mx-auto text-center py-12 sm:py-20">
-          <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
             <ShoppingBag className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-brand-black mb-3">
@@ -101,7 +101,7 @@ export default function CartPage() {
 
         {/* Order Summary */}
         <div className="lg:col-span-1">
-          <div className="bg-gray-50 rounded-xl p-4 sm:p-6 sticky top-24">
+          <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 sm:p-6 sticky top-24">
             <h2 className="text-lg font-semibold text-brand-black mb-4">
               Resumen del pedido
             </h2>
@@ -181,11 +181,11 @@ function CartItemCard({ item, onUpdateQuantity, onRemove }: CartItemCardProps) {
   const hasDiscount = product.compare_at_price && product.compare_at_price > product.base_price;
 
   return (
-    <div className="flex gap-4 sm:gap-6 bg-white rounded-xl border border-gray-100 p-4 sm:p-6">
+    <div className="flex gap-4 sm:gap-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 sm:p-6">
       {/* Image */}
       <Link
         href={`/producto/${product.slug}`}
-        className="relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0"
+        className="relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0"
       >
         {image ? (
           <Image
@@ -224,7 +224,7 @@ function CartItemCard({ item, onUpdateQuantity, onRemove }: CartItemCardProps) {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mt-3 sm:mt-4">
           {/* Quantity */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center border border-gray-200 rounded-lg">
+            <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg">
               <button
                 onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
                 disabled={item.quantity <= 1}

@@ -43,29 +43,29 @@ export function Header() {
 
       {/* Main Header */}
       <div className="container mx-auto px-3 sm:px-4">
-        <div className="flex items-center justify-between h-16 sm:h-20 md:h-24">
+        <div className="flex items-center justify-between gap-3 h-20 sm:h-24 md:h-24">
           {/* Logo - dark/light variants */}
-          <Link href="/" className="flex-shrink-0">
+          <Link href="/" className="flex-shrink-0" aria-label="Ir al inicio">
             <Image
               src="/logo.png"
               alt="Calle Ocho Store"
-              width={120}
-              height={48}
-              className="h-11 sm:h-14 md:h-16 w-auto dark:hidden"
+              width={180}
+              height={60}
+              className="h-[52px] w-[156px] object-contain sm:h-[60px] sm:w-[180px] dark:hidden"
               priority
             />
             <Image
               src="/logo-light.png"
               alt="Calle Ocho Store"
-              width={120}
-              height={48}
-              className="h-11 sm:h-14 md:h-16 w-auto hidden dark:block"
+              width={180}
+              height={60}
+              className="hidden h-[52px] w-[156px] object-contain sm:h-[60px] sm:w-[180px] dark:block"
               priority
             />
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8 text-sm ml-12 lg:ml-16">
+          <nav className="hidden xl:flex items-center gap-7 text-sm ml-8">
             <Link href="/hombre" className="text-brand-black dark:text-white hover:text-brand-blue dark:hover:text-brand-blue transition-colors font-medium">
               Hombre
             </Link>
@@ -87,7 +87,7 @@ export function Header() {
           <HeaderSearchForm />
 
           {/* Actions */}
-          <div className="flex items-center gap-0.5 sm:gap-1 md:gap-3">
+          <div className="flex flex-shrink-0 items-center gap-0.5 sm:gap-1 md:gap-2">
             {/* Search Icon - Mobile */}
             <MobileSearchButton onClick={() => setSearchOpen(true)} />
 
@@ -131,11 +131,11 @@ export function Header() {
                       asChild
                       variant="outline"
                       size="sm"
-                      className="hidden lg:inline-flex gap-2 border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white"
+                      className="inline-flex gap-2 border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white"
                     >
                       <Link href="/admin">
                         <LayoutDashboard className="h-4 w-4" />
-                        Panel Admin
+                        <span className="hidden md:inline">Panel Admin</span>
                       </Link>
                     </Button>
                   )}

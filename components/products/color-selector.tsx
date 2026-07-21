@@ -38,9 +38,9 @@ export function ColorSelector({
               isSelected
                 ? "border-brand-black ring-2 ring-brand-black ring-offset-2"
                 : "border-gray-200 hover:border-gray-400",
-              !color.is_available && "opacity-50 cursor-not-allowed"
+              color.is_available === false && "opacity-50 cursor-not-allowed"
             )}
-            disabled={!color.is_available}
+            disabled={color.is_available === false}
             title={color.color_name}
           >
             {thumbnail ? (
@@ -57,7 +57,7 @@ export function ColorSelector({
             )}
 
             {/* Unavailable indicator */}
-            {!color.is_available && (
+            {color.is_available === false && (
               <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
                 <div className="w-full h-0.5 bg-gray-400 rotate-45" />
               </div>

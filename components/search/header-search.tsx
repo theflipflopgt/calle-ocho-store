@@ -20,7 +20,7 @@ export function HeaderSearchForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="hidden lg:flex items-center bg-gray-100 rounded-full px-4 py-2 flex-1 max-w-md ml-8"
+      className="hidden lg:flex items-center bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-2 flex-1 max-w-md ml-4 xl:ml-8"
     >
       <Search className="h-5 w-5 text-gray-500 mr-2 flex-shrink-0" />
       <Input
@@ -28,7 +28,7 @@ export function HeaderSearchForm() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Buscar productos..."
-        className="bg-transparent border-0 focus-visible:ring-0 text-sm h-auto p-0"
+        className="bg-transparent border-0 focus-visible:ring-0 text-sm h-auto p-0 text-brand-black dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
       />
       {query && (
         <button
@@ -48,7 +48,7 @@ export function MobileSearchButton({ onClick }: { onClick: () => void }) {
     <Button
       size="icon"
       variant="ghost"
-      className="lg:hidden text-brand-black w-9 h-9 sm:w-10 sm:h-10"
+      className="lg:hidden text-brand-black dark:text-white w-9 h-9 sm:w-10 sm:h-10"
       onClick={onClick}
     >
       <Search className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -82,7 +82,7 @@ export function MobileSearchModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 bg-white lg:hidden"
+          className="fixed inset-0 z-50 bg-white dark:bg-gray-950 lg:hidden"
         >
           <motion.div
             initial={{ y: -20 }}
@@ -100,7 +100,7 @@ export function MobileSearchModal({
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Buscar productos, marcas..."
                   autoFocus
-                  className="pl-10 h-12 rounded-full"
+                  className="pl-10 h-12 rounded-full text-brand-black dark:text-white"
                 />
               </div>
               <Button type="button" variant="ghost" onClick={onClose}>

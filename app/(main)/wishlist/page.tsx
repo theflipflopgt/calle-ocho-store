@@ -87,7 +87,7 @@ export default function WishlistPage() {
     return (
       <main className="container mx-auto px-4 py-8 sm:py-12">
         <div className="max-w-md mx-auto text-center py-12 sm:py-20">
-          <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
             <Heart className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-brand-black mb-3">
@@ -152,13 +152,13 @@ interface WishlistCardProps {
 function WishlistCard({ product, onRemove }: WishlistCardProps) {
   const firstColor = product.colors[0];
   const image = firstColor?.images[0]?.image_url;
-  const hasStock = firstColor?.variants?.some(v => v.is_available && v.stock_quantity > 0);
+  const hasStock = firstColor?.variants?.some(v => v.is_available !== false && v.stock_quantity > 0);
   const hasDiscount = product.compare_at_price && product.compare_at_price > product.base_price;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden group">
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden group">
       {/* Image */}
-      <div className="relative aspect-square bg-gray-100">
+      <div className="relative aspect-square bg-gray-100 dark:bg-gray-800">
         <Link href={`/producto/${product.slug}`}>
           {image ? (
             <Image

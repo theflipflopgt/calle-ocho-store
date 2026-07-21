@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/cart-context';
 import { formatPrice } from '@/lib/utils/currency';
-import { cn } from '@/lib/utils';
 
 export function CartDrawer() {
   const {
@@ -42,10 +41,10 @@ export function CartDrawer() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-y-0 right-0 z-50 w-full sm:w-[400px] md:w-[450px] bg-white shadow-2xl flex flex-col"
+            className="fixed inset-y-0 right-0 z-50 w-full sm:w-[400px] md:w-[450px] bg-white dark:bg-gray-950 shadow-2xl flex flex-col"
           >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-brand-black" />
             <h2 className="text-lg font-semibold text-brand-black">
@@ -59,7 +58,7 @@ export function CartDrawer() {
           </div>
           <button
             onClick={closeCart}
-            className="p-2 -mr-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 -mr-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -104,7 +103,7 @@ export function CartDrawer() {
 
         {/* Footer */}
         {items.length > 0 && (
-          <div className="border-t border-gray-100 px-4 sm:px-6 py-4 sm:py-6 space-y-4 bg-white">
+          <div className="border-t border-gray-100 dark:border-gray-800 px-4 sm:px-6 py-4 sm:py-6 space-y-4 bg-white dark:bg-gray-950">
             {/* Subtotal */}
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Subtotal</span>
@@ -185,7 +184,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
       {/* Image */}
       <Link
         href={`/producto/${product.slug}`}
-        className="relative w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0"
+        className="relative w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0"
       >
         {image ? (
           <Image
@@ -232,7 +231,7 @@ function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
         {/* Price & Quantity */}
         <div className="flex items-center justify-between mt-2 sm:mt-3">
           {/* Quantity Selector */}
-          <div className="flex items-center border border-gray-200 rounded-lg">
+          <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg">
             <button
               onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
               disabled={item.quantity <= 1}

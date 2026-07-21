@@ -66,7 +66,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const { user, isLoading: authLoading } = useAuth();
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   // Fetch cart items from database
   const fetchCartItems = useCallback(async () => {
@@ -84,18 +84,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           variant_id,
           quantity,
           price_at_add,
-          variant:product_variants!inner(
+          variant:product_variants!cart_items_variant_id_fkey(
             id,
             size_us,
             size_eu,
             sku,
             stock_quantity,
-            product_color:product_colors!inner(
+            product_color:product_colors!product_variants_product_color_id_fkey(
               id,
               color_name,
               color_code,
               images:product_color_images(image_url),
-              product:products!inner(
+              product:products!product_colors_product_id_fkey(
                 id,
                 name,
                 slug,
@@ -237,12 +237,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           size_eu,
           sku,
           stock_quantity,
-          product_color:product_colors!inner(
+          product_color:product_colors!product_variants_product_color_id_fkey(
             id,
             color_name,
             color_code,
             images:product_color_images(image_url),
-            product:products!inner(
+            product:products!product_colors_product_id_fkey(
               id,
               name,
               slug,
@@ -292,6 +292,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         .select(`
           id,
           stock_quantity,
+          is_available,
           product:products!product_variants_product_id_fkey(base_price)
         `)
         .eq('id', variantId)
@@ -303,7 +304,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Check stock
-      if (variant.stock_quantity < quantity) {
+      if (variant.is_available === false || variant.stock_quantity < quantity) {
         console.error('Not enough stock');
         return false;
       }

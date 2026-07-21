@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
@@ -39,17 +39,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
-  const fetchProfile = async (userId: string) => {
+  const ensureProfile = async (authUser: User) => {
+    const fullName =
+      authUser.user_metadata?.full_name ||
+      authUser.user_metadata?.name ||
+      authUser.email?.split('@')[0] ||
+      null;
+
+    const profileData = {
+      id: authUser.id,
+      email: authUser.email || '',
+      full_name: fullName,
+      phone: null,
+      avatar_url: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null,
+      role: 'customer' as const,
+      updated_at: new Date().toISOString(),
+    };
+
+    await supabase
+      .from('profiles')
+      .upsert(profileData, { onConflict: 'id', ignoreDuplicates: true });
+
+    return profileData as Profile;
+  };
+
+  const fetchProfile = async (authUser: User) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, email, phone, role, avatar_url')
-        .eq('id', userId)
+        .eq('id', authUser.id)
         .single();
 
       if (error) {
+        const fallbackProfile = await ensureProfile(authUser);
+        setProfile(fallbackProfile);
         return;
       }
 
@@ -62,8 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshProfile = async () => {
-    if (user?.id) {
-      await fetchProfile(user.id);
+    if (user) {
+      await fetchProfile(user);
     }
   };
 
@@ -107,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        await fetchProfile(session.user.id);
+        await fetchProfile(session.user);
       }
 
       setIsLoading(false);
@@ -122,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          await fetchProfile(session.user);
         } else {
           setProfile(null);
         }

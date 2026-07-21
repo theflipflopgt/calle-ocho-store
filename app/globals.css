@@ -80,6 +80,19 @@
     @apply bg-background text-foreground;
   }
 
+  .dark body:not(.admin-shell) .text-brand-black {
+    @apply text-white;
+  }
+
+  .dark body:not(.admin-shell) .hover\:text-brand-black:hover {
+    @apply text-white;
+  }
+
+  .dark .admin-shell .text-brand-black,
+  .dark .admin-shell .hover\:text-brand-black:hover {
+    color: hsl(0 0% 10%);
+  }
+
   .admin-shell,
   .admin-shell * {
     color-scheme: light;

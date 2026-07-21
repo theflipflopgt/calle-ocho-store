@@ -23,7 +23,7 @@ export function ProductCard({
   const selectedColor = product.colors[selectedColorIndex];
   const mainImage = selectedColor?.images?.[0]?.image_url;
   const hoverImage = selectedColor?.images?.[1]?.image_url;
-  const availableVariants = selectedColor?.variants?.filter(v => v.is_available && v.stock_quantity > 0) || [];
+  const availableVariants = selectedColor?.variants?.filter(v => v.is_available !== false && v.stock_quantity > 0) || [];
 
   const handleQuickAdd = useCallback((variantId: string) => {
     onQuickAdd?.(variantId);

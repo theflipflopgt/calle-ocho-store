@@ -35,7 +35,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
   );
 
   const availableVariants = useMemo(() =>
-    variants.filter(v => v.is_available && v.stock_quantity > 0),
+    variants.filter(v => v.is_available !== false && v.stock_quantity > 0),
     [variants]
   );
 
@@ -301,7 +301,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
           </div>
           <div className="flex flex-wrap gap-2">
             {variants.map((variant) => {
-              const isAvailable = variant.is_available && variant.stock_quantity > 0;
+              const isAvailable = variant.is_available !== false && variant.stock_quantity > 0;
               const isLowStock = isAvailable && variant.stock_quantity <= (variant.low_stock_threshold || 3);
               const isSelected = variant.id === selectedVariantId;
 

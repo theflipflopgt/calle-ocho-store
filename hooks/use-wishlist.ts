@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 interface WishlistItem {
@@ -13,8 +13,23 @@ export function useWishlist() {
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
-const supabase = createClient();
-const GUEST_WISHLIST_KEY = 'wishlist';
+  const supabase = useMemo(() => createClient(), []);
+  const GUEST_WISHLIST_KEY = 'wishlist';
+
+  const addLocalWishlistItem = useCallback((productId: string) => {
+    const newItem: WishlistItem = {
+      id: crypto.randomUUID(),
+      product_id: productId,
+      created_at: new Date().toISOString(),
+    };
+
+    setItems(prev => {
+      if (prev.some(item => item.product_id === productId)) return prev;
+      return [...prev, newItem];
+    });
+
+    return newItem;
+  }, []);
 
   // Check auth and load wishlist
   useEffect(() => {
@@ -90,13 +105,25 @@ const GUEST_WISHLIST_KEY = 'wishlist';
           .eq('product_id', productId);
         setItems(prev => prev.filter(item => item.product_id !== productId));
       } else {
-        const { data } = await supabase
+        const fallbackItem = addLocalWishlistItem(productId);
+        const { data, error } = await supabase
           .from('wishlists')
           .insert({ user_id: userId, product_id: productId })
           .select()
           .single();
+
+        if (error) {
+          console.error('Error adding wishlist item:', error);
+          const stored = localStorage.getItem(GUEST_WISHLIST_KEY);
+          const guestItems: WishlistItem[] = stored ? JSON.parse(stored) : [];
+          if (!guestItems.some(item => item.product_id === productId)) {
+            localStorage.setItem(GUEST_WISHLIST_KEY, JSON.stringify([...guestItems, fallbackItem]));
+          }
+          return;
+        }
+
         if (data) {
-          setItems(prev => [...prev, data]);
+          setItems(prev => prev.map(item => item.product_id === productId ? data : item));
         }
       }
     } else {
@@ -106,17 +133,12 @@ const GUEST_WISHLIST_KEY = 'wishlist';
         setItems(newItems);
         localStorage.setItem(GUEST_WISHLIST_KEY, JSON.stringify(newItems));
       } else {
-        const newItem: WishlistItem = {
-          id: crypto.randomUUID(),
-          product_id: productId,
-          created_at: new Date().toISOString()
-        };
+        const newItem = addLocalWishlistItem(productId);
         const newItems = [...items, newItem];
-        setItems(newItems);
         localStorage.setItem(GUEST_WISHLIST_KEY, JSON.stringify(newItems));
       }
     }
-  }, [userId, items, isInWishlist, supabase]);
+  }, [userId, items, isInWishlist, supabase, addLocalWishlistItem]);
 
   const clearWishlist = useCallback(async () => {
     if (userId) {

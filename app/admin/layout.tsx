@@ -11,6 +11,7 @@ import {
   Package,
   ShoppingCart,
   Users,
+  User,
   Tag,
   Ticket,
   LogOut,
@@ -235,14 +236,39 @@ function AdminLayoutContent({
 
           <div className="flex-1 lg:flex-none" />
 
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              href="/cuenta"
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-brand-black"
+            >
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Mi cuenta</span>
+            </Link>
             <Link
               href="/"
               target="_blank"
-              className="text-xs sm:text-sm text-gray-600 hover:text-brand-black"
+              className="rounded-lg px-2.5 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-brand-black"
             >
-              Ver tienda →
+              Ver tienda
             </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden sm:inline-flex gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+              onClick={async () => {
+                try {
+                  await signOut();
+                  window.location.href = '/';
+                } catch (err) {
+                  console.error('Error en signOut:', err);
+                  window.location.href = '/';
+                }
+              }}
+              disabled={isLoading}
+            >
+              <LogOut className="h-4 w-4" />
+              Cerrar sesión
+            </Button>
           </div>
         </header>
 
