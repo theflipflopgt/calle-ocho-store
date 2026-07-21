@@ -54,7 +54,7 @@ function AdminLayoutContent({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>(['Productos']);
   const pathname = usePathname();
-  const { profile, signOut, isLoading } = useAuth();
+  const { user, profile, signOut, isLoading } = useAuth();
 
   const toggleExpand = (name: string) => {
     setExpandedItems((prev) =>
@@ -183,7 +183,7 @@ function AdminLayoutContent({
 
         {/* User section */}
         <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 border-t border-gray-200 bg-white">
-          {isLoading ? (
+          {isLoading && !user ? (
             <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-200 rounded-full animate-pulse" />
               <div className="flex-1 min-w-0 space-y-1.5 sm:space-y-2">
@@ -195,14 +195,16 @@ function AdminLayoutContent({
             <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-brand-blue rounded-full flex items-center justify-center">
                 <span className="text-white text-xs sm:text-sm font-medium">
-                  {profile?.full_name?.charAt(0) || 'A'}
+                  {profile?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'A'}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs sm:text-sm font-medium text-brand-black truncate">
-                  {profile?.full_name || 'Admin'}
+                  {profile?.full_name || user?.email?.split('@')[0] || 'Admin'}
                 </p>
-                <p className="text-[10px] sm:text-xs text-gray-600 truncate">{profile?.email}</p>
+                <p className="text-[10px] sm:text-xs text-gray-600 truncate">
+                  {profile?.email || user?.email || 'Sesión activa'}
+                </p>
               </div>
             </div>
           )}
@@ -220,7 +222,7 @@ function AdminLayoutContent({
                 window.location.href = '/';
               }
             }}
-            disabled={isLoading}
+            disabled={isLoading && !user}
           >
             <LogOut className="h-4 w-4" />
             Cerrar sesión
@@ -239,7 +241,11 @@ function AdminLayoutContent({
             <Menu className="h-5 w-5" />
           </button>
 
-          <div className="flex-1 lg:flex-none" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold uppercase tracking-wide text-brand-blue">
+              Admin Panel
+            </p>
+          </div>
 
           <div className="flex items-center gap-3 sm:gap-4">
             <Link

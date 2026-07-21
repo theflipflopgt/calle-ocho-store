@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
@@ -38,32 +38,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [rememberedAdminUserId, setRememberedAdminUserId] = useState<string | null>(null);
 
   const supabase = createClient();
 
-  const fetchProfile = async (userId: string) => {
+  const getFallbackProfile = useCallback((authUser: User): Profile => ({
+    id: authUser.id,
+    full_name: authUser.user_metadata?.full_name || null,
+    email: authUser.email || null,
+    phone: authUser.phone || null,
+    role: authUser.app_metadata?.role === 'admin' || authUser.user_metadata?.role === 'admin'
+      ? 'admin'
+      : 'customer',
+    avatar_url: null,
+  }), []);
+
+  const fetchProfile = useCallback(async (authUser: User) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, email, phone, role, avatar_url')
-        .eq('id', userId)
-        .single();
+        .eq('id', authUser.id)
+        .maybeSingle();
 
       if (error) {
+        setProfile(getFallbackProfile(authUser));
         return;
       }
 
       if (data) {
         setProfile(data as Profile);
+      } else {
+        setProfile(getFallbackProfile(authUser));
       }
     } catch {
-      // Silently handle errors
+      setProfile(getFallbackProfile(authUser));
     }
-  };
+  }, [getFallbackProfile, supabase]);
 
   const refreshProfile = async () => {
-    if (user?.id) {
-      await fetchProfile(user.id);
+    if (user) {
+      await fetchProfile(user);
     }
   };
 
@@ -106,11 +121,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
 
-      if (session?.user) {
-        await fetchProfile(session.user.id);
+      try {
+        if (session?.user) {
+          await fetchProfile(session.user);
+        } else {
+          setProfile(null);
+        }
+      } finally {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     };
 
     getInitialSession();
@@ -121,27 +140,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
 
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setProfile(null);
+        try {
+          if (session?.user) {
+            await fetchProfile(session.user);
+          } else {
+            setProfile(null);
+          }
+        } finally {
+          setIsLoading(false);
         }
-
-        setIsLoading(false);
       }
     );
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [fetchProfile, supabase]);
+
+  useEffect(() => {
+    if (!user) {
+      setRememberedAdminUserId(null);
+      return;
+    }
+
+    setRememberedAdminUserId(localStorage.getItem('calleocho-admin-user-id'));
+  }, [user]);
+
+  const metadataIsAdmin =
+    user?.app_metadata?.role === 'admin' || user?.user_metadata?.role === 'admin';
+  const profileIsAdmin = profile?.role === 'admin';
+  const isAdmin =
+    !!user &&
+    (profileIsAdmin || metadataIsAdmin || rememberedAdminUserId === user.id);
+
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+
+    localStorage.setItem('calleocho-admin-user-id', user.id);
+    setRememberedAdminUserId(user.id);
+  }, [isAdmin, user]);
 
   const value = {
     user,
     profile,
     session,
     isLoading,
-    isAdmin: profile?.role === 'admin',
+    isAdmin,
     signOut,
     refreshProfile,
   };

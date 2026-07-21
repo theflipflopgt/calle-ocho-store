@@ -9,7 +9,6 @@ import { useWishlistContext } from '@/contexts/wishlist-context';
 import { useCart } from '@/contexts/cart-context';
 import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils/currency';
-import { cn } from '@/lib/utils';
 
 interface WishlistProduct {
   id: string;
@@ -17,7 +16,7 @@ interface WishlistProduct {
   slug: string;
   base_price: number;
   compare_at_price: number | null;
-  brand: { name: string; slug: string };
+  brand: { name: string; slug: string } | null;
   colors: {
     id: string;
     color_name: string;
@@ -33,6 +32,7 @@ export default function WishlistPage() {
   const [products, setProducts] = useState<WishlistProduct[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const supabase = createClient();
 
@@ -42,34 +42,55 @@ export default function WishlistPage() {
       if (items.length === 0) {
         setProducts([]);
         setIsLoadingProducts(false);
+        setLoadError(null);
         return;
       }
 
       const productIds = items.map(item => item.product_id);
+      setIsLoadingProducts(true);
+      setLoadError(null);
 
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          id,
-          name,
-          slug,
-          base_price,
-          compare_at_price,
-          brand:brands(name, slug),
-          colors:product_colors(
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select(`
             id,
-            color_name,
-            color_code,
-            images:product_color_images(image_url),
-            variants:product_variants(id, size_us, stock_quantity, is_available)
-          )
-        `)
-        .in('id', productIds);
+            name,
+            slug,
+            base_price,
+            compare_at_price,
+            brand:brands(name, slug),
+            colors:product_colors(
+              id,
+              color_name,
+              color_code,
+              images:product_color_images(image_url),
+              variants:product_variants(id, size_us, stock_quantity, is_available)
+            )
+          `)
+          .in('id', productIds);
 
-      if (!error && data) {
-        setProducts(data as unknown as WishlistProduct[]);
+        if (error) {
+          setLoadError('No pudimos cargar todos tus favoritos en este momento.');
+          setProducts([]);
+          return;
+        }
+
+        const productsById = new Map(
+          (data || []).map((product) => [product.id, product as unknown as WishlistProduct])
+        );
+
+        setProducts(
+          productIds
+            .map((productId) => productsById.get(productId))
+            .filter((product): product is WishlistProduct => Boolean(product))
+        );
+      } catch {
+        setLoadError('No pudimos cargar tus favoritos en este momento.');
+        setProducts([]);
+      } finally {
+        setIsLoadingProducts(false);
       }
-      setIsLoadingProducts(false);
     }
 
     if (!wishlistLoading) {
@@ -150,7 +171,22 @@ export default function WishlistPage() {
       </div>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+      {loadError && (
+        <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+          {loadError} Tus favoritos siguen guardados.
+        </div>
+      )}
+
+      {products.length === 0 && items.length > 0 ? (
+        <div className="rounded-xl border border-gray-100 bg-white p-8 text-center">
+          <Heart className="mx-auto mb-4 h-10 w-10 text-brand-red" />
+          <h2 className="text-lg font-semibold text-brand-black">Tus favoritos siguen guardados</h2>
+          <p className="mt-2 text-sm text-gray-600">
+            No pudimos cargar los datos de producto ahora mismo. Intenta actualizar la página en unos segundos.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {products.map((product) => (
           <WishlistCard
             key={product.id}
@@ -160,7 +196,8 @@ export default function WishlistPage() {
             isAddingToCart={addingToCart === product.id}
           />
         ))}
-      </div>
+        </div>
+      )}
     </main>
   );
 }
@@ -173,7 +210,7 @@ interface WishlistCardProps {
 }
 
 function WishlistCard({ product, onRemove, onQuickAdd, isAddingToCart }: WishlistCardProps) {
-  const firstColor = product.colors[0];
+  const firstColor = product.colors?.[0];
   const image = firstColor?.images[0]?.image_url;
   const hasStock = firstColor?.variants?.some(v => v.is_available && v.stock_quantity > 0);
   const hasDiscount = product.compare_at_price && product.compare_at_price > product.base_price;
@@ -223,10 +260,10 @@ function WishlistCard({ product, onRemove, onQuickAdd, isAddingToCart }: Wishlis
         )}
       </div>
 
-      {/* Info */}
+        {/* Info */}
       <div className="p-4">
         <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-          {product.brand.name}
+          {product.brand?.name || 'Calle Ocho'}
         </p>
         <Link href={`/producto/${product.slug}`}>
           <h3 className="font-medium text-brand-black line-clamp-2 hover:underline mb-2">

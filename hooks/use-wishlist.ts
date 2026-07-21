@@ -17,27 +17,55 @@ export function useWishlist() {
 
   // Check auth and load wishlist
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
+    let isMounted = true;
 
-      if (user) {
-        const { data } = await supabase
-          .from('wishlists')
-          .select('*')
-          .eq('user_id', user.id);
-        setItems(data || []);
-      } else {
-        // Load from localStorage for guests
-        const stored = localStorage.getItem('wishlist');
-        if (stored) {
-          setItems(JSON.parse(stored));
+    const checkAuth = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!isMounted) return;
+
+        setUserId(user?.id || null);
+
+        if (user) {
+          const { data, error } = await supabase
+            .from('wishlists')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+          if (!isMounted) return;
+          setItems(error ? [] : data || []);
+        } else {
+          // Load from localStorage for guests
+          const stored = localStorage.getItem('wishlist');
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              setItems(Array.isArray(parsed) ? parsed : []);
+            } catch {
+              localStorage.removeItem('wishlist');
+              setItems([]);
+            }
+          } else {
+            setItems([]);
+          }
+        }
+      } catch {
+        if (isMounted) {
+          setItems([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
         }
       }
-      setLoading(false);
     };
 
     checkAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, [supabase]);
 
   const isInWishlist = useCallback((productId: string) => {
@@ -50,19 +78,20 @@ export function useWishlist() {
     if (userId) {
       // Authenticated user - use Supabase
       if (exists) {
-        await supabase
+        const { error } = await supabase
           .from('wishlists')
           .delete()
           .eq('user_id', userId)
           .eq('product_id', productId);
+        if (error) return;
         setItems(prev => prev.filter(item => item.product_id !== productId));
       } else {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('wishlists')
           .insert({ user_id: userId, product_id: productId })
           .select()
           .single();
-        if (data) {
+        if (!error && data) {
           setItems(prev => [...prev, data]);
         }
       }
@@ -87,10 +116,11 @@ export function useWishlist() {
 
   const clearWishlist = useCallback(async () => {
     if (userId) {
-      await supabase
+      const { error } = await supabase
         .from('wishlists')
         .delete()
         .eq('user_id', userId);
+      if (error) return;
     } else {
       localStorage.removeItem('wishlist');
     }

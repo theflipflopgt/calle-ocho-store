@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     default: "Calle Ocho Store | Tienda de Tenis en Guatemala",
     template: "%s | Calle Ocho Store",
   },
-  description: "Tienda de tenis y sneakers en Guatemala. Las mejores marcas de moda urbana: Nike, Adidas, New Balance, Puma y más. Envío gratis en compras mayores a Q1,500.",
+  description: "Tienda de tenis y sneakers en Guatemala. Las mejores marcas de moda urbana: Nike, Adidas, New Balance, Puma y más. Envío gratis en compras mayores a Q1,000.",
 };
 
 

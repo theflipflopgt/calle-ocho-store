@@ -23,12 +23,12 @@ export default async function MarcasPage() {
       </div>
 
       {/* Brands Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-6">
+      <div className="mx-auto flex max-w-6xl flex-wrap justify-center gap-4 sm:gap-6">
         {brands.map((brand) => (
           <Link
             key={brand.id}
             href={`/marcas/${brand.slug}`}
-            className="group bg-white border border-gray-200 rounded-xl p-4 sm:p-6 flex flex-col items-center justify-center hover:border-brand-black hover:shadow-lg transition-all aspect-square"
+            className="group flex aspect-square w-[145px] flex-col items-center justify-center rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-brand-black hover:shadow-lg sm:w-[170px] sm:p-6"
           >
             {brand.logo_url ? (
               <div className="relative w-16 h-16 sm:w-20 sm:h-20 mb-3">

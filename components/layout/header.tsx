@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
-import { Menu, X, ShoppingCart, User, Heart, Truck, LogOut } from 'lucide-react';
+import { Menu, X, ShoppingCart, User, Heart, Truck, LogOut, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { HeaderSearchForm, MobileSearchButton, MobileSearchModal } from '@/components/search/header-search';
 import {
@@ -42,20 +42,20 @@ export function Header() {
       <div className="bg-brand-black text-white py-1.5 sm:py-2 text-center">
         <div className="container mx-auto px-3 sm:px-4 flex items-center justify-center gap-1.5 sm:gap-2">
           <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-          <span className="text-[11px] sm:text-sm truncate">ENVÍO GRATIS en compras mayores a Q1,500</span>
+          <span className="text-[11px] sm:text-sm truncate">ENVÍO GRATIS en compras mayores a Q1,000</span>
         </div>
       </div>
 
       {/* Main Header */}
       <div className="container mx-auto px-3 sm:px-4">
-        <div className="flex items-center justify-between h-20 sm:h-24 md:h-28">
+        <div className="flex items-center justify-between h-24 sm:h-28 md:h-32">
           <Link href="/" className="flex-shrink-0">
             <Image
               src="/logo.png"
               alt="Calle Ocho Store"
-              width={180}
-              height={180}
-              className="h-14 w-14 object-contain sm:h-16 sm:w-16 md:h-20 md:w-20"
+              width={260}
+              height={260}
+              className="h-20 w-20 object-contain sm:h-24 sm:w-24 md:h-28 md:w-28"
               priority
             />
           </Link>
@@ -111,7 +111,7 @@ export function Header() {
 
             {/* User Menu - Desktop */}
             <div className="hidden sm:flex">
-              {isLoading ? (
+              {isLoading && !user ? (
                 <Button variant="ghost" size="icon" className="text-brand-black" disabled>
                   <User className="h-5 w-5" />
                 </Button>
@@ -123,7 +123,20 @@ export function Header() {
                       <span className="hidden md:inline text-sm">Hola, {displayName}</span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" className="cursor-pointer font-medium text-brand-blue">
+                        <ShieldCheck className="mr-2 h-4 w-4" />
+                        Admin Panel
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/cuenta" className="cursor-pointer">
+                        <User className="mr-2 h-4 w-4" />
+                        Ver mi perfil
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/cuenta" className="cursor-pointer">
                         <User className="mr-2 h-4 w-4" />
@@ -225,10 +238,24 @@ export function Header() {
               </Link>
 
               {/* Auth section in mobile menu */}
-              {!isLoading && (
+              {user ? (
                 <>
-                  {user ? (
-                    <>
+                  <Link
+                    href="/admin"
+                    className="flex items-center gap-3 py-2.5 sm:py-3 text-sm sm:text-base font-medium text-brand-blue active:bg-gray-50"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <ShieldCheck className="h-5 w-5" />
+                    Admin Panel
+                  </Link>
+                      <Link
+                        href="/cuenta"
+                        className="flex items-center gap-3 py-2.5 sm:py-3 text-sm sm:text-base text-gray-600 active:bg-gray-50"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <User className="h-5 w-5" />
+                        Ver mi perfil
+                      </Link>
                       <Link
                         href="/cuenta"
                         className="flex items-center gap-3 py-2.5 sm:py-3 text-sm sm:text-base text-gray-600 active:bg-gray-50"
@@ -247,8 +274,8 @@ export function Header() {
                         <LogOut className="h-5 w-5" />
                         Cerrar Sesión
                       </button>
-                    </>
-                  ) : (
+                </>
+              ) : !isLoading ? (
                     <>
                       <Link
                         href="/auth/login"
@@ -267,8 +294,8 @@ export function Header() {
                         Registrarse
                       </Link>
                     </>
-                  )}
-                </>
+              ) : (
+                <div className="py-2.5 text-sm text-gray-500">Cargando sesión...</div>
               )}
             </div>
           </nav>

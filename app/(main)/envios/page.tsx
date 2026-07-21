@@ -44,7 +44,7 @@ export default function EnviosPage() {
           <div className="rounded-lg border border-gray-200 bg-white p-5">
             <Truck className="mb-3 h-6 w-6 text-brand-blue" />
             <h2 className="mb-2 text-lg font-semibold text-brand-black">Costo de envío</h2>
-            <p>El costo se mostrará durante el checkout. Las compras mayores a Q1,500 pueden aplicar a envío gratis.</p>
+            <p>El costo se mostrará durante el checkout. Las compras mayores a Q1,000 pueden aplicar a envío gratis.</p>
           </div>
           <div className="rounded-lg border border-gray-200 bg-white p-5">
             <PackageCheck className="mb-3 h-6 w-6 text-brand-blue" />
