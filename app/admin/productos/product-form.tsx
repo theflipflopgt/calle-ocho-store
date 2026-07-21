@@ -110,7 +110,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     base_price: product?.base_price || 0,
     compare_at_price: product?.compare_at_price || '',
     status: product?.status || 'draft',
-    gender: product?.gender || 'unisex',
+    gender: normalizeGenderValue(product?.gender),
     is_featured: product?.is_featured || false,
     meta_title: product?.meta_title || '',
     meta_description: product?.meta_description || '',
@@ -588,9 +588,9 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                   required
                 >
                   <option value="unisex">Unisex</option>
-                  <option value="men">Hombre</option>
-                  <option value="women">Mujer</option>
-                  <option value="kids">Niños</option>
+                  <option value="hombre">Hombre</option>
+                  <option value="mujer">Mujer</option>
+                  <option value="ninos">Niños</option>
                 </select>
               </div>
 
@@ -996,6 +996,13 @@ function hasVariantChanges(current: ProductVariant[], original: ProductVariant[]
       Boolean(variant.is_available ?? true) !== Boolean(originalVariant.is_available ?? true)
     );
   });
+}
+
+function normalizeGenderValue(gender?: string | null) {
+  if (gender === 'men') return 'hombre';
+  if (gender === 'women') return 'mujer';
+  if (gender === 'kids') return 'ninos';
+  return gender || 'unisex';
 }
 
 function hasImageChanges(current: ProductImage[], original: ProductImage[]) {

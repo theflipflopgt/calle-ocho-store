@@ -43,7 +43,7 @@ async function ProductsContent({ searchParams }: { searchParams: PageProps['sear
 
       <div className="flex-1">
         <div className="mb-4 sm:mb-6">
-          <p className="text-sm text-white">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             {products.length} producto{products.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -62,10 +62,10 @@ export default async function NinosPage({ searchParams }: PageProps) {
     <main className="container mx-auto px-4 py-6 sm:py-8">
       {/* Header */}
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-black dark:text-white mb-2">
           Tenis para Niños
         </h1>
-        <p className="text-sm sm:text-base text-white">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
           Estilo y comodidad para los más pequeños
         </p>
       </div>

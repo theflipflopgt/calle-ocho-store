@@ -28,6 +28,6 @@ export interface ProductWithDetails extends Product {
 export interface ProductCardProps {
   product: ProductWithDetails;
   onAddToWishlist?: (productId: string) => void;
-  onQuickAdd?: (variantId: string) => void;
+  onQuickAdd?: (variantId: string) => void | Promise<void>;
   isInWishlist?: boolean;
 }

@@ -25,8 +25,8 @@ export function ProductCard({
   const hoverImage = selectedColor?.images?.[1]?.image_url;
   const availableVariants = selectedColor?.variants?.filter(v => v.is_available !== false && v.stock_quantity > 0) || [];
 
-  const handleQuickAdd = useCallback((variantId: string) => {
-    onQuickAdd?.(variantId);
+  const handleQuickAdd = useCallback(async (variantId: string) => {
+    await onQuickAdd?.(variantId);
     setShowSizeSelector(false);
   }, [onQuickAdd]);
 
@@ -161,7 +161,11 @@ export function ProductCard({
                         ? "border-brand-orange text-brand-orange hover:bg-brand-orange hover:text-white"
                         : "border-gray-300 hover:border-brand-black hover:bg-brand-black hover:text-white"
                     )}
-                    onClick={() => handleQuickAdd(variant.id)}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      handleQuickAdd(variant.id);
+                    }}
                   >
                     {variant.size_us}
                   </button>
@@ -201,7 +205,11 @@ export function ProductCard({
                       ? "border-brand-orange text-brand-orange active:bg-brand-orange active:text-white"
                       : "border-gray-300 active:border-brand-black active:bg-brand-black active:text-white"
                   )}
-                  onClick={() => handleQuickAdd(variant.id)}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    handleQuickAdd(variant.id);
+                  }}
                 >
                   {variant.size_us}
                 </button>

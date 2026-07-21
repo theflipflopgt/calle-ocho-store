@@ -49,7 +49,9 @@ function AdminLayoutContent({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>(['Productos']);
   const pathname = usePathname();
-  const { profile, signOut, isLoading } = useAuth();
+  const { profile, user, signOut, isLoading } = useAuth();
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Admin';
+  const displayEmail = profile?.email || user?.email || '';
 
   const toggleExpand = (name: string) => {
     setExpandedItems((prev) =>
@@ -190,14 +192,14 @@ function AdminLayoutContent({
             <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-brand-blue rounded-full flex items-center justify-center">
                 <span className="text-white text-xs sm:text-sm font-medium">
-                  {profile?.full_name?.charAt(0) || 'A'}
+                  {displayName.charAt(0)}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs sm:text-sm font-medium text-brand-black truncate">
-                  {profile?.full_name || 'Admin'}
+                  {displayName}
                 </p>
-                <p className="text-[10px] sm:text-xs text-gray-600 truncate">{profile?.email}</p>
+                <p className="text-[10px] sm:text-xs text-gray-600 truncate">{displayEmail}</p>
               </div>
             </div>
           )}
@@ -226,7 +228,7 @@ function AdminLayoutContent({
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Top bar */}
-        <header className="h-14 sm:h-16 bg-white border-b border-gray-200 flex items-center justify-between px-3 sm:px-4 lg:px-8">
+        <header className="sticky top-0 z-30 h-14 sm:h-16 bg-white border-b border-gray-200 flex items-center justify-between px-3 sm:px-4 lg:px-8">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
@@ -237,6 +239,14 @@ function AdminLayoutContent({
           <div className="flex-1 lg:flex-none" />
 
           <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden md:block text-right">
+              <p className="text-xs font-semibold text-brand-black truncate max-w-[180px]">
+                {displayName}
+              </p>
+              <p className="text-[11px] text-gray-500 truncate max-w-[180px]">
+                {displayEmail}
+              </p>
+            </div>
             <Link
               href="/cuenta"
               className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-brand-black"

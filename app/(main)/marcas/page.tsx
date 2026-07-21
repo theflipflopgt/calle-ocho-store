@@ -14,10 +14,10 @@ export default async function MarcasPage() {
     <main className="container mx-auto px-4 py-6 sm:py-8">
       {/* Header */}
       <div className="mb-8 sm:mb-12 text-center">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-black dark:text-white mb-2">
           Nuestras Marcas
         </h1>
-        <p className="text-sm sm:text-base text-white max-w-2xl mx-auto">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
           Las mejores marcas de tenis del mundo, todo en un solo lugar
         </p>
       </div>
@@ -28,7 +28,7 @@ export default async function MarcasPage() {
           <Link
             key={brand.id}
             href={`/marcas/${brand.slug}`}
-            className="group bg-white border border-gray-200 rounded-xl p-4 sm:p-6 flex flex-col items-center justify-center hover:border-brand-black hover:shadow-lg transition-all aspect-square"
+            className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 sm:p-6 flex flex-col items-center justify-center hover:border-brand-black dark:hover:border-gray-400 hover:shadow-lg transition-all aspect-square"
           >
             {brand.logo_url ? (
               <div className="relative w-16 h-16 sm:w-20 sm:h-20 mb-3">
@@ -40,7 +40,7 @@ export default async function MarcasPage() {
                 />
               </div>
             ) : (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-3">
                 <span className="text-xl sm:text-2xl font-bold text-gray-400">
                   {brand.name.charAt(0)}
                 </span>

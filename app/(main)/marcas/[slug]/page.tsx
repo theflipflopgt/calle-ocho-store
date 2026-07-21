@@ -44,14 +44,13 @@ async function ProductsContent({
 }) {
   const params = await searchParams;
 
-  const [products, brands, categories] = await Promise.all([
+  const [products, categories] = await Promise.all([
     getProducts({
       brandSlug: slug,
       categorySlug: params.categoria,
       gender: params.genero as any,
       sortBy: params.sort as any,
     }),
-    getBrands(),
     getCategories(),
   ]);
 
@@ -68,7 +67,7 @@ async function ProductsContent({
 
       <div className="flex-1">
         <div className="mb-4 sm:mb-6">
-          <p className="text-sm text-white">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             {products.length} producto{products.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -112,11 +111,11 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
           </div>
         )}
         <div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-black dark:text-white">
             {brand.name}
           </h1>
           {brand.description && (
-            <p className="text-sm sm:text-base text-white mt-1 line-clamp-2">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
               {brand.description}
             </p>
           )}

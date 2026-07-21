@@ -47,7 +47,7 @@ async function ProductsContent({ searchParams }: { searchParams: PageProps['sear
 
       <div className="flex-1">
         <div className="mb-4 sm:mb-6">
-          <p className="text-sm text-white">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             {products.length} producto{products.length !== 1 ? 's' : ''} en oferta
           </p>
         </div>
@@ -70,11 +70,11 @@ export default async function OfertasPage({ searchParams }: PageProps) {
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand-red rounded-full flex items-center justify-center">
             <Percent className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-black dark:text-white">
             Ofertas
           </h1>
         </div>
-        <p className="text-sm sm:text-base text-white">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
           Los mejores descuentos en tenis de marca
         </p>
       </div>

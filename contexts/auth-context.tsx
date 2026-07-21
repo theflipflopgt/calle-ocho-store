@@ -33,6 +33,8 @@ const AuthContext = createContext<AuthContextType>({
   refreshProfile: async () => { },
 });
 
+const PROFILE_CACHE_KEY = 'calleocho_profile_cache';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -40,6 +42,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const supabase = useMemo(() => createClient(), []);
+
+  const getCachedProfile = (userId: string) => {
+    try {
+      const cached = localStorage.getItem(PROFILE_CACHE_KEY);
+      if (!cached) return null;
+
+      const parsed = JSON.parse(cached) as Profile;
+      return parsed.id === userId ? parsed : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const cacheProfile = (nextProfile: Profile) => {
+    try {
+      localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(nextProfile));
+    } catch {
+      // Ignore storage failures.
+    }
+  };
 
   const ensureProfile = async (authUser: User) => {
     const fullName =
@@ -74,16 +96,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) {
+        const cachedProfile = getCachedProfile(authUser.id);
+        if (cachedProfile) {
+          setProfile(cachedProfile);
+          return;
+        }
+
         const fallbackProfile = await ensureProfile(authUser);
         setProfile(fallbackProfile);
+        cacheProfile(fallbackProfile);
         return;
       }
 
       if (data) {
-        setProfile(data as Profile);
+        const nextProfile = data as Profile;
+        setProfile(nextProfile);
+        cacheProfile(nextProfile);
       }
     } catch {
-      // Silently handle errors
+      const cachedProfile = getCachedProfile(authUser.id);
+      if (cachedProfile) {
+        setProfile(cachedProfile);
+      }
     }
   };
 
@@ -116,11 +150,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setProfile(null);
       setSession(null);
+      localStorage.removeItem(PROFILE_CACHE_KEY);
     } catch (err) {
       // Even if there's an error, clear local state
       setUser(null);
       setProfile(null);
       setSession(null);
+      localStorage.removeItem(PROFILE_CACHE_KEY);
       throw err;
     }
   };
@@ -151,6 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchProfile(session.user);
         } else {
           setProfile(null);
+          localStorage.removeItem(PROFILE_CACHE_KEY);
         }
 
         setIsLoading(false);

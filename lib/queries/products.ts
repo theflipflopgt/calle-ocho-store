@@ -33,7 +33,8 @@ export const getProducts = cache(async function getProducts(options: GetProducts
 
   // Filtro por género
   if (options.gender) {
-    query = query.or(`gender.eq.${options.gender},gender.eq.unisex`);
+    const genderAliases = getGenderAliases(options.gender);
+    query = query.or(genderAliases.map((gender) => `gender.eq.${gender}`).join(','));
   }
 
   // Filtro por marca
@@ -151,6 +152,17 @@ async function getRelatedSearchFilters(terms: string[]): Promise<string[]> {
 
 function escapeIlikeValue(value: string) {
   return value.replace(/[%_,]/g, (match) => `\\${match}`);
+}
+
+function getGenderAliases(gender: NonNullable<GetProductsOptions['gender']>) {
+  const aliases: Record<NonNullable<GetProductsOptions['gender']>, string[]> = {
+    hombre: ['hombre', 'men', 'unisex'],
+    mujer: ['mujer', 'women', 'unisex'],
+    ninos: ['ninos', 'kids', 'unisex'],
+    unisex: ['unisex'],
+  };
+
+  return aliases[gender];
 }
 
 export const getProductBySlug = cache(async function getProductBySlug(slug: string): Promise<ProductWithDetails | null> {

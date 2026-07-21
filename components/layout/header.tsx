@@ -13,9 +13,8 @@ import { ThemeToggle } from '@/components/theme-toggle';
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const { user, profile, isLoading, signOut } = useAuth();
+  const { user, profile, isLoading, isAdmin, signOut } = useAuth();
   const { itemCount, openCart } = useCart();
-  const isAdmin = profile?.role === 'admin';
 
   const handleSignOut = async () => {
     try {
@@ -47,19 +46,19 @@ export function Header() {
           {/* Logo - dark/light variants */}
           <Link href="/" className="flex-shrink-0" aria-label="Ir al inicio">
             <Image
-              src="/logo.png"
+              src="/logo-header.png"
               alt="Calle Ocho Store"
               width={180}
               height={60}
-              className="h-[52px] w-[156px] object-contain sm:h-[60px] sm:w-[180px] dark:hidden"
+              className="h-[60px] w-[180px] object-contain dark:hidden"
               priority
             />
             <Image
-              src="/logo-light.png"
+              src="/logo-header-light.png"
               alt="Calle Ocho Store"
               width={180}
               height={60}
-              className="hidden h-[52px] w-[156px] object-contain sm:h-[60px] sm:w-[180px] dark:block"
+              className="hidden h-[60px] w-[180px] object-contain dark:block"
               priority
             />
           </Link>

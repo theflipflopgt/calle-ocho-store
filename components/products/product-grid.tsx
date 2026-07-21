@@ -11,11 +11,14 @@ interface ProductGridProps {
 }
 
 export function ProductGrid({ products, emptyMessage = 'No se encontraron productos' }: ProductGridProps) {
-  const { addItem } = useCart();
+  const { addItem, openCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlistContext();
 
   const handleQuickAdd = async (variantId: string) => {
-    await addItem(variantId, 1);
+    const added = await addItem(variantId, 1);
+    if (added) {
+      openCart();
+    }
   };
 
   if (products.length === 0) {
