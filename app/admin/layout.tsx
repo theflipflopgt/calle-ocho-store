@@ -25,7 +25,8 @@ import {
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Inicio y Hero', href: '/admin/inicio#hero', icon: Home },
+  { name: 'Inicio', href: '/admin/inicio', icon: Home },
+  { name: 'Hero Carousel', href: '/admin/hero-carousel', icon: ImageIcon },
   {
     name: 'Productos',
     icon: Package,

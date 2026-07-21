@@ -92,9 +92,9 @@ export function NewArrivalsSlider({ products }: NewArrivalsSliderProps) {
               <Link
                 key={product.id}
                 href={`/producto/${product.slug}`}
-                className="group flex-shrink-0 w-[240px] lg:w-[272px] snap-start"
+                className="group flex h-full flex-shrink-0 w-[240px] lg:w-[272px] snap-start"
               >
-                <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300">
+                <div className="flex h-full w-full flex-col bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300">
                   {/* Imagen */}
                   <div className="relative w-full aspect-square bg-gray-100">
                     {mainImage ? (
@@ -127,14 +127,14 @@ export function NewArrivalsSlider({ products }: NewArrivalsSliderProps) {
                   </div>
 
                   {/* Info */}
-                  <div className="p-4">
+                  <div className="flex min-h-[126px] flex-1 flex-col p-4">
                     <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
                       {product.brand.name}
                     </p>
-                    <h3 className="font-semibold text-sm text-brand-black mb-2 line-clamp-2 group-hover:text-brand-blue transition-colors">
+                    <h3 className="min-h-10 font-semibold text-sm leading-5 text-brand-black mb-2 line-clamp-2 group-hover:text-brand-blue transition-colors">
                       {product.name}
                     </h3>
-                    <div className="flex items-baseline gap-2">
+                    <div className="mt-auto flex items-baseline gap-2">
                       <span className="text-lg font-bold text-brand-black">
                         {formatPrice(product.lowestPrice)}
                       </span>

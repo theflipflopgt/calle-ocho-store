@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
-import { Menu, X, ShoppingCart, User, Heart, Truck, LogOut, ShieldCheck } from 'lucide-react';
+import { Menu, X, ShoppingCart, User, Heart, LogOut, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { HeaderSearchForm, MobileSearchButton, MobileSearchModal } from '@/components/search/header-search';
 import {
@@ -38,14 +38,6 @@ export function Header() {
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50 transition-colors">
-      {/* Free Shipping Banner - smaller on mobile */}
-      <div className="bg-brand-black text-white py-1.5 sm:py-2 text-center">
-        <div className="container mx-auto px-3 sm:px-4 flex items-center justify-center gap-1.5 sm:gap-2">
-          <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-          <span className="text-[11px] sm:text-sm truncate">ENVÍO GRATIS en compras mayores a Q1,000</span>
-        </div>
-      </div>
-
       {/* Main Header */}
       <div className="container mx-auto px-3 sm:px-4">
         <div className="flex items-center justify-between h-24 sm:h-28 md:h-32">
@@ -185,7 +177,7 @@ export function Header() {
 
       {/* Mobile Menu - Full screen overlay */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 top-[calc(theme(spacing.16)+theme(spacing.7))] sm:top-[calc(theme(spacing.20)+theme(spacing.8))] bg-white z-40 overflow-y-auto">
+        <div className="md:hidden fixed inset-0 top-24 sm:top-28 bg-white z-40 overflow-y-auto">
           <nav className="container mx-auto px-4 py-2 sm:py-4 flex flex-col">
             {/* Main navigation */}
             <Link

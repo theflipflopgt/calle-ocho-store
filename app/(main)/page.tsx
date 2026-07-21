@@ -4,28 +4,34 @@ import { PromoTicker } from "@/components/home/promo-ticker";
 import { NewArrivalsSlider } from "@/components/home/new-arrivals-slider";
 import { BrandsGrid } from "@/components/home/brands-grid";
 import { HeroMedia } from "@/components/home/hero-media";
+import { HeroCarousel } from "@/components/home/hero-carousel";
 import { getHomeContent } from "@/lib/home-content";
-import { getProducts } from "@/lib/queries/products";
+import { getFeaturedProducts, getProducts } from "@/lib/queries/products";
 
 /**
  * Homepage Calle Ocho Store
  * Diseño inspirado en Kicks.com.gt pero mejorado y adaptado
  */
 export default async function Home() {
-  const [newArrivals, homeContent] = await Promise.all([
+  const [newArrivals, featuredProducts, homeContent] = await Promise.all([
     getProducts({
       limit: 12,
       sortBy: 'newest'
     }),
+    getFeaturedProducts(),
     getHomeContent(),
   ]);
 
   return (
     <main>
-      {/* Hero Section - Video de fondo estilo Kicks */}
-      <section className="relative h-[600px] sm:h-[650px] lg:h-[700px] bg-brand-black overflow-hidden">
-        <HeroMedia hero={homeContent.hero} />
-      </section>
+      {/* Hero principal: carrusel de productos administrable; fallback al hero multimedia */}
+      {featuredProducts.length > 0 ? (
+        <HeroCarousel products={featuredProducts} />
+      ) : (
+        <section className="relative h-[600px] sm:h-[650px] lg:h-[700px] bg-brand-black overflow-hidden">
+          <HeroMedia hero={homeContent.hero} />
+        </section>
+      )}
 
       {/* Ticker Promocional - Scroll infinito */}
       <PromoTicker />

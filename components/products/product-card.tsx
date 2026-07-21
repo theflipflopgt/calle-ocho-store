@@ -207,7 +207,7 @@ export function ProductCard({
       </div>
 
       {/* Product Info */}
-      <div className="flex flex-1 flex-col p-3 sm:p-4">
+      <div className="flex min-h-[132px] flex-1 flex-col p-3 sm:min-h-[148px] sm:p-4">
         {/* Color Selector */}
         {product.colors.length > 1 && (
           <div className="flex gap-1 sm:gap-1.5 mb-1.5 sm:mb-2">
