@@ -242,20 +242,20 @@ export function ProductCard({
         )}
 
         {/* Brand */}
-        <p className="text-[11px] sm:text-xs text-gray-500 uppercase tracking-wide mb-0.5 sm:mb-1">
+        <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-0.5 sm:mb-1">
           {product.brand.name}
         </p>
 
         {/* Name */}
         <Link href={`/producto/${product.slug}`}>
-          <h3 className="font-medium text-sm sm:text-base text-brand-black line-clamp-2 mb-1 sm:mb-2">
+          <h3 className="font-medium text-sm sm:text-base text-brand-black dark:text-white line-clamp-2 mb-1 sm:mb-2">
             {product.name}
           </h3>
         </Link>
 
         {/* Price */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-bold text-sm sm:text-base text-brand-black">
+          <span className="font-bold text-sm sm:text-base text-brand-black dark:text-white">
             {formatPrice(product.lowestPrice)}
           </span>
           {product.hasDiscount && product.compare_at_price && (

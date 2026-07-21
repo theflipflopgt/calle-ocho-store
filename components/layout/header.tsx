@@ -95,7 +95,7 @@ export function Header() {
               <ThemeToggle />
             </div>
 
-            {/* Wishlist - hidden on mobile, show on tablet+ */}
+            {/* Wishlist */}
             <Link href="/wishlist" aria-label="Ir a favoritos">
               <Button size="icon" variant="ghost" className="flex text-brand-black dark:text-white w-9 h-9 sm:w-10 sm:h-10">
                 <Heart className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -120,8 +120,11 @@ export function Header() {
             {/* User access - always visible */}
             <div className="flex items-center gap-1 md:gap-2">
               {isLoading ? (
-                <Button variant="ghost" size="icon" className="text-brand-black dark:text-white" disabled>
-                  <User className="h-5 w-5" />
+                <Button variant="ghost" size="sm" className="gap-2 text-brand-black dark:text-white opacity-100" asChild>
+                  <Link href="/auth/login" aria-label="Entrar a mi cuenta">
+                    <User className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="hidden sm:inline text-sm">Entrar</span>
+                  </Link>
                 </Button>
               ) : user ? (
                 <>
@@ -130,39 +133,40 @@ export function Header() {
                       asChild
                       variant="outline"
                       size="sm"
-                      className="inline-flex gap-2 border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white"
+                      className="inline-flex gap-2 border-brand-blue bg-white text-brand-blue hover:bg-brand-blue hover:text-white dark:bg-gray-900 dark:text-white dark:hover:bg-brand-blue"
                     >
                       <Link href="/admin">
                         <LayoutDashboard className="h-4 w-4" />
-                        <span className="hidden xl:inline">Panel Admin</span>
+                        <span className="hidden sm:inline">Panel Admin</span>
                       </Link>
                     </Button>
                   )}
-                  <Button asChild variant="ghost" className="gap-2 text-brand-black dark:text-white">
+                  <Button asChild variant="ghost" size="sm" className="gap-2 text-brand-black dark:text-white">
                     <Link href="/cuenta" aria-label="Ir a mi cuenta">
                       <User className="h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="hidden lg:inline text-sm">Hola, {displayName}</span>
+                      <span className="hidden sm:inline text-sm">{displayName ? `Hola, ${displayName}` : 'Cuenta'}</span>
                     </Link>
                   </Button>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="text-red-600 dark:text-red-400"
+                    size="sm"
+                    className="gap-2 text-red-600 hover:text-red-700 dark:text-red-300 dark:hover:text-red-200"
                     onClick={handleSignOut}
                     aria-label="Cerrar sesión"
                   >
                     <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="hidden xl:inline text-sm">Salir</span>
                   </Button>
                 </>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 md:gap-2">
                   <Button asChild variant="ghost" size="sm" className="gap-2 text-brand-black dark:text-white">
                     <Link href="/auth/login" aria-label="Entrar a mi cuenta">
                       <User className="h-4 w-4" />
-                      <span className="hidden md:inline">Entrar</span>
+                      <span className="hidden sm:inline">Entrar</span>
                     </Link>
                   </Button>
-                  <Button asChild size="sm" className="bg-brand-black dark:bg-brand-blue hover:bg-gray-800 dark:hover:bg-blue-700 text-white hidden md:inline-flex">
+                  <Button asChild size="sm" className="hidden bg-brand-black text-white hover:bg-gray-800 dark:bg-brand-blue dark:hover:bg-blue-700 md:inline-flex">
                     <Link href="/auth/registro">Registrarse</Link>
                   </Button>
                 </div>
@@ -235,7 +239,26 @@ export function Header() {
               </Link>
 
               {/* Auth section in mobile menu */}
-              {!isLoading && (
+              {isLoading ? (
+                <>
+                  <Link
+                    href="/auth/login"
+                    className="flex items-center gap-3 py-2.5 sm:py-3 text-sm sm:text-base text-gray-600 dark:text-gray-300 active:bg-gray-50 dark:active:bg-gray-800"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <User className="h-5 w-5" />
+                    Iniciar Sesión
+                  </Link>
+                  <Link
+                    href="/auth/registro"
+                    className="flex items-center gap-3 py-2.5 sm:py-3 text-sm sm:text-base text-brand-blue font-medium active:bg-gray-50 dark:active:bg-gray-800"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <User className="h-5 w-5" />
+                    Registrarse
+                  </Link>
+                </>
+              ) : (
                 <>
                   {user ? (
                     <>

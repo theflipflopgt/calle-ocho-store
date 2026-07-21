@@ -26,6 +26,19 @@ interface WishlistProduct {
   }[];
 }
 
+const WISHLIST_PRODUCTS_TIMEOUT_MS = 4000;
+
+async function withTimeout<T>(promise: PromiseLike<T>, fallback: T): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((resolve) => {
+    timeoutId = setTimeout(() => resolve(fallback), WISHLIST_PRODUCTS_TIMEOUT_MS);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
 function wishlistProductFromSnapshot(product: ProductWithDetails): WishlistProduct {
   return {
     id: product.id,
@@ -70,24 +83,39 @@ export default function WishlistPage() {
         .filter((item) => item.productSnapshot)
         .map((item) => wishlistProductFromSnapshot(item.productSnapshot!));
 
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          id,
-          name,
-          slug,
-          base_price,
-          compare_at_price,
-          brand:brands(name, slug),
-          colors:product_colors(
+      if (snapshotProducts.length === items.length) {
+        setProducts(snapshotProducts);
+        setIsLoadingProducts(false);
+        return;
+      }
+
+      const { data, error } = await withTimeout(
+        supabase
+          .from('products')
+          .select(`
             id,
-            color_name,
-            color_code,
-            images:product_color_images(image_url),
-            variants:product_variants(id, size_us, stock_quantity, is_available)
-          )
-        `)
-        .in('id', productIds);
+            name,
+            slug,
+            base_price,
+            compare_at_price,
+            brand:brands(name, slug),
+            colors:product_colors(
+              id,
+              color_name,
+              color_code,
+              images:product_color_images(image_url),
+              variants:product_variants(id, size_us, stock_quantity, is_available)
+            )
+          `)
+          .in('id', productIds),
+        {
+          data: null,
+          error: { name: 'PostgrestError', message: 'Wishlist products timeout', details: '', hint: '', code: 'TIMEOUT' },
+          count: null,
+          status: 408,
+          statusText: 'Request Timeout',
+        }
+      );
 
       if (!error && data) {
         const fetchedProducts = data as unknown as WishlistProduct[];
@@ -122,10 +150,10 @@ export default function WishlistPage() {
           <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
             <Heart className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-brand-black mb-3">
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-black dark:text-white mb-3">
             Tu lista de deseos está vacía
           </h1>
-          <p className="text-gray-500 mb-8">
+          <p className="text-gray-500 dark:text-gray-300 mb-8">
             Guarda tus productos favoritos para comprarlos después
           </p>
           <Button size="lg" asChild>
@@ -144,10 +172,10 @@ export default function WishlistPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-brand-black">
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-black dark:text-white">
             Lista de Deseos
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
             {items.length} producto{items.length !== 1 ? 's' : ''} guardado{items.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -234,18 +262,18 @@ function WishlistCard({ product, onRemove }: WishlistCardProps) {
 
       {/* Info */}
       <div className="p-4">
-        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+        <p className="text-xs text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-1">
           {product.brand.name}
         </p>
         <Link href={`/producto/${product.slug}`}>
-          <h3 className="font-medium text-brand-black line-clamp-2 hover:underline mb-2">
+          <h3 className="font-medium text-brand-black dark:text-white line-clamp-2 hover:underline mb-2">
             {product.name}
           </h3>
         </Link>
 
         {/* Price */}
         <div className="flex items-center gap-2 mb-4">
-          <span className="font-bold text-brand-black">
+          <span className="font-bold text-brand-black dark:text-white">
             {formatPrice(product.base_price)}
           </span>
           {hasDiscount && (

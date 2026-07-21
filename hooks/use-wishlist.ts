@@ -11,12 +11,44 @@ interface WishlistItem {
   productSnapshot?: ProductWithDetails;
 }
 
+const GUEST_WISHLIST_KEY = 'wishlist';
+const WISHLIST_TIMEOUT_MS = 4000;
+
+async function withTimeout<T>(promise: PromiseLike<T>, fallback: T): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((resolve) => {
+    timeoutId = setTimeout(() => resolve(fallback), WISHLIST_TIMEOUT_MS);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
+function readGuestWishlist(): WishlistItem[] {
+  try {
+    const stored = localStorage.getItem(GUEST_WISHLIST_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeGuestWishlist(items: WishlistItem[]) {
+  try {
+    localStorage.setItem(GUEST_WISHLIST_KEY, JSON.stringify(items));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
 export function useWishlist() {
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(), []);
-  const GUEST_WISHLIST_KEY = 'wishlist';
 
   const addLocalWishlistItem = useCallback((productId: string, productSnapshot?: ProductWithDetails) => {
     const newItem: WishlistItem = {
@@ -37,55 +69,76 @@ export function useWishlist() {
   // Check auth and load wishlist
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
-
-      if (user) {
-        const stored = localStorage.getItem(GUEST_WISHLIST_KEY);
-        const guestItems: WishlistItem[] = stored ? JSON.parse(stored) : [];
-
+      try {
+        const guestItems = readGuestWishlist();
         if (guestItems.length > 0) {
-          const guestProductIds = Array.from(
-            new Set(guestItems.map((item) => item.product_id))
-          );
+          setItems(guestItems);
+        }
 
-          const { data: existingItems } = await supabase
-            .from('wishlists')
-            .select('product_id')
-            .eq('user_id', user.id)
-            .in('product_id', guestProductIds);
+        const result = await withTimeout(
+          supabase.auth.getSession(),
+          { data: { session: null }, error: null }
+        );
+        const user = result.data.session?.user ?? null;
+        setUserId(user?.id || null);
 
-          const existingProductIds = new Set(
-            (existingItems || []).map((item) => item.product_id)
-          );
+        if (user) {
+          if (guestItems.length > 0) {
+            const guestProductIds = Array.from(
+              new Set(guestItems.map((item) => item.product_id))
+            );
 
-          const rows = guestProductIds
-            .filter((productId) => !existingProductIds.has(productId))
-            .map((productId) => ({
-              user_id: user.id,
-              product_id: productId,
-            }));
+            const { data: existingItems } = await supabase
+              .from('wishlists')
+              .select('product_id')
+              .eq('user_id', user.id)
+              .in('product_id', guestProductIds);
 
-          if (rows.length > 0) {
-            await supabase.from('wishlists').insert(rows);
+            const existingProductIds = new Set(
+              (existingItems || []).map((item) => item.product_id)
+            );
+
+            const rows = guestProductIds
+              .filter((productId) => !existingProductIds.has(productId))
+              .map((productId) => ({
+                user_id: user.id,
+                product_id: productId,
+              }));
+
+            if (rows.length > 0) {
+              await supabase.from('wishlists').insert(rows);
+            }
+
+            localStorage.removeItem(GUEST_WISHLIST_KEY);
           }
 
-          localStorage.removeItem(GUEST_WISHLIST_KEY);
-        }
+          const { data, error } = await withTimeout(
+            supabase
+              .from('wishlists')
+              .select('*')
+              .eq('user_id', user.id),
+            {
+              data: null,
+              error: { name: 'PostgrestError', message: 'Wishlist timeout', details: '', hint: '', code: 'TIMEOUT' },
+              count: null,
+              status: 408,
+              statusText: 'Request Timeout',
+            }
+          );
 
-        const { data } = await supabase
-          .from('wishlists')
-          .select('*')
-          .eq('user_id', user.id);
-        setItems(data || []);
-      } else {
-        // Load from localStorage for guests
-        const stored = localStorage.getItem(GUEST_WISHLIST_KEY);
-        if (stored) {
-          setItems(JSON.parse(stored));
+          if (!error) {
+            setItems(data || []);
+          }
+        } else {
+          setItems(guestItems);
         }
+      } catch (error) {
+        console.error('Error loading wishlist:', error);
+        setUserId(null);
+        setItems(readGuestWishlist());
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     checkAuth();
@@ -117,10 +170,9 @@ export function useWishlist() {
 
         if (error) {
           console.error('Error adding wishlist item:', error);
-          const stored = localStorage.getItem(GUEST_WISHLIST_KEY);
-          const guestItems: WishlistItem[] = stored ? JSON.parse(stored) : [];
+          const guestItems = readGuestWishlist();
           if (!guestItems.some(item => item.product_id === productId)) {
-            localStorage.setItem(GUEST_WISHLIST_KEY, JSON.stringify([...guestItems, fallbackItem]));
+            writeGuestWishlist([...guestItems, fallbackItem]);
           }
           return;
         }
@@ -134,11 +186,11 @@ export function useWishlist() {
       if (exists) {
         const newItems = items.filter(item => item.product_id !== productId);
         setItems(newItems);
-        localStorage.setItem(GUEST_WISHLIST_KEY, JSON.stringify(newItems));
+        writeGuestWishlist(newItems);
       } else {
         const newItem = addLocalWishlistItem(productId, productSnapshot);
         const newItems = [...items, newItem];
-        localStorage.setItem(GUEST_WISHLIST_KEY, JSON.stringify(newItems));
+        writeGuestWishlist(newItems);
       }
     }
   }, [userId, items, isInWishlist, supabase, addLocalWishlistItem]);

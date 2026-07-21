@@ -34,6 +34,18 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 const PROFILE_CACHE_KEY = 'calleocho_profile_cache';
+const AUTH_TIMEOUT_MS = 4000;
+
+async function withTimeout<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((resolve) => {
+    timeoutId = setTimeout(() => resolve(fallback), AUTH_TIMEOUT_MS);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -165,12 +177,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const result = await withTimeout(
+        supabase.auth.getSession(),
+        { data: { session: null }, error: null }
+      );
+      const session = result.data.session;
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        await fetchProfile(session.user);
+        const cachedProfile = getCachedProfile(session.user.id);
+        if (cachedProfile) {
+          setProfile(cachedProfile);
+        }
+
+        void fetchProfile(session.user);
+      } else {
+        setProfile(null);
       }
 
       setIsLoading(false);
@@ -185,7 +208,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          await fetchProfile(session.user);
+          const cachedProfile = getCachedProfile(session.user.id);
+          if (cachedProfile) {
+            setProfile(cachedProfile);
+          }
+
+          void fetchProfile(session.user);
         } else {
           setProfile(null);
           localStorage.removeItem(PROFILE_CACHE_KEY);
