@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { createClient } from '@/lib/supabase/client';
 import {
   DEFAULT_HOME_CONTENT,
   type HomeCategoryContent,
@@ -47,32 +46,22 @@ export default function AdminHomeContentPage() {
 
   useEffect(() => {
     async function loadContent() {
-      const supabase = createClient();
-      const { data, error: loadError } = await (supabase as any)
-        .from('site_content')
-        .select('content')
-        .eq('key', 'home')
-        .maybeSingle();
-
-      if (!loadError && data?.content) {
-        setContent({
-          hero: {
-            ...DEFAULT_HOME_CONTENT.hero,
-            ...(data.content.hero || {}),
-            mode: data.content.hero?.mode === 'slider' ? 'slider' : 'video',
-            slides:
-              Array.isArray(data.content.hero?.slides) && data.content.hero.slides.length > 0
-                ? data.content.hero.slides
-                : DEFAULT_HOME_CONTENT.hero.slides,
-          },
-          categories:
-            Array.isArray(data.content.categories) && data.content.categories.length > 0
-              ? data.content.categories
-              : DEFAULT_HOME_CONTENT.categories,
+      try {
+        const response = await fetch('/api/admin/home-content', {
+          cache: 'no-store',
         });
-      }
+        const result = await response.json();
 
-      setIsLoading(false);
+        if (response.ok && result.content) {
+          setContent(result.content);
+        } else if (result.error) {
+          setError(result.error);
+        }
+      } catch {
+        setError('No se pudo cargar la configuración de inicio.');
+      } finally {
+        setIsLoading(false);
+      }
     }
 
     loadContent();
@@ -145,17 +134,25 @@ export default function AdminHomeContentPage() {
     setError(null);
     setMessage(null);
 
-    const supabase = createClient();
-    const { error: saveError } = await (supabase as any).from('site_content').upsert({
-      key: 'home',
-      content,
-      updated_at: new Date().toISOString(),
-    });
+    let result: { error?: string };
+    let ok = false;
 
-    setIsSaving(false);
+    try {
+      const response = await fetch('/api/admin/home-content', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+      result = await response.json();
+      ok = response.ok;
+    } catch {
+      result = { error: 'No se pudo guardar la configuración de inicio.' };
+    } finally {
+      setIsSaving(false);
+    }
 
-    if (saveError) {
-      setError(saveError.message);
+    if (!ok) {
+      setError(result.error || 'No se pudo guardar la configuración de inicio.');
       return;
     }
 

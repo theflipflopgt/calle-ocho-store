@@ -170,6 +170,13 @@ const getSizeGuideLabel = (gender: string) => {
   return 'Unisex adulto';
 };
 
+const toDatabaseGender = (gender: string) => {
+  if (gender === 'hombre') return 'men';
+  if (gender === 'mujer') return 'women';
+  if (gender === 'ninos') return 'kids';
+  return 'unisex';
+};
+
 export function ProductForm({ product, brands, categories }: ProductFormProps) {
   const router = useRouter();
   const isEditing = !!product;
@@ -360,7 +367,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
         base_price: formData.base_price,
         compare_at_price: compareAtPrice,
         status: formData.status,
-        gender: formData.gender,
+        gender: toDatabaseGender(formData.gender),
         is_featured: formData.is_featured,
         meta_title: formData.meta_title || null,
         meta_description: formData.meta_description || null,

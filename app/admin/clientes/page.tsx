@@ -54,6 +54,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
   const stats = {
     total: customers.length,
     admins: customers.filter((c: any) => c.role === 'admin').length,
+    customers: customers.filter((c: any) => c.role !== 'admin').length,
     withOrders: customers.filter((c: any) => c.order_count > 0).length,
   };
 
@@ -61,9 +62,9 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-brand-black">Clientes</h1>
+        <h1 className="text-2xl font-bold text-brand-black">Usuarios</h1>
         <p className="text-gray-600 mt-1">
-          {stats.total} usuarios registrados • {stats.withOrders} han comprado
+          {stats.total} usuarios registrados • {stats.customers} clientes • {stats.admins} admins • {stats.withOrders} han comprado
         </p>
       </div>
 
@@ -105,7 +106,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
         {customers.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
             <User className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-            <p>No hay clientes {filters.q ? 'con ese criterio' : 'registrados'}</p>
+            <p>No hay usuarios {filters.q ? 'con ese criterio' : 'registrados'}</p>
           </div>
         ) : (
           customers.map((customer: any) => (
@@ -192,7 +193,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cliente
+                  Usuario
                 </th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Contacto
@@ -216,7 +217,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                     <User className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                    <p>No hay clientes {filters.q ? 'con ese criterio' : 'registrados'}</p>
+                    <p>No hay usuarios {filters.q ? 'con ese criterio' : 'registrados'}</p>
                   </td>
                 </tr>
               ) : (

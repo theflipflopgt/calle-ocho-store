@@ -38,7 +38,7 @@ const navigation = [
     ],
   },
   { name: 'Órdenes', href: '/admin/ordenes', icon: ShoppingCart },
-  { name: 'Clientes', href: '/admin/clientes', icon: Users },
+  { name: 'Usuarios', href: '/admin/clientes', icon: Users },
   { name: 'Marcas', href: '/admin/marcas', icon: Layers },
   { name: 'Categorías', href: '/admin/categorias', icon: Tag },
   { name: 'Cupones', href: '/admin/cupones', icon: Ticket },

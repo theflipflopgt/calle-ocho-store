@@ -130,6 +130,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setItems(transformedItems);
     } catch (error) {
       console.error('Error fetching cart:', error);
+      setItems([]);
     } finally {
       setIsLoading(false);
     }
@@ -278,10 +279,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setItems(transformedItems);
     } catch (error) {
       console.error('Error loading guest cart:', error);
+      setItems([]);
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const timeout = window.setTimeout(() => {
+      setItems([]);
+      setIsLoading(false);
+    }, 7000);
+
+    return () => window.clearTimeout(timeout);
+  }, [isLoading]);
 
   // Add item to cart
   const addItem = useCallback(async (variantId: string, quantity = 1): Promise<boolean> => {

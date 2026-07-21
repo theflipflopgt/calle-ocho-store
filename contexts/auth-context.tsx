@@ -74,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [rememberedAdminUserId, setRememberedAdminUserId] = useState<string | null>(null);
+  const [serverIsAdmin, setServerIsAdmin] = useState(false);
 
   const supabase = createClient();
 
@@ -113,9 +114,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [getFallbackProfile, supabase]);
 
+  const refreshServerProfile = useCallback(async () => {
+    try {
+      const response = await withTimeout(
+        fetch('/api/auth/me', {
+          credentials: 'include',
+          cache: 'no-store',
+        })
+      );
+      const data = await response.json();
+
+      setServerIsAdmin(Boolean(data.isAdmin));
+
+      if (data.profile) {
+        setProfile(data.profile as Profile);
+      }
+    } catch {
+      setServerIsAdmin(false);
+    }
+  }, []);
+
   const refreshProfile = async () => {
     if (user) {
       await fetchProfile(user);
+      await refreshServerProfile();
     }
   };
 
@@ -129,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(currentSession);
         setUser(currentSession.user);
         await fetchProfile(currentSession.user);
+        await refreshServerProfile();
         return;
       }
 
@@ -141,15 +164,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (currentUser) {
         await fetchProfile(currentUser);
+        await refreshServerProfile();
       } else {
         setProfile(null);
+        setServerIsAdmin(false);
       }
     } catch {
       setSession(null);
       setUser(null);
       setProfile(null);
+      setServerIsAdmin(false);
     }
-  }, [fetchProfile, supabase]);
+  }, [fetchProfile, refreshServerProfile, supabase]);
 
   const signOut = async () => {
     setUser(null);
@@ -157,6 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
     setIsLoading(false);
     setRememberedAdminUserId(null);
+    setServerIsAdmin(false);
     clearStoredAuthData();
 
     await Promise.allSettled([
@@ -193,8 +220,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           if (session?.user) {
             await fetchProfile(session.user);
+            await refreshServerProfile();
           } else {
             setProfile(null);
+            setServerIsAdmin(false);
           }
         } finally {
           setIsLoading(false);
@@ -205,7 +234,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [fetchProfile, loadAuthState, supabase]);
+  }, [fetchProfile, loadAuthState, refreshServerProfile, supabase]);
 
   useEffect(() => {
     const refreshVisibleSession = () => {
@@ -239,7 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const profileIsAdmin = profile?.role === 'admin';
   const isAdmin =
     !!user &&
-    (profileIsAdmin || metadataIsAdmin || rememberedAdminUserId === user.id);
+    (profileIsAdmin || metadataIsAdmin || serverIsAdmin || rememberedAdminUserId === user.id);
 
   useEffect(() => {
     if (!user || !isAdmin) return;

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { CartDrawer } from "@/components/cart/cart-drawer";
 
 const defaultUrl = "https://calleochostore.com";
 
@@ -55,6 +56,7 @@ export default function MainLayout({
     <>
       <Header />
       <main className="min-h-screen">{children}</main>
+      <CartDrawer />
       <Footer />
     </>
   );

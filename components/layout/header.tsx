@@ -94,19 +94,6 @@ export function Header() {
               </Button>
             </Link>
 
-            {isAdmin && (
-              <Link href="/admin" className="hidden md:block">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-2 border-brand-blue text-brand-blue hover:bg-blue-50"
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  Admin
-                </Button>
-              </Link>
-            )}
-
             {/* Cart */}
             <Button
               size="icon"
@@ -148,12 +135,6 @@ export function Header() {
                         <DropdownMenuSeparator />
                       </>
                     )}
-                    <DropdownMenuItem asChild>
-                      <Link href="/cuenta" className="cursor-pointer">
-                        <User className="mr-2 h-4 w-4" />
-                        Ver mi perfil
-                      </Link>
-                    </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/cuenta" className="cursor-pointer">
                         <User className="mr-2 h-4 w-4" />
@@ -267,14 +248,6 @@ export function Header() {
                       Admin Panel
                     </Link>
                   )}
-                      <Link
-                        href="/cuenta"
-                        className="flex items-center gap-3 py-2.5 sm:py-3 text-sm sm:text-base text-gray-600 active:bg-gray-50"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <User className="h-5 w-5" />
-                        Ver mi perfil
-                      </Link>
                       <Link
                         href="/cuenta"
                         className="flex items-center gap-3 py-2.5 sm:py-3 text-sm sm:text-base text-gray-600 active:bg-gray-50"
