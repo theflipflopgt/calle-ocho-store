@@ -58,7 +58,7 @@ export function Header() {
               alt="Calle Ocho Store"
               width={120}
               height={48}
-              className="h-8 sm:h-10 md:h-12 w-auto dark:hidden"
+              className="h-11 sm:h-14 md:h-16 w-auto dark:hidden"
               priority
             />
             <Image
@@ -66,7 +66,7 @@ export function Header() {
               alt="Calle Ocho Store"
               width={120}
               height={48}
-              className="h-8 sm:h-10 md:h-12 w-auto hidden dark:block"
+              className="h-11 sm:h-14 md:h-16 w-auto hidden dark:block"
               priority
             />
           </Link>

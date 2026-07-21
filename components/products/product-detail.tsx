@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, ShoppingBag, Minus, Plus, ChevronLeft, ChevronRight, Check, Truck, RotateCcw, Shield, Loader2 } from 'lucide-react';
@@ -21,12 +21,16 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [cartMessage, setCartMessage] = useState<string | null>(null);
 
-  const { addItem } = useCart();
+  const { addItem, openCart } = useCart();
 
   const selectedColor = product.colors[selectedColorIndex];
   const images = selectedColor?.images || [];
-  const variants = selectedColor?.variants || [];
+  const variants = useMemo(
+    () => selectedColor?.variants || [],
+    [selectedColor]
+  );
 
   const availableVariants = useMemo(() =>
     variants.filter(v => v.is_available && v.stock_quantity > 0),
@@ -39,6 +43,12 @@ export function ProductDetail({ product }: ProductDetailProps) {
   );
 
   const maxQuantity = selectedVariant?.stock_quantity || 1;
+
+  useEffect(() => {
+    if (!selectedVariantId && availableVariants.length > 0) {
+      setSelectedVariantId(availableVariants[0].id);
+    }
+  }, [availableVariants, selectedVariantId]);
 
   // Reset image and variant when color changes
   const handleColorChange = (index: number) => {
@@ -57,11 +67,23 @@ export function ProductDetail({ product }: ProductDetailProps) {
   };
 
   const handleAddToCart = async () => {
-    if (!selectedVariantId || isAddingToCart) return;
+    setCartMessage(null);
+
+    if (!selectedVariantId) {
+      setCartMessage('Selecciona una talla disponible antes de agregar al carrito.');
+      return;
+    }
+
+    if (isAddingToCart) return;
+
     setIsAddingToCart(true);
     try {
-      for (let i = 0; i < quantity; i++) {
-        await addItem(selectedVariantId, 1);
+      const added = await addItem(selectedVariantId, quantity);
+      if (added) {
+        setCartMessage('Producto agregado al carrito.');
+        openCart();
+      } else {
+        setCartMessage('No se pudo agregar. Revisa la disponibilidad e intenta de nuevo.');
       }
     } finally {
       setIsAddingToCart(false);
@@ -359,6 +381,16 @@ export function ProductDetail({ product }: ProductDetailProps) {
             <Heart className="w-5 h-5" />
           </Button>
         </div>
+        {cartMessage && (
+          <p
+            className={cn(
+              "text-sm font-medium",
+              cartMessage.includes('agregado') ? "text-green-600" : "text-red-600"
+            )}
+          >
+            {cartMessage}
+          </p>
+        )}
 
         {/* Features */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pt-4 border-t border-gray-100">

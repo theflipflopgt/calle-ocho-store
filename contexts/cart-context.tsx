@@ -292,7 +292,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         .select(`
           id,
           stock_quantity,
-          product:products(base_price)
+          product:products!product_variants_product_id_fkey(base_price)
         `)
         .eq('id', variantId)
         .single();

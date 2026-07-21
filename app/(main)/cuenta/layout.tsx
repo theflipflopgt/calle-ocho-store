@@ -56,8 +56,8 @@ export default function CuentaLayout({
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
         {/* Sidebar Navigation */}
-        <aside className="lg:col-span-1">
-          <nav className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <aside className="relative z-10 lg:col-span-1">
+          <nav className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
             {navigation.map((item) => {
               const isActive = pathname === item.href ||
                 (item.href !== '/cuenta' && pathname.startsWith(item.href));
@@ -69,8 +69,8 @@ export default function CuentaLayout({
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 text-sm font-medium border-b border-gray-50 last:border-b-0 transition-colors",
                     isActive
-                      ? "bg-brand-blue/5 text-brand-blue border-l-2 border-l-brand-blue"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-brand-black"
+                      ? "bg-brand-blue/10 text-brand-blue border-l-2 border-l-brand-blue"
+                      : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-black dark:hover:text-white"
                   )}
                 >
                   <item.icon className="w-5 h-5" />
@@ -89,7 +89,7 @@ export default function CuentaLayout({
         </aside>
 
         {/* Main Content */}
-        <div className="lg:col-span-3">{children}</div>
+        <div className="relative z-0 lg:col-span-3">{children}</div>
       </div>
     </main>
   );

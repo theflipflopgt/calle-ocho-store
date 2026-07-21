@@ -308,14 +308,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
             image_type: image.image_type || 'front',
           }));
 
-        const existingImageUpdates = validImages
-          .filter((image) => image.id)
-          .map(({ id, ...imageData }) =>
-            supabase
-              .from('product_color_images')
-              .update(imageData)
-              .eq('id', id!)
-          );
+        const existingImages = validImages.filter((image) => image.id);
 
         const newImages = validImages
           .filter((image) => !image.id)
@@ -326,7 +319,11 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
           });
 
         const imageResults = await Promise.all([
-          ...existingImageUpdates,
+          existingImages.length
+            ? supabase.from('product_color_images').upsert(existingImages, {
+                onConflict: 'id',
+              })
+            : Promise.resolve({ error: null }),
           newImages.length
             ? supabase.from('product_color_images').insert(newImages)
             : Promise.resolve({ error: null }),
@@ -350,14 +347,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
           is_available: variant.is_available ?? true,
         }));
 
-        const existingVariantUpdates = variantRows
-          .filter((variant) => variant.id)
-          .map(({ id, ...variantData }) =>
-            supabase
-              .from('product_variants')
-              .update(variantData)
-              .eq('id', id!)
-          );
+        const existingVariants = variantRows.filter((variant) => variant.id);
 
         const newVariants = variantRows
           .filter((variant) => !variant.id)
@@ -368,7 +358,11 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
           });
 
         const variantResults = await Promise.all([
-          ...existingVariantUpdates,
+          existingVariants.length
+            ? supabase.from('product_variants').upsert(existingVariants, {
+                onConflict: 'id',
+              })
+            : Promise.resolve({ error: null }),
           newVariants.length
             ? supabase.from('product_variants').insert(newVariants)
             : Promise.resolve({ error: null }),
