@@ -9,6 +9,25 @@ interface WishlistItem {
   created_at: string | null;
 }
 
+const LOCAL_WISHLIST_KEY = 'wishlist';
+
+function readLocalWishlist(): WishlistItem[] {
+  const stored = localStorage.getItem(LOCAL_WISHLIST_KEY);
+  if (!stored) return [];
+
+  try {
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    localStorage.removeItem(LOCAL_WISHLIST_KEY);
+    return [];
+  }
+}
+
+function writeLocalWishlist(items: WishlistItem[]) {
+  localStorage.setItem(LOCAL_WISHLIST_KEY, JSON.stringify(items));
+}
+
 export function useWishlist() {
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,25 +53,14 @@ export function useWishlist() {
             .order('created_at', { ascending: false });
 
           if (!isMounted) return;
-          setItems(error ? [] : data || []);
+          setItems(error ? readLocalWishlist() : data || readLocalWishlist());
         } else {
           // Load from localStorage for guests
-          const stored = localStorage.getItem('wishlist');
-          if (stored) {
-            try {
-              const parsed = JSON.parse(stored);
-              setItems(Array.isArray(parsed) ? parsed : []);
-            } catch {
-              localStorage.removeItem('wishlist');
-              setItems([]);
-            }
-          } else {
-            setItems([]);
-          }
+          setItems(readLocalWishlist());
         }
       } catch {
         if (isMounted) {
-          setItems([]);
+          setItems(readLocalWishlist());
         }
       } finally {
         if (isMounted) {
@@ -83,7 +91,12 @@ export function useWishlist() {
           .delete()
           .eq('user_id', userId)
           .eq('product_id', productId);
-        if (error) return;
+        if (error) {
+          const newItems = items.filter(item => item.product_id !== productId);
+          setItems(newItems);
+          writeLocalWishlist(newItems);
+          return;
+        }
         setItems(prev => prev.filter(item => item.product_id !== productId));
       } else {
         const { data, error } = await supabase
@@ -93,6 +106,15 @@ export function useWishlist() {
           .single();
         if (!error && data) {
           setItems(prev => [...prev, data]);
+        } else {
+          const newItem: WishlistItem = {
+            id: crypto.randomUUID(),
+            product_id: productId,
+            created_at: new Date().toISOString(),
+          };
+          const newItems = [...items, newItem];
+          setItems(newItems);
+          writeLocalWishlist(newItems);
         }
       }
     } else {
@@ -100,7 +122,7 @@ export function useWishlist() {
       if (exists) {
         const newItems = items.filter(item => item.product_id !== productId);
         setItems(newItems);
-        localStorage.setItem('wishlist', JSON.stringify(newItems));
+        writeLocalWishlist(newItems);
       } else {
         const newItem: WishlistItem = {
           id: crypto.randomUUID(),
@@ -109,7 +131,7 @@ export function useWishlist() {
         };
         const newItems = [...items, newItem];
         setItems(newItems);
-        localStorage.setItem('wishlist', JSON.stringify(newItems));
+        writeLocalWishlist(newItems);
       }
     }
   }, [userId, items, isInWishlist, supabase]);
@@ -120,9 +142,11 @@ export function useWishlist() {
         .from('wishlists')
         .delete()
         .eq('user_id', userId);
-      if (error) return;
+      if (error) {
+        localStorage.removeItem(LOCAL_WISHLIST_KEY);
+      }
     } else {
-      localStorage.removeItem('wishlist');
+      localStorage.removeItem(LOCAL_WISHLIST_KEY);
     }
     setItems([]);
   }, [userId, supabase]);

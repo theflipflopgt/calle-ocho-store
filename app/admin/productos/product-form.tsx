@@ -78,6 +78,11 @@ interface ProductFormProps {
   categories: Category[];
 }
 
+interface RemovedVariant {
+  colorId?: string;
+  variant: ProductVariant;
+}
+
 type ShoeSize = {
   us: number;
   eu: number;
@@ -205,9 +210,25 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
   });
 
   const [colors, setColors] = useState<ProductColor[]>(
-    product?.product_colors || []
+    () =>
+      product?.product_colors.map((color) => ({
+        ...color,
+        product_variants: color.product_variants.filter(
+          (variant) => variant.is_available !== false
+        ),
+      })) || []
   );
-  const [deletedVariantIds, setDeletedVariantIds] = useState<string[]>([]);
+  const [removedVariants, setRemovedVariants] = useState<RemovedVariant[]>(
+    () =>
+      product?.product_colors.flatMap((color) =>
+        color.product_variants
+          .filter((variant) => variant.is_available === false)
+          .map((variant) => ({
+            colorId: color.id,
+            variant,
+          }))
+      ) || []
+  );
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -285,6 +306,29 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
 
     if (alreadyExists) return;
 
+    const removedVariant = removedVariants.find(
+      (item) => item.colorId === color.id && item.variant.size_us === size.us
+    );
+
+    if (removedVariant) {
+      updateColor(colorIndex, {
+        product_variants: [
+          ...color.product_variants,
+          {
+            ...removedVariant.variant,
+            size_eu: size.eu,
+            size_uk: size.uk,
+            size_cm: size.cm,
+            is_available: true,
+          },
+        ].sort((a, b) => a.size_us - b.size_us),
+      });
+      setRemovedVariants((current) =>
+        current.filter((item) => item.variant.id !== removedVariant.variant.id)
+      );
+      return;
+    }
+
     const skuSuffix = color.sku_suffix || color.color_name.slice(0, 3) || 'CLR';
     const newVariant: ProductVariant = {
       size_us: size.us,
@@ -309,7 +353,17 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     const variant = colors[colorIndex].product_variants[variantIndex];
 
     if (variant.id) {
-      setDeletedVariantIds((current) => [...current, variant.id!]);
+      setRemovedVariants((current) => {
+        if (current.some((item) => item.variant.id === variant.id)) return current;
+
+        return [
+          ...current,
+          {
+            colorId: colors[colorIndex].id,
+            variant,
+          },
+        ];
+      });
     }
 
     updateColor(colorIndex, {
@@ -394,13 +448,26 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
         productId = data.id;
       }
 
-      if (deletedVariantIds.length > 0) {
-        const { error: deleteVariantsError } = await supabase
-          .from('product_variants')
-          .delete()
-          .in('id', deletedVariantIds);
+      if (removedVariants.length > 0) {
+        const removedVariantUpdateResults = await Promise.all(
+          removedVariants
+            .filter((item) => item.variant.id)
+            .map((item) =>
+              supabase
+                .from('product_variants')
+                .update({
+                  stock_quantity: 0,
+                  is_available: false,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', item.variant.id!)
+            )
+        );
+        const removedVariantUpdateError = removedVariantUpdateResults.find(
+          (result) => result.error
+        )?.error;
 
-        if (deleteVariantsError) throw deleteVariantsError;
+        if (removedVariantUpdateError) throw removedVariantUpdateError;
       }
 
       // Handle colors, images, and variants

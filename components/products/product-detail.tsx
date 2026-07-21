@@ -3,12 +3,13 @@
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, ShoppingBag, Minus, Plus, ChevronLeft, ChevronRight, Check, Truck, RotateCcw, Shield, Loader2 } from 'lucide-react';
+import { Heart, ShoppingBag, Minus, Plus, ChevronLeft, ChevronRight, Check, Truck, RotateCcw, Shield, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatPrice } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/contexts/cart-context';
+import { useWishlistContext } from '@/contexts/wishlist-context';
 import type { ProductWithDetails } from '@/types/product';
 
 interface ProductDetailProps {
@@ -21,12 +22,14 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
 
   const { addItem } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlistContext();
 
   const selectedColor = product.colors[selectedColorIndex];
   const images = selectedColor?.images || [];
-  const variants = selectedColor?.variants || [];
+  const variants = useMemo(() => selectedColor?.variants || [], [selectedColor]);
 
   const availableVariants = useMemo(() =>
     variants.filter(v => v.is_available && v.stock_quantity > 0),
@@ -271,9 +274,13 @@ export function ProductDetail({ product }: ProductDetailProps) {
             <p className="text-sm font-medium text-brand-black">
               Talla: <span className="font-normal text-gray-600">{selectedVariant?.size_us || 'Selecciona una talla'}</span>
             </p>
-            <Link href="/guia-de-tallas" className="text-base font-semibold text-brand-blue hover:underline">
+            <button
+              type="button"
+              onClick={() => setIsSizeGuideOpen(true)}
+              className="text-base font-semibold text-brand-blue hover:underline"
+            >
               Guía de tallas
-            </Link>
+            </button>
           </div>
           <div className="flex flex-wrap gap-2">
             {variants.map((variant) => {
@@ -354,9 +361,14 @@ export function ProductDetail({ product }: ProductDetailProps) {
           <Button
             size="lg"
             variant="outline"
-            className="h-12 sm:h-14 w-12 sm:w-14 border-gray-200"
+            className={cn(
+              "h-12 sm:h-14 w-12 sm:w-14 border-gray-200",
+              isInWishlist(product.id) && "border-brand-red text-brand-red"
+            )}
+            onClick={() => toggleWishlist(product.id)}
+            aria-label="Agregar a favoritos"
           >
-            <Heart className="w-5 h-5" />
+            <Heart className={cn("w-5 h-5", isInWishlist(product.id) && "fill-current")} />
           </Button>
         </div>
 
@@ -397,6 +409,116 @@ export function ProductDetail({ product }: ProductDetailProps) {
             Ver más productos de {product.brand.name}
             <ChevronRight className="w-4 h-4" />
           </Link>
+        </div>
+      </div>
+      {isSizeGuideOpen && <SizeGuideModal onClose={() => setIsSizeGuideOpen(false)} />}
+    </div>
+  );
+}
+
+const sizeGuideTables = [
+  {
+    title: 'Dama',
+    rows: [
+      ['22', '5', '-'],
+      ['22.5', '5.5', '35'],
+      ['23', '6', '36'],
+      ['23.5', '6.5', '36/37'],
+      ['24', '7', '37'],
+      ['24.5', '7.5', '38'],
+      ['25', '8', '38.5'],
+      ['25.5', '8.5', '39'],
+      ['26', '9', '39.5'],
+      ['26.5', '9.5', '40.5'],
+      ['27', '10', '41'],
+    ],
+  },
+  {
+    title: 'Caballero',
+    rows: [
+      ['25', '7', '40'],
+      ['25.5', '7.5', '40.5'],
+      ['26', '8', '41'],
+      ['26.5', '8.5', '41.5'],
+      ['27', '9', '42'],
+      ['27.5', '9.5', '42.5'],
+      ['28', '10', '43'],
+      ['28.5', '10.5', '44'],
+      ['29', '11', '44.5'],
+      ['29.5', '11.5', '45'],
+      ['30', '12', '46'],
+      ['31', '13', '46.5'],
+    ],
+  },
+  {
+    title: 'Niños',
+    rows: [
+      ['14.5', '8.5', '26'],
+      ['16.5', '11.5', '29'],
+      ['17', '12', '29.7'],
+      ['18', '13', '31'],
+      ['19', '1', '33'],
+      ['20', '2', '34'],
+      ['21', '3', '35'],
+      ['22', '4', '36'],
+      ['22.5', '4.5', '37'],
+      ['23', '5', '37.5'],
+    ],
+  },
+];
+
+function SizeGuideModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end bg-black/50 p-0 sm:items-center sm:justify-center sm:p-4">
+      <div className="max-h-[85vh] w-full overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:max-w-3xl sm:rounded-2xl">
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-5">
+          <div>
+            <h2 className="text-lg font-bold text-brand-black">Guía de tallas</h2>
+            <p className="text-xs text-gray-500">Consulta sin salir del producto.</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-brand-black"
+            aria-label="Cerrar guía de tallas"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="max-h-[calc(85vh-72px)] overflow-y-auto px-4 py-4 sm:px-5">
+          <div className="grid gap-4 md:grid-cols-3">
+            {sizeGuideTables.map((table) => (
+              <div key={table.title} className="overflow-hidden rounded-lg border border-gray-200">
+                <h3 className="bg-brand-black px-3 py-2 text-sm font-semibold text-white">
+                  {table.title}
+                </h3>
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                    <tr>
+                      <th className="px-3 py-2 text-left">México</th>
+                      <th className="px-3 py-2 text-left">USA</th>
+                      <th className="px-3 py-2 text-left">Europa</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {table.rows.map((row) => (
+                      <tr key={`${table.title}-${row.join('-')}`}>
+                        {row.map((cell) => (
+                          <td key={cell} className="px-3 py-2 font-medium text-gray-800">
+                            {cell}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-sm text-gray-600">
+            Si estás entre dos tallas, escríbenos por WhatsApp y te ayudamos a elegir antes de comprar.
+          </p>
         </div>
       </div>
     </div>

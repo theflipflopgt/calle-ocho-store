@@ -17,7 +17,7 @@ interface SearchBarProps {
 
 export function SearchBar({
   defaultValue = '',
-  placeholder = 'Buscar productos, marcas...',
+  placeholder = 'Polo, Adidas, Skechers, nombre del calzado...',
   className,
   size = 'md',
   autoFocus = false,
@@ -129,7 +129,7 @@ export function HeaderSearch() {
                   type="search"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar productos..."
+                  placeholder="Polo, Adidas, Skechers, modelo..."
                   autoFocus
                   className="pl-10 h-12 rounded-full"
                 />

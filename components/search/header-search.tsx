@@ -27,7 +27,7 @@ export function HeaderSearchForm() {
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Buscar productos..."
+        placeholder="Polo, Adidas, Skechers, modelo..."
         className="bg-transparent border-0 focus-visible:ring-0 text-sm h-auto p-0"
       />
       {query && (
@@ -98,7 +98,7 @@ export function MobileSearchModal({
                   type="search"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar productos, marcas..."
+                  placeholder="Polo, Adidas, Skechers, modelo..."
                   autoFocus
                   className="pl-10 h-12 rounded-full"
                 />

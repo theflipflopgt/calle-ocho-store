@@ -57,11 +57,7 @@ export const getProducts = cache(async function getProducts(options: GetProducts
     query = query.not('compare_at_price', 'is', null);
   }
 
-  // Búsqueda por texto
-  if (options.search) {
-    const searchTerm = options.search.toLowerCase();
-    query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,brand.name.ilike.%${searchTerm}%`);
-  }
+  const searchTerm = options.search?.trim();
 
   // Ordenamiento
   switch (options.sortBy) {
@@ -112,12 +108,49 @@ export const getProducts = cache(async function getProducts(options: GetProducts
     );
   }
 
+  if (searchTerm) {
+    const tokens = normalizeSearch(searchTerm)
+      .split(/\s+/)
+      .filter(Boolean);
+
+    filteredProducts = filteredProducts.filter((product) => {
+      const searchableText = normalizeSearch(
+        [
+          product.name,
+          product.sku,
+          product.description || '',
+          product.brand?.name || '',
+          product.brand?.slug || '',
+          product.category?.name || '',
+          product.category?.slug || '',
+          product.gender || '',
+          ...product.colors.flatMap((color: any) => [
+            color.color_name || '',
+            color.sku_suffix || '',
+            ...color.variants.map((variant: any) => variant.sku || ''),
+          ]),
+        ].join(' ')
+      );
+
+      return tokens.every((token) => searchableText.includes(token));
+    });
+  }
+
   if (options.onSale) {
     filteredProducts = filteredProducts.filter((product) => product.hasDiscount);
   }
 
   return filteredProducts;
 });
+
+function normalizeSearch(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9.]+/g, ' ')
+    .trim();
+}
 
 export const getProductBySlug = cache(async function getProductBySlug(slug: string): Promise<ProductWithDetails | null> {
   const supabase = await createClient();

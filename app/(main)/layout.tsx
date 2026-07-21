@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { CartDrawer } from "@/components/cart/cart-drawer";
+import { WhatsAppButton } from "@/components/ui/whatsapp-button";
 
 const defaultUrl = "https://calleochostore.com";
 
@@ -57,6 +58,7 @@ export default function MainLayout({
       <Header />
       <main className="min-h-screen">{children}</main>
       <CartDrawer />
+      <WhatsAppButton phoneNumber="50252498898" />
       <Footer />
     </>
   );

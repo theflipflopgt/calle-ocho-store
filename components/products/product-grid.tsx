@@ -2,6 +2,7 @@
 
 import { ProductCard } from './product-card';
 import { useCart } from '@/contexts/cart-context';
+import { useWishlistContext } from '@/contexts/wishlist-context';
 import type { ProductWithDetails } from '@/types/product';
 
 interface ProductGridProps {
@@ -11,6 +12,7 @@ interface ProductGridProps {
 
 export function ProductGrid({ products, emptyMessage = 'No se encontraron productos' }: ProductGridProps) {
   const { addItem } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlistContext();
 
   const handleQuickAdd = async (variantId: string) => {
     await addItem(variantId, 1);
@@ -31,6 +33,8 @@ export function ProductGrid({ products, emptyMessage = 'No se encontraron produc
           key={product.id}
           product={product}
           onQuickAdd={handleQuickAdd}
+          onAddToWishlist={toggleWishlist}
+          isInWishlist={isInWishlist(product.id)}
         />
       ))}
     </div>
