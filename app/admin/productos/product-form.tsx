@@ -297,53 +297,85 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
           colorId = data.id;
         }
 
-        // Handle images
-        for (const image of color.product_color_images) {
-          if (!image.image_url) continue;
-
-          const imageData = {
+        const validImages = color.product_color_images
+          .filter((image) => image.image_url.trim())
+          .map((image) => ({
+            id: image.id,
             product_color_id: colorId,
-            image_url: image.image_url,
+            image_url: image.image_url.trim(),
             alt_text: image.alt_text || null,
             display_order: image.display_order ?? 0,
             image_type: image.image_type || 'front',
-          };
+          }));
 
-          if (image.id) {
-            await supabase
+        const existingImageUpdates = validImages
+          .filter((image) => image.id)
+          .map(({ id, ...imageData }) =>
+            supabase
               .from('product_color_images')
               .update(imageData)
-              .eq('id', image.id);
-          } else {
-            await supabase.from('product_color_images').insert(imageData);
-          }
-        }
+              .eq('id', id!)
+          );
 
-        // Handle variants
-        for (const variant of color.product_variants) {
-          const variantData = {
-            product_id: productId,
-            product_color_id: colorId,
-            size_us: variant.size_us,
-            size_eu: variant.size_eu,
-            size_uk: variant.size_uk,
-            size_cm: variant.size_cm,
-            sku: variant.sku,
-            stock_quantity: variant.stock_quantity,
-            low_stock_threshold: variant.low_stock_threshold ?? 5,
-            price_override: variant.price_override || null,
-            is_available: variant.is_available ?? true,
-          };
+        const newImages = validImages
+          .filter((image) => !image.id)
+          .map((image) => {
+            const imageData = { ...image };
+            delete imageData.id;
+            return imageData;
+          });
 
-          if (variant.id) {
-            await supabase
+        const imageResults = await Promise.all([
+          ...existingImageUpdates,
+          newImages.length
+            ? supabase.from('product_color_images').insert(newImages)
+            : Promise.resolve({ error: null }),
+        ]);
+
+        const imageError = imageResults.find((result) => result.error)?.error;
+        if (imageError) throw imageError;
+
+        const variantRows = color.product_variants.map((variant) => ({
+          id: variant.id,
+          product_id: productId,
+          product_color_id: colorId,
+          size_us: variant.size_us,
+          size_eu: variant.size_eu,
+          size_uk: variant.size_uk,
+          size_cm: variant.size_cm,
+          sku: variant.sku,
+          stock_quantity: variant.stock_quantity,
+          low_stock_threshold: variant.low_stock_threshold ?? 5,
+          price_override: variant.price_override || null,
+          is_available: variant.is_available ?? true,
+        }));
+
+        const existingVariantUpdates = variantRows
+          .filter((variant) => variant.id)
+          .map(({ id, ...variantData }) =>
+            supabase
               .from('product_variants')
               .update(variantData)
-              .eq('id', variant.id);
-          } else {
-            await supabase.from('product_variants').insert(variantData);
-          }
-        }
+              .eq('id', id!)
+          );
+
+        const newVariants = variantRows
+          .filter((variant) => !variant.id)
+          .map((variant) => {
+            const variantData = { ...variant };
+            delete variantData.id;
+            return variantData;
+          });
+
+        const variantResults = await Promise.all([
+          ...existingVariantUpdates,
+          newVariants.length
+            ? supabase.from('product_variants').insert(newVariants)
+            : Promise.resolve({ error: null }),
+        ]);
+
+        const variantError = variantResults.find((result) => result.error)?.error;
+        if (variantError) throw variantError;
       }
 
       router.push('/admin/productos');

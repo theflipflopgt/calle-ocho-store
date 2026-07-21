@@ -13,7 +13,8 @@ export function useWishlist() {
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
-  const supabase = createClient();
+const supabase = createClient();
+const GUEST_WISHLIST_KEY = 'wishlist';
 
   // Check auth and load wishlist
   useEffect(() => {
@@ -22,6 +23,38 @@ export function useWishlist() {
       setUserId(user?.id || null);
 
       if (user) {
+        const stored = localStorage.getItem(GUEST_WISHLIST_KEY);
+        const guestItems: WishlistItem[] = stored ? JSON.parse(stored) : [];
+
+        if (guestItems.length > 0) {
+          const guestProductIds = Array.from(
+            new Set(guestItems.map((item) => item.product_id))
+          );
+
+          const { data: existingItems } = await supabase
+            .from('wishlists')
+            .select('product_id')
+            .eq('user_id', user.id)
+            .in('product_id', guestProductIds);
+
+          const existingProductIds = new Set(
+            (existingItems || []).map((item) => item.product_id)
+          );
+
+          const rows = guestProductIds
+            .filter((productId) => !existingProductIds.has(productId))
+            .map((productId) => ({
+              user_id: user.id,
+              product_id: productId,
+            }));
+
+          if (rows.length > 0) {
+            await supabase.from('wishlists').insert(rows);
+          }
+
+          localStorage.removeItem(GUEST_WISHLIST_KEY);
+        }
+
         const { data } = await supabase
           .from('wishlists')
           .select('*')
@@ -29,7 +62,7 @@ export function useWishlist() {
         setItems(data || []);
       } else {
         // Load from localStorage for guests
-        const stored = localStorage.getItem('wishlist');
+        const stored = localStorage.getItem(GUEST_WISHLIST_KEY);
         if (stored) {
           setItems(JSON.parse(stored));
         }
@@ -71,7 +104,7 @@ export function useWishlist() {
       if (exists) {
         const newItems = items.filter(item => item.product_id !== productId);
         setItems(newItems);
-        localStorage.setItem('wishlist', JSON.stringify(newItems));
+        localStorage.setItem(GUEST_WISHLIST_KEY, JSON.stringify(newItems));
       } else {
         const newItem: WishlistItem = {
           id: crypto.randomUUID(),
@@ -80,7 +113,7 @@ export function useWishlist() {
         };
         const newItems = [...items, newItem];
         setItems(newItems);
-        localStorage.setItem('wishlist', JSON.stringify(newItems));
+        localStorage.setItem(GUEST_WISHLIST_KEY, JSON.stringify(newItems));
       }
     }
   }, [userId, items, isInWishlist, supabase]);
@@ -92,7 +125,7 @@ export function useWishlist() {
         .delete()
         .eq('user_id', userId);
     } else {
-      localStorage.removeItem('wishlist');
+      localStorage.removeItem(GUEST_WISHLIST_KEY);
     }
     setItems([]);
   }, [userId, supabase]);

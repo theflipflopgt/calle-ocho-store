@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
-import { Menu, X, ShoppingCart, User, Heart, Truck, LogOut } from 'lucide-react';
+import { LayoutDashboard, Menu, X, ShoppingCart, User, Heart, Truck, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { HeaderSearchForm, MobileSearchButton, MobileSearchModal } from '@/components/search/header-search';
 import {
@@ -22,6 +22,7 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const { user, profile, isLoading, signOut } = useAuth();
   const { itemCount, openCart } = useCart();
+  const isAdmin = profile?.role === 'admin';
 
   const handleSignOut = async () => {
     try {
@@ -139,6 +140,17 @@ export function Header() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin" className="cursor-pointer">
+                            <LayoutDashboard className="mr-2 h-4 w-4" />
+                            Panel Admin
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
                     <DropdownMenuItem asChild>
                       <Link href="/cuenta" className="cursor-pointer">
                         <User className="mr-2 h-4 w-4" />
@@ -244,6 +256,16 @@ export function Header() {
                 <>
                   {user ? (
                     <>
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          className="flex items-center gap-3 py-2.5 sm:py-3 text-sm sm:text-base text-brand-blue font-medium active:bg-gray-50 dark:active:bg-gray-800"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <LayoutDashboard className="h-5 w-5" />
+                          Panel Admin
+                        </Link>
+                      )}
                       <Link
                         href="/cuenta"
                         className="flex items-center gap-3 py-2.5 sm:py-3 text-sm sm:text-base text-gray-600 dark:text-gray-300 active:bg-gray-50 dark:active:bg-gray-800"

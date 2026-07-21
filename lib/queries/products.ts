@@ -15,6 +15,7 @@ interface GetProductsOptions {
 
 export const getProducts = cache(async function getProducts(options: GetProductsOptions = {}): Promise<ProductWithDetails[]> {
   const supabase = await createClient();
+  const searchFilters = await buildProductSearchFilters(options.search);
 
   let query = supabase
     .from('products')
@@ -51,9 +52,8 @@ export const getProducts = cache(async function getProducts(options: GetProducts
   }
 
   // Búsqueda por texto
-  if (options.search) {
-    const searchTerm = options.search.toLowerCase();
-    query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,brand.name.ilike.%${searchTerm}%`);
+  if (searchFilters.length > 0) {
+    query = query.or(searchFilters.join(','));
   }
 
   // Ordenamiento
@@ -90,6 +90,68 @@ export const getProducts = cache(async function getProducts(options: GetProducts
   // Transformar los datos para calcular campos adicionales
   return (data || []).map(transformProduct);
 });
+
+async function buildProductSearchFilters(search?: string): Promise<string[]> {
+  const searchTerm = search?.trim();
+  if (!searchTerm) return [];
+
+  const terms = Array.from(
+    new Set([
+      searchTerm,
+      ...searchTerm
+        .split(/\s+/)
+        .map((term) => term.trim())
+        .filter((term) => term.length >= 2),
+    ])
+  );
+
+  const textFilters = terms.flatMap((term) => {
+    const escapedTerm = escapeIlikeValue(term);
+    return [
+      `name.ilike.%${escapedTerm}%`,
+      `sku.ilike.%${escapedTerm}%`,
+      `slug.ilike.%${escapedTerm}%`,
+      `description.ilike.%${escapedTerm}%`,
+    ];
+  });
+
+  const relatedFilters = await getRelatedSearchFilters(terms);
+
+  return [...textFilters, ...relatedFilters];
+}
+
+async function getRelatedSearchFilters(terms: string[]): Promise<string[]> {
+  const supabase = await createClient();
+  const relatedSearch = terms
+    .map((term) => {
+      const escapedTerm = escapeIlikeValue(term);
+      return `name.ilike.%${escapedTerm}%,slug.ilike.%${escapedTerm}%`;
+    })
+    .join(',');
+
+  const [{ data: brands }, { data: categories }] = await Promise.all([
+    supabase.from('brands').select('id').or(relatedSearch),
+    supabase.from('categories').select('id').or(relatedSearch),
+  ]);
+
+  const filters: string[] = [];
+  const brandIds = (brands || []).map((brand) => brand.id);
+  const categoryIds = (categories || []).map((category) => category.id);
+
+  if (brandIds.length > 0) {
+    filters.push(`brand_id.in.(${brandIds.join(',')})`);
+  }
+
+  if (categoryIds.length > 0) {
+    filters.push(`category_id.in.(${categoryIds.join(',')})`);
+  }
+
+  return filters;
+}
+
+function escapeIlikeValue(value: string) {
+  return value.replace(/[%_,]/g, (match) => `\\${match}`);
+}
 
 export const getProductBySlug = cache(async function getProductBySlug(slug: string): Promise<ProductWithDetails | null> {
   const supabase = await createClient();

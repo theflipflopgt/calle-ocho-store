@@ -369,10 +369,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (quantity < 1) return;
 
     try {
+      const currentItem = items.find((item) => item.id === itemId);
+      if (!currentItem) return;
+
+      const safeQuantity = Math.min(quantity, currentItem.variant.stock_quantity);
+      if (safeQuantity < 1) return;
+
       if (user) {
         await supabase
           .from('cart_items')
-          .update({ quantity, updated_at: new Date().toISOString() })
+          .update({ quantity: safeQuantity, updated_at: new Date().toISOString() })
           .eq('id', itemId);
         await fetchCartItems();
       } else {
@@ -382,7 +388,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
         const index = guestCart.findIndex(item => item.variantId === variantId);
         if (index >= 0) {
-          guestCart[index].quantity = quantity;
+          guestCart[index].quantity = safeQuantity;
           localStorage.setItem(GUEST_CART_KEY, JSON.stringify(guestCart));
           await loadGuestCart();
         }
@@ -390,7 +396,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error updating quantity:', error);
     }
-  }, [user, supabase, fetchCartItems]);
+  }, [user, supabase, fetchCartItems, items]);
 
   // Remove item from cart
   const removeItem = useCallback(async (itemId: string) => {

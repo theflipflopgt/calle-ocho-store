@@ -79,6 +79,17 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  .admin-shell,
+  .admin-shell * {
+    color-scheme: light;
+  }
+
+  .admin-shell input,
+  .admin-shell textarea,
+  .admin-shell select {
+    @apply bg-white text-gray-900 placeholder:text-gray-500;
+  }
 }
 
 @layer utilities {

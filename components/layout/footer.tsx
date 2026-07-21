@@ -118,21 +118,23 @@ export function Footer() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-5 sm:gap-6">
               <Link
-                href="https://facebook.com"
+                href="https://www.facebook.com/profile.php?id=100086381557070"
                 target="_blank"
+                rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition-colors"
               >
                 <Facebook className="h-5 w-5" />
               </Link>
               <Link
-                href="https://instagram.com"
+                href="https://www.instagram.com/calleochogt/"
                 target="_blank"
+                rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition-colors"
               >
                 <Instagram className="h-5 w-5" />
               </Link>
               <Link
-                href="mailto:info@calleochostore.com"
+                href="mailto:ventas@calleochostore.com"
                 className="text-gray-400 hover:text-white transition-colors"
               >
                 <Mail className="h-5 w-5" />

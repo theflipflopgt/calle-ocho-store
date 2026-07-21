@@ -13,13 +13,11 @@ import {
   Users,
   Tag,
   Ticket,
-  Settings,
   LogOut,
   Menu,
   X,
   ChevronDown,
   Layers,
-  ImageIcon,
   Sparkles,
 } from 'lucide-react';
 
@@ -40,8 +38,6 @@ const navigation = [
   { name: 'Marcas', href: '/admin/marcas', icon: Layers },
   { name: 'Categorías', href: '/admin/categorias', icon: Tag },
   { name: 'Cupones', href: '/admin/cupones', icon: Ticket },
-  { name: 'Media', href: '/admin/media', icon: ImageIcon },
-  { name: 'Configuración', href: '/admin/configuracion', icon: Settings },
 ];
 
 function AdminLayoutContent({
@@ -140,7 +136,7 @@ function AdminLayoutContent({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="admin-shell min-h-screen bg-gray-50 text-brand-black">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div

@@ -6,10 +6,8 @@ import Link from 'next/link';
 import { Heart, Trash2, ShoppingBag, Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWishlistContext } from '@/contexts/wishlist-context';
-import { useCart } from '@/contexts/cart-context';
 import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils/currency';
-import { cn } from '@/lib/utils';
 
 interface WishlistProduct {
   id: string;
@@ -29,10 +27,8 @@ interface WishlistProduct {
 
 export default function WishlistPage() {
   const { items, loading: wishlistLoading, toggleWishlist, clearWishlist } = useWishlistContext();
-  const { addItem, openCart } = useCart();
   const [products, setProducts] = useState<WishlistProduct[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
-  const [addingToCart, setAddingToCart] = useState<string | null>(null);
 
   const supabase = createClient();
 
@@ -76,21 +72,6 @@ export default function WishlistPage() {
       fetchProducts();
     }
   }, [items, wishlistLoading, supabase]);
-
-  const handleQuickAdd = async (product: WishlistProduct) => {
-    // Find first available variant
-    const firstColor = product.colors[0];
-    const firstAvailableVariant = firstColor?.variants?.find(
-      v => v.is_available && v.stock_quantity > 0
-    );
-
-    if (!firstAvailableVariant) return;
-
-    setAddingToCart(product.id);
-    await addItem(firstAvailableVariant.id, 1);
-    setAddingToCart(null);
-    openCart();
-  };
 
   if (wishlistLoading || isLoadingProducts) {
     return (
@@ -156,8 +137,6 @@ export default function WishlistPage() {
             key={product.id}
             product={product}
             onRemove={() => toggleWishlist(product.id)}
-            onQuickAdd={() => handleQuickAdd(product)}
-            isAddingToCart={addingToCart === product.id}
           />
         ))}
       </div>
@@ -168,11 +147,9 @@ export default function WishlistPage() {
 interface WishlistCardProps {
   product: WishlistProduct;
   onRemove: () => void;
-  onQuickAdd: () => void;
-  isAddingToCart: boolean;
 }
 
-function WishlistCard({ product, onRemove, onQuickAdd, isAddingToCart }: WishlistCardProps) {
+function WishlistCard({ product, onRemove }: WishlistCardProps) {
   const firstColor = product.colors[0];
   const image = firstColor?.images[0]?.image_url;
   const hasStock = firstColor?.variants?.some(v => v.is_available && v.stock_quantity > 0);
@@ -251,17 +228,12 @@ function WishlistCard({ product, onRemove, onQuickAdd, isAddingToCart }: Wishlis
           {hasStock ? (
             <Button
               className="flex-1 h-10 bg-brand-black hover:bg-gray-800"
-              onClick={onQuickAdd}
-              disabled={isAddingToCart}
+              asChild
             >
-              {isAddingToCart ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <ShoppingBag className="w-4 h-4 mr-2" />
-                  Agregar
-                </>
-              )}
+              <Link href={`/producto/${product.slug}`}>
+                <ShoppingBag className="w-4 h-4 mr-2" />
+                Elegir talla
+              </Link>
             </Button>
           ) : (
             <Button

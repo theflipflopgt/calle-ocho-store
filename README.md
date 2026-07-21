@@ -4,7 +4,7 @@ Tienda online de tenis con integraciones de IA.
 
 ## Tech Stack
 
-- **Frontend:** Next.js 15 (App Router), React 19, TypeScript
+- **Frontend:** Next.js 16 (App Router), React 19, TypeScript
 - **Styling:** Tailwind CSS, shadcn/ui
 - **Backend:** Supabase (Auth, Database, Storage)
 - **Images:** Cloudinary
@@ -23,7 +23,7 @@ Tienda online de tenis con integraciones de IA.
 
 2. Instalar dependencias
    ```bash
-   npm install
+   npm ci
    ```
 
 3. Configurar variables de entorno
@@ -78,6 +78,12 @@ Tienda online de tenis con integraciones de IA.
 | `npm run build` | Build de producción |
 | `npm run start` | Servidor de producción |
 | `npm run lint` | Ejecutar ESLint |
+
+## Despliegue
+
+El despliegue recomendado es Vercel con Node.js 22.x, `npm ci` como Install Command y `npm run build` como Build Command.
+
+No subas `node_modules`, `.next`, `.env*`, patches temporales ni archivos de sistema. Revisa la guia completa en `docs/despliegue-limpio-vercel.md`.
 
 ## Migraciones de Base de Datos
 
