@@ -251,7 +251,6 @@ function AdminLayoutContent({
             <Link
               href="/"
               target="_blank"
-              rel="noopener noreferrer"
               className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:border-brand-blue hover:text-brand-blue sm:text-sm"
             >
               Abrir tienda en nueva pestaña ↗

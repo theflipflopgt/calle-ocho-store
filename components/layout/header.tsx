@@ -19,7 +19,7 @@ import { useCart } from '@/contexts/cart-context';
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const { user, profile, isLoading, signOut } = useAuth();
+  const { user, profile, isLoading, isAdmin, signOut } = useAuth();
   const { itemCount, openCart } = useCart();
 
   const handleSignOut = async () => {
@@ -94,7 +94,7 @@ export function Header() {
               </Button>
             </Link>
 
-            {user && (
+            {isAdmin && (
               <Link href="/admin" className="hidden md:block">
                 <Button
                   size="sm"
@@ -137,13 +137,17 @@ export function Header() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin" className="cursor-pointer font-medium text-brand-blue">
-                        <ShieldCheck className="mr-2 h-4 w-4" />
-                        Admin Panel
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin" className="cursor-pointer font-medium text-brand-blue">
+                            <ShieldCheck className="mr-2 h-4 w-4" />
+                            Admin Panel
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
                     <DropdownMenuItem asChild>
                       <Link href="/cuenta" className="cursor-pointer">
                         <User className="mr-2 h-4 w-4" />
@@ -253,14 +257,16 @@ export function Header() {
               {/* Auth section in mobile menu */}
               {user ? (
                 <>
-                  <Link
-                    href="/admin"
-                    className="flex items-center gap-3 py-2.5 sm:py-3 text-sm sm:text-base font-medium text-brand-blue active:bg-gray-50"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <ShieldCheck className="h-5 w-5" />
-                    Admin Panel
-                  </Link>
+                  {isAdmin && (
+                    <Link
+                      href="/admin"
+                      className="flex items-center gap-3 py-2.5 sm:py-3 text-sm sm:text-base font-medium text-brand-blue active:bg-gray-50"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <ShieldCheck className="h-5 w-5" />
+                      Admin Panel
+                    </Link>
+                  )}
                       <Link
                         href="/cuenta"
                         className="flex items-center gap-3 py-2.5 sm:py-3 text-sm sm:text-base text-gray-600 active:bg-gray-50"

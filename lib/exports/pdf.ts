@@ -2,21 +2,34 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 function escapePdfText(value: string): string {
-  return value
-    .replace(/\\/g, '\\\\')
-    .replace(/\(/g, '\\(')
-    .replace(/\)/g, '\\)');
-}
+  const replacements: Record<string, string> = {
+    '–': '-',
+    '—': '-',
+    '“': '"',
+    '”': '"',
+    '‘': "'",
+    '’': "'",
+  };
 
-function normalizePdfText(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\x20-\x7e]/g, '');
+  return Array.from(value)
+    .map((char) => {
+      const replacement = replacements[char] || char;
+      const code = replacement.charCodeAt(0);
+
+      if (replacement === '\\') return '\\\\';
+      if (replacement === '(') return '\\(';
+      if (replacement === ')') return '\\)';
+      if (code < 32) return ' ';
+      if (code <= 126) return replacement;
+      if (code <= 255) return `\\${code.toString(8).padStart(3, '0')}`;
+
+      return replacement.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7e]/g, '');
+    })
+    .join('');
 }
 
 function wrapText(value: string, maxLength: number): string[] {
-  const words = normalizePdfText(value).split(/\s+/).filter(Boolean);
+  const words = value.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let current = '';
 
@@ -40,7 +53,7 @@ function text(value: string, x: number, y: number, size = 10, font = 'F1', color
     fillColor(color),
     `/${font} ${size} Tf`,
     `1 0 0 1 ${x} ${y} Tm`,
-    `(${escapePdfText(normalizePdfText(value))}) Tj`,
+    `(${escapePdfText(value)}) Tj`,
     'ET',
   ].join('\n');
 }
@@ -164,8 +177,8 @@ function drawHeader(pageNumber: number, totalPages: number) {
     rect(0, 742, 612, 50, '#111827'),
     rect(0, 735, 612, 7, '#1d4ed8'),
     text('calleOCHO', 42, 762, 22, 'F2', '#ffffff'),
-    text('Catalogo corporativo de calzado', 172, 766, 12, 'F1', '#bfdbfe'),
-    text(`Pagina ${pageNumber} de ${totalPages}`, 500, 766, 9, 'F1', '#bfdbfe'),
+    text('Catálogo corporativo de calzado', 172, 766, 12, 'F1', '#bfdbfe'),
+    text(`Página ${pageNumber} de ${totalPages}`, 500, 766, 9, 'F1', '#bfdbfe'),
   ].join('\n');
 }
 
@@ -174,7 +187,8 @@ function drawFooter() {
     strokeColor('#e5e7eb'),
     '42 42 528 0 m',
     'S',
-    text('Precios y disponibilidad sujetos a cambios. Contactanos para cotizaciones empresariales.', 42, 24, 8, 'F1', '#6b7280'),
+    text('Precios y disponibilidad sujetos a cambios. Contáctanos para cotizaciones empresariales.', 42, 28, 8, 'F1', '#6b7280'),
+    text('WhatsApp: 5249-8898  |  Correo: pedidos@calleochostore.com', 42, 16, 8, 'F2', '#1d4ed8'),
   ].join('\n');
 }
 
@@ -268,8 +282,8 @@ function buildPdf(pages: string[], images: PdfImage[]): Buffer {
 
   objects[0] = Buffer.from('<< /Type /Catalog /Pages 2 0 R >>');
   objects[1] = Buffer.from('');
-  objects[2] = Buffer.from('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-  objects[3] = Buffer.from('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+  objects[2] = Buffer.from('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+  objects[3] = Buffer.from('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
 
   let nextObjectId = 5;
 
@@ -355,7 +369,7 @@ export async function createCatalogPdf(products: CatalogPdfProduct[]): Promise<B
       [
         drawHeader(1, 1),
         rect(42, 560, 528, 120, '#eff6ff'),
-        text('No hay productos con stock disponible para catalogo.', 78, 620, 16, 'F2', '#111827'),
+        text('No hay productos con stock disponible para catálogo.', 78, 620, 16, 'F2', '#111827'),
         text('Agrega stock a una talla para incluir el calzado en el PDF comercial.', 78, 596, 11, 'F1', '#374151'),
         drawFooter(),
       ].join('\n')

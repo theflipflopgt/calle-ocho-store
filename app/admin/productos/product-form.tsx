@@ -951,10 +951,11 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                     const selected = color.product_variants.some(
                       (variant) => variant.size_us === size.us
                     );
+                    const sizeKey = `${size.us}-${size.eu}-${size.cm}`;
 
                     return (
                       <button
-                        key={size.us}
+                        key={sizeKey}
                         type="button"
                         onClick={() => toggleSizeForColor(colorIndex, size)}
                         className={`h-10 rounded-lg border text-sm font-medium transition-colors ${

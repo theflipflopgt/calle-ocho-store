@@ -33,6 +33,41 @@ const AuthContext = createContext<AuthContextType>({
   refreshProfile: async () => { },
 });
 
+const AUTH_REQUEST_TIMEOUT_MS = 6000;
+
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs = AUTH_REQUEST_TIMEOUT_MS): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      reject(new Error('La solicitud de sesión tardó demasiado.'));
+    }, timeoutMs);
+
+    Promise.resolve(promise)
+      .then((value) => {
+        window.clearTimeout(timeout);
+        resolve(value);
+      })
+      .catch((error) => {
+        window.clearTimeout(timeout);
+        reject(error);
+      });
+  });
+}
+
+function clearStoredAuthData() {
+  for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+    const key = localStorage.key(i);
+
+    if (
+      key &&
+      (key.includes('supabase') ||
+        key.includes('sb-') ||
+        key === 'calleocho-admin-user-id')
+    ) {
+      localStorage.removeItem(key);
+    }
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -55,11 +90,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = useCallback(async (authUser: User) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, phone, role, avatar_url')
-        .eq('id', authUser.id)
-        .maybeSingle();
+      const { data, error } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('id, full_name, email, phone, role, avatar_url')
+          .eq('id', authUser.id)
+          .maybeSingle()
+      );
 
       if (error) {
         setProfile(getFallbackProfile(authUser));
@@ -82,51 +119,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signOut = async () => {
+  const loadAuthState = useCallback(async () => {
     try {
-      // Call the server-side signout endpoint to clear httpOnly cookies
-      await fetch('/api/auth/signout', {
-        method: 'POST',
-        credentials: 'include',
-      });
+      const {
+        data: { session: currentSession },
+      } = await withTimeout(supabase.auth.getSession());
 
-      // Also call client-side signOut to clear any client state
-      await supabase.auth.signOut({ scope: 'global' });
-
-      // Clear localStorage items related to Supabase
-      for (let i = localStorage.length - 1; i >= 0; i--) {
-        const key = localStorage.key(i);
-        if (key && (key.includes('supabase') || key.includes('sb-'))) {
-          localStorage.removeItem(key);
-        }
+      if (currentSession?.user) {
+        setSession(currentSession);
+        setUser(currentSession.user);
+        await fetchProfile(currentSession.user);
+        return;
       }
 
-      // Clear state immediately
+      const {
+        data: { user: currentUser },
+      } = await withTimeout(supabase.auth.getUser());
+
+      setSession(null);
+      setUser(currentUser ?? null);
+
+      if (currentUser) {
+        await fetchProfile(currentUser);
+      } else {
+        setProfile(null);
+      }
+    } catch {
+      setSession(null);
       setUser(null);
       setProfile(null);
-      setSession(null);
-    } catch (err) {
-      // Even if there's an error, clear local state
-      setUser(null);
-      setProfile(null);
-      setSession(null);
-      throw err;
     }
+  }, [fetchProfile, supabase]);
+
+  const signOut = async () => {
+    setUser(null);
+    setProfile(null);
+    setSession(null);
+    setIsLoading(false);
+    setRememberedAdminUserId(null);
+    clearStoredAuthData();
+
+    await Promise.allSettled([
+      withTimeout(
+        fetch('/api/auth/signout', {
+          method: 'POST',
+          credentials: 'include',
+          cache: 'no-store',
+        }),
+        3500
+      ),
+      withTimeout(supabase.auth.signOut({ scope: 'local' }), 3500),
+    ]);
   };
 
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-
       try {
-        if (session?.user) {
-          await fetchProfile(session.user);
-        } else {
-          setProfile(null);
-        }
+        await loadAuthState();
       } finally {
         setIsLoading(false);
       }
@@ -155,7 +205,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [fetchProfile, supabase]);
+  }, [fetchProfile, loadAuthState, supabase]);
+
+  useEffect(() => {
+    const refreshVisibleSession = () => {
+      if (document.visibilityState === 'visible') {
+        void loadAuthState();
+      }
+    };
+
+    window.addEventListener('focus', refreshVisibleSession);
+    window.addEventListener('pageshow', refreshVisibleSession);
+    document.addEventListener('visibilitychange', refreshVisibleSession);
+
+    return () => {
+      window.removeEventListener('focus', refreshVisibleSession);
+      window.removeEventListener('pageshow', refreshVisibleSession);
+      document.removeEventListener('visibilitychange', refreshVisibleSession);
+    };
+  }, [loadAuthState]);
 
   useEffect(() => {
     if (!user) {

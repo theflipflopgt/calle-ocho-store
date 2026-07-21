@@ -8,7 +8,7 @@ import { Truck, Shield, RotateCcw } from 'lucide-react';
  */
 export function PromoTicker() {
   const messages = [
-    { icon: Truck, text: 'Envío GRATIS en compras mayores a $1,500' },
+    { icon: Truck, text: 'Envío GRATIS en compras mayores a Q1,000' },
     { icon: Shield, text: '100% Productos Originales' },
     { icon: RotateCcw, text: 'Devoluciones GRATIS en 30 días' },
   ];

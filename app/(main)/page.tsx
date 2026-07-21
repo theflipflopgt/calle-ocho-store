@@ -4,7 +4,6 @@ import { PromoTicker } from "@/components/home/promo-ticker";
 import { NewArrivalsSlider } from "@/components/home/new-arrivals-slider";
 import { BrandsGrid } from "@/components/home/brands-grid";
 import { HeroMedia } from "@/components/home/hero-media";
-import { FreeShippingBand } from "@/components/layout/free-shipping-band";
 import { getHomeContent } from "@/lib/home-content";
 import { getProducts } from "@/lib/queries/products";
 
@@ -27,8 +26,6 @@ export default async function Home() {
       <section className="relative h-[600px] sm:h-[650px] lg:h-[700px] bg-brand-black overflow-hidden">
         <HeroMedia hero={homeContent.hero} />
       </section>
-
-      <FreeShippingBand />
 
       {/* Ticker Promocional - Scroll infinito */}
       <PromoTicker />

@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST() {
   const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll();
 
   // Create Supabase client
   const supabase = createServerClient(
@@ -23,14 +24,15 @@ export async function POST() {
     }
   );
 
-  // Sign out from Supabase (this invalidates the session on the server)
-  await supabase.auth.signOut({ scope: 'global' });
+  try {
+    // Local sign out plus cookie cleanup keeps the UI responsive and avoids stuck logouts.
+    await supabase.auth.signOut({ scope: 'local' });
+  } catch (error) {
+    console.error('Error al cerrar sesión en Supabase:', error);
+  }
 
   // Create response
   const response = NextResponse.json({ success: true });
-
-  // Get all cookies and delete Supabase ones
-  const allCookies = cookieStore.getAll();
 
   for (const cookie of allCookies) {
     if (cookie.name.includes('supabase') || cookie.name.includes('sb-')) {
