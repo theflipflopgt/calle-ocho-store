@@ -54,8 +54,6 @@ interface ProductColor {
   product_variants: ProductVariant[];
 }
 
-type ProductGender = 'men' | 'women' | 'kids' | 'unisex';
-
 interface Product {
   id: string;
   brand_id: string;
@@ -264,8 +262,11 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
       }
 
       // Handle colors, images, and variants
-      for (const color of colors) {
+      for (const [colorIndex, color] of colors.entries()) {
         let colorId: string;
+        const originalColor = color.id
+          ? product?.product_colors.find((item) => item.id === color.id)
+          : product?.product_colors[colorIndex];
 
         const colorData = {
           product_id: productId,
@@ -297,79 +298,83 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
           colorId = data.id;
         }
 
-        const validImages = color.product_color_images
-          .filter((image) => image.image_url.trim())
-          .map((image) => ({
-            id: image.id,
+        if (hasImageChanges(color.product_color_images, originalColor?.product_color_images || [])) {
+          const validImages = color.product_color_images
+            .filter((image) => image.image_url.trim())
+            .map((image) => ({
+              id: image.id,
+              product_color_id: colorId,
+              image_url: image.image_url.trim(),
+              alt_text: image.alt_text || null,
+              display_order: image.display_order ?? 0,
+              image_type: image.image_type || 'front',
+            }));
+
+          const existingImages = validImages.filter((image) => image.id);
+
+          const newImages = validImages
+            .filter((image) => !image.id)
+            .map((image) => {
+              const imageData = { ...image };
+              delete imageData.id;
+              return imageData;
+            });
+
+          const imageResults = await Promise.all([
+            existingImages.length
+              ? supabase.from('product_color_images').upsert(existingImages, {
+                  onConflict: 'id',
+                })
+              : Promise.resolve({ error: null }),
+            newImages.length
+              ? supabase.from('product_color_images').insert(newImages)
+              : Promise.resolve({ error: null }),
+          ]);
+
+          const imageError = imageResults.find((result) => result.error)?.error;
+          if (imageError) throw imageError;
+        }
+
+        if (hasVariantChanges(color.product_variants, originalColor?.product_variants || [])) {
+          const variantRows = color.product_variants.map((variant) => ({
+            id: variant.id,
+            product_id: productId,
             product_color_id: colorId,
-            image_url: image.image_url.trim(),
-            alt_text: image.alt_text || null,
-            display_order: image.display_order ?? 0,
-            image_type: image.image_type || 'front',
+            size_us: variant.size_us,
+            size_eu: variant.size_eu,
+            size_uk: variant.size_uk,
+            size_cm: variant.size_cm,
+            sku: variant.sku,
+            stock_quantity: variant.stock_quantity,
+            low_stock_threshold: variant.low_stock_threshold ?? 5,
+            price_override: variant.price_override || null,
+            is_available: variant.is_available ?? true,
           }));
 
-        const existingImages = validImages.filter((image) => image.id);
+          const existingVariants = variantRows.filter((variant) => variant.id);
 
-        const newImages = validImages
-          .filter((image) => !image.id)
-          .map((image) => {
-            const imageData = { ...image };
-            delete imageData.id;
-            return imageData;
-          });
+          const newVariants = variantRows
+            .filter((variant) => !variant.id)
+            .map((variant) => {
+              const variantData = { ...variant };
+              delete variantData.id;
+              return variantData;
+            });
 
-        const imageResults = await Promise.all([
-          existingImages.length
-            ? supabase.from('product_color_images').upsert(existingImages, {
-                onConflict: 'id',
-              })
-            : Promise.resolve({ error: null }),
-          newImages.length
-            ? supabase.from('product_color_images').insert(newImages)
-            : Promise.resolve({ error: null }),
-        ]);
+          const variantResults = await Promise.all([
+            existingVariants.length
+              ? supabase.from('product_variants').upsert(existingVariants, {
+                  onConflict: 'id',
+                })
+              : Promise.resolve({ error: null }),
+            newVariants.length
+              ? supabase.from('product_variants').insert(newVariants)
+              : Promise.resolve({ error: null }),
+          ]);
 
-        const imageError = imageResults.find((result) => result.error)?.error;
-        if (imageError) throw imageError;
-
-        const variantRows = color.product_variants.map((variant) => ({
-          id: variant.id,
-          product_id: productId,
-          product_color_id: colorId,
-          size_us: variant.size_us,
-          size_eu: variant.size_eu,
-          size_uk: variant.size_uk,
-          size_cm: variant.size_cm,
-          sku: variant.sku,
-          stock_quantity: variant.stock_quantity,
-          low_stock_threshold: variant.low_stock_threshold ?? 5,
-          price_override: variant.price_override || null,
-          is_available: variant.is_available ?? true,
-        }));
-
-        const existingVariants = variantRows.filter((variant) => variant.id);
-
-        const newVariants = variantRows
-          .filter((variant) => !variant.id)
-          .map((variant) => {
-            const variantData = { ...variant };
-            delete variantData.id;
-            return variantData;
-          });
-
-        const variantResults = await Promise.all([
-          existingVariants.length
-            ? supabase.from('product_variants').upsert(existingVariants, {
-                onConflict: 'id',
-              })
-            : Promise.resolve({ error: null }),
-          newVariants.length
-            ? supabase.from('product_variants').insert(newVariants)
-            : Promise.resolve({ error: null }),
-        ]);
-
-        const variantError = variantResults.find((result) => result.error)?.error;
-        if (variantError) throw variantError;
+          const variantError = variantResults.find((result) => result.error)?.error;
+          if (variantError) throw variantError;
+        }
       }
 
       router.push('/admin/productos');
@@ -964,4 +969,56 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
       </div>
     </form>
   );
+}
+
+function hasVariantChanges(current: ProductVariant[], original: ProductVariant[]) {
+  if (current.length !== original.length) return true;
+
+  const originalById = new Map(
+    original.filter((variant) => variant.id).map((variant) => [variant.id, variant])
+  );
+
+  return current.some((variant, index) => {
+    if (!variant.id) return true;
+
+    const originalVariant = originalById.get(variant.id) || original[index];
+    if (!originalVariant) return true;
+
+    return (
+      Number(variant.size_us) !== Number(originalVariant.size_us) ||
+      Number(variant.size_eu) !== Number(originalVariant.size_eu) ||
+      Number(variant.size_uk) !== Number(originalVariant.size_uk) ||
+      Number(variant.size_cm) !== Number(originalVariant.size_cm) ||
+      variant.sku !== originalVariant.sku ||
+      Number(variant.stock_quantity) !== Number(originalVariant.stock_quantity) ||
+      Number(variant.low_stock_threshold ?? 5) !== Number(originalVariant.low_stock_threshold ?? 5) ||
+      Number(variant.price_override ?? 0) !== Number(originalVariant.price_override ?? 0) ||
+      Boolean(variant.is_available ?? true) !== Boolean(originalVariant.is_available ?? true)
+    );
+  });
+}
+
+function hasImageChanges(current: ProductImage[], original: ProductImage[]) {
+  const currentValid = current.filter((image) => image.image_url.trim());
+  const originalValid = original.filter((image) => image.image_url.trim());
+
+  if (currentValid.length !== originalValid.length) return true;
+
+  const originalById = new Map(
+    originalValid.filter((image) => image.id).map((image) => [image.id, image])
+  );
+
+  return currentValid.some((image, index) => {
+    if (!image.id) return true;
+
+    const originalImage = originalById.get(image.id) || originalValid[index];
+    if (!originalImage) return true;
+
+    return (
+      image.image_url.trim() !== originalImage.image_url.trim() ||
+      (image.alt_text || '') !== (originalImage.alt_text || '') ||
+      Number(image.display_order ?? 0) !== Number(originalImage.display_order ?? 0) ||
+      (image.image_type || 'front') !== (originalImage.image_type || 'front')
+    );
+  });
 }

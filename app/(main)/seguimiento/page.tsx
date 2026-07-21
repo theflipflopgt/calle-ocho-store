@@ -1,6 +1,5 @@
-import Link from 'next/link';
 import { PackageSearch } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { FooterInfoPage } from '@/components/content/footer-info-page';
 
 export const metadata = {
   title: 'Estado del Pedido | Calle Ocho Store',
@@ -9,31 +8,26 @@ export const metadata = {
 
 export default function SeguimientoPage() {
   return (
-    <main className="container mx-auto px-4 py-10 sm:py-14">
-      <div className="max-w-3xl">
-        <PackageSearch className="h-10 w-10 text-brand-blue mb-4" />
-        <h1 className="text-3xl font-bold text-brand-black dark:text-white mb-4">
-          Estado del Pedido
-        </h1>
-        <div className="space-y-4 text-gray-600 dark:text-gray-300">
-          <p>
-            Después de confirmar tu compra, nuestro equipo te contactará para validar pago,
-            disponibilidad y datos de entrega.
-          </p>
-          <p>
-            Si ya tienes un número de pedido, puedes revisarlo desde tu cuenta o escribirnos
-            para confirmar el estado actual.
-          </p>
-        </div>
-        <div className="mt-8 flex flex-col sm:flex-row gap-3">
-          <Button asChild>
-            <Link href="/cuenta/pedidos">Ver mis pedidos</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/contacto">Contactar soporte</Link>
-          </Button>
-        </div>
-      </div>
-    </main>
+    <FooterInfoPage
+      icon={<PackageSearch className="h-7 w-7" />}
+      title="Estado del Pedido"
+      intro="Damos seguimiento a cada compra para que sepas en que etapa va tu pedido, desde la confirmacion hasta la entrega."
+      sections={[
+        {
+          title: 'Confirmacion',
+          body: 'Despues de comprar, validamos disponibilidad, datos de entrega y forma de pago antes de preparar el pedido.',
+        },
+        {
+          title: 'Preparacion',
+          body: 'Cuando el pedido queda confirmado, revisamos talla, color y empaque para que el producto salga correctamente.',
+        },
+        {
+          title: 'Seguimiento',
+          body: 'Puedes revisar tus pedidos desde tu cuenta o contactarnos si necesitas una actualizacion puntual del estado.',
+        },
+      ]}
+      primaryAction={{ label: 'Ver mis pedidos', href: '/cuenta/pedidos' }}
+      secondaryAction={{ label: 'Contactar soporte', href: '/contacto' }}
+    />
   );
 }

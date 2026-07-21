@@ -109,7 +109,12 @@ export function ProductCard({
             "absolute top-2 right-2 sm:top-3 sm:right-3 z-10 bg-white/80 hover:bg-white transition-all w-8 h-8 sm:w-9 sm:h-9",
             isInWishlist ? "text-brand-red" : "text-gray-600 hover:text-brand-red"
           )}
-          onClick={() => onAddToWishlist?.(product.id)}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onAddToWishlist?.(product.id);
+          }}
+          aria-label={isInWishlist ? 'Quitar de favoritos' : 'Agregar a favoritos'}
         >
           <Heart className={cn("h-4 w-4 sm:h-5 sm:w-5", isInWishlist && "fill-current")} />
         </Button>

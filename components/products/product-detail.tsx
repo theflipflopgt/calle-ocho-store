@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatPrice } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/contexts/cart-context';
+import { useWishlistContext } from '@/contexts/wishlist-context';
 import type { ProductWithDetails } from '@/types/product';
 
 interface ProductDetailProps {
@@ -24,6 +25,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [cartMessage, setCartMessage] = useState<string | null>(null);
 
   const { addItem, openCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlistContext();
 
   const selectedColor = product.colors[selectedColorIndex];
   const images = selectedColor?.images || [];
@@ -376,9 +378,14 @@ export function ProductDetail({ product }: ProductDetailProps) {
           <Button
             size="lg"
             variant="outline"
-            className="h-12 sm:h-14 w-12 sm:w-14 border-gray-200"
+            className={cn(
+              "h-12 sm:h-14 w-12 sm:w-14 border-gray-200",
+              isInWishlist(product.id) && "text-brand-red border-brand-red"
+            )}
+            onClick={() => toggleWishlist(product.id)}
+            aria-label={isInWishlist(product.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
           >
-            <Heart className="w-5 h-5" />
+            <Heart className={cn("w-5 h-5", isInWishlist(product.id) && "fill-current")} />
           </Button>
         </div>
         {cartMessage && (

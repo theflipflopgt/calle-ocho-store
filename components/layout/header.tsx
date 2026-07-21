@@ -6,13 +6,6 @@ import { useState } from 'react';
 import { LayoutDashboard, Menu, X, ShoppingCart, User, Heart, Truck, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { HeaderSearchForm, MobileSearchButton, MobileSearchModal } from '@/components/search/header-search';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/auth-context';
 import { useCart } from '@/contexts/cart-context';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -125,63 +118,54 @@ export function Header() {
               )}
             </Button>
 
-            {/* User Menu - Desktop */}
-            <div className="hidden sm:flex">
+            {/* User access - Desktop */}
+            <div className="hidden sm:flex items-center gap-2">
               {isLoading ? (
                 <Button variant="ghost" size="icon" className="text-brand-black dark:text-white" disabled>
                   <User className="h-5 w-5" />
                 </Button>
               ) : user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="gap-2 text-brand-black dark:text-white">
+                <>
+                  {isAdmin && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="hidden lg:inline-flex gap-2 border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white"
+                    >
+                      <Link href="/admin">
+                        <LayoutDashboard className="h-4 w-4" />
+                        Panel Admin
+                      </Link>
+                    </Button>
+                  )}
+                  <Button asChild variant="ghost" className="gap-2 text-brand-black dark:text-white">
+                    <Link href="/cuenta" aria-label="Ir a mi cuenta">
                       <User className="h-4 w-4 sm:h-5 sm:w-5" />
                       <span className="hidden md:inline text-sm">Hola, {displayName}</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    {isAdmin && (
-                      <>
-                        <DropdownMenuItem asChild>
-                          <Link href="/admin" className="cursor-pointer">
-                            <LayoutDashboard className="mr-2 h-4 w-4" />
-                            Panel Admin
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                      </>
-                    )}
-                    <DropdownMenuItem asChild>
-                      <Link href="/cuenta" className="cursor-pointer">
-                        <User className="mr-2 h-4 w-4" />
-                        Mi Cuenta
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/cuenta/pedidos" className="cursor-pointer">
-                        <ShoppingCart className="mr-2 h-4 w-4" />
-                        Mis Pedidos
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600 dark:text-red-400">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Cerrar Sesión
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-600 dark:text-red-400"
+                    onClick={handleSignOut}
+                    aria-label="Cerrar sesión"
+                  >
+                    <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </Button>
+                </>
               ) : (
                 <div className="flex items-center gap-2">
-                  <Link href="/auth/login">
-                    <Button variant="ghost" size="sm" className="text-brand-black dark:text-white">
-                      Iniciar Sesión
-                    </Button>
-                  </Link>
-                  <Link href="/auth/registro">
-                    <Button size="sm" className="bg-brand-black dark:bg-brand-blue hover:bg-gray-800 dark:hover:bg-blue-700 text-white hidden md:inline-flex">
-                      Registrarse
-                    </Button>
-                  </Link>
+                  <Button asChild variant="ghost" size="sm" className="gap-2 text-brand-black dark:text-white">
+                    <Link href="/auth/login">
+                      <User className="h-4 w-4" />
+                      <span className="hidden md:inline">Entrar</span>
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm" className="bg-brand-black dark:bg-brand-blue hover:bg-gray-800 dark:hover:bg-blue-700 text-white hidden md:inline-flex">
+                    <Link href="/auth/registro">Registrarse</Link>
+                  </Button>
                 </div>
               )}
             </div>

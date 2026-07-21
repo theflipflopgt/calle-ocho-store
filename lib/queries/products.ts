@@ -249,11 +249,25 @@ export const getFeaturedProducts = cache(async function getFeaturedProducts(): P
 
 // Función auxiliar para transformar producto de BD a ProductWithDetails
 function transformProduct(product: any): ProductWithDetails {
-  const colors = product.colors || [];
+  const colors = [...(product.colors || [])]
+    .map((color: any) => ({
+      ...color,
+      images: [...(color.images || [])].sort(
+        (a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0)
+      ),
+      variants: [...(color.variants || [])].sort(
+        (a: any, b: any) => Number(a.size_us) - Number(b.size_us)
+      ),
+    }))
+    .sort((a: any, b: any) => {
+      const imageWeight = Number((b.images?.length || 0) > 0) - Number((a.images?.length || 0) > 0);
+      if (imageWeight !== 0) return imageWeight;
+      return (a.display_order ?? 0) - (b.display_order ?? 0);
+    });
 
   // Calcular stock total
   let totalStock = 0;
-  let lowestPrice = product.base_price;
+  const lowestPrice = product.base_price;
   let isLowStock = false;
 
   colors.forEach((color: any) => {
@@ -279,6 +293,7 @@ function transformProduct(product: any): ProductWithDetails {
 
   return {
     ...product,
+    colors,
     totalStock,
     lowestPrice,
     hasDiscount,

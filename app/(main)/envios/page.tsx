@@ -1,4 +1,5 @@
 import { Truck } from 'lucide-react';
+import { FooterInfoPage } from '@/components/content/footer-info-page';
 
 export const metadata = {
   title: 'Envío y Entrega | Calle Ocho Store',
@@ -7,27 +8,26 @@ export const metadata = {
 
 export default function EnviosPage() {
   return (
-    <main className="container mx-auto px-4 py-10 sm:py-14">
-      <div className="max-w-3xl">
-        <Truck className="h-10 w-10 text-brand-blue mb-4" />
-        <h1 className="text-3xl font-bold text-brand-black dark:text-white mb-4">
-          Envío y Entrega
-        </h1>
-        <div className="space-y-4 text-gray-600 dark:text-gray-300">
-          <p>
-            Coordinamos entregas dentro de Guatemala según cobertura disponible,
-            dirección del cliente y disponibilidad del producto.
-          </p>
-          <p>
-            El costo y tiempo estimado de envío se confirman durante el checkout o por
-            contacto directo con nuestro equipo.
-          </p>
-          <p>
-            Las compras mayores a Q1,500 pueden aplicar a envío gratis cuando la zona de
-            entrega esté dentro de la cobertura activa.
-          </p>
-        </div>
-      </div>
-    </main>
+    <FooterInfoPage
+      icon={<Truck className="h-7 w-7" />}
+      title="Envio y Entrega"
+      intro="Coordinamos entregas dentro de Guatemala con informacion clara sobre cobertura, tiempos estimados y condiciones de envio."
+      sections={[
+        {
+          title: 'Cobertura',
+          body: 'La entrega depende de la direccion, disponibilidad del producto y cobertura activa del servicio de mensajeria.',
+        },
+        {
+          title: 'Tiempo estimado',
+          body: 'El tiempo se confirma al validar el pedido. Te avisamos si existe alguna condicion especial para tu zona.',
+        },
+        {
+          title: 'Envio gratis',
+          body: 'Las compras mayores a Q1,500 pueden aplicar a envio gratis cuando la zona de entrega este dentro de cobertura.',
+        },
+      ]}
+      primaryAction={{ label: 'Comprar calzado', href: '/mujer' }}
+      secondaryAction={{ label: 'Consultar pedido', href: '/seguimiento' }}
+    />
   );
 }
