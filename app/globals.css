@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Calle Ocho Store Brand Colors */
+    --brand-black: 0 0% 10%;        /* #1a1a1a */
+    --brand-blue: 217 91% 60%;      /* #2563eb */
+    --brand-orange: 25 95% 53%;     /* #f97316 */
+    --brand-blue-dark: 224 64% 33%; /* #1e40af */
+    --brand-gray: 220 9% 46%;       /* #6b7280 */
+
+    /* Shadcn UI - Adaptado a la paleta */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;         /* brand-black */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --primary: 217 91% 60%;         /* brand-blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 25 95% 53%;        /* brand-orange */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 25 95% 53%;           /* brand-orange */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 217 91% 60%;            /* brand-blue */
+    --chart-1: 217 91% 60%;         /* brand-blue */
+    --chart-2: 25 95% 53%;          /* brand-orange */
+    --chart-3: 224 64% 33%;         /* brand-blue-dark */
+    --chart-4: 0 0% 10%;            /* brand-black */
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    /* Dark mode usando la paleta de Calle Ocho Store */
+    --brand-black: 0 0% 10%;
+    --brand-blue: 217 91% 60%;
+    --brand-orange: 25 95% 53%;
+    --brand-red: 0 84% 60%;
+
+    --background: 222 47% 11%;      /* Gris oscuro azulado */
+    --foreground: 0 0% 98%;
+    --card: 222 47% 14%;            /* Cards ligeramente más claros */
+    --card-foreground: 0 0% 98%;
+    --popover: 222 47% 14%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 217 91% 60%;         /* brand-blue */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 222 47% 20%;       /* Gris medio */
+    --secondary-foreground: 0 0% 98%;
+    --muted: 222 47% 18%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 91% 60%;          /* brand-blue para acentos */
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 222 47% 20%;
+    --input: 222 47% 20%;
+    --ring: 217 91% 60%;            /* brand-blue */
+    --chart-1: 217 91% 60%;         /* brand-blue */
+    --chart-2: 25 95% 53%;          /* brand-orange */
+    --chart-3: 224 64% 33%;         /* brand-blue-dark */
+    --chart-4: 160 60% 45%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* WhatsApp button animation */
+  .animate-bounce-slow {
+    animation: bounce-slow 2s infinite;
+  }
+
+  @keyframes bounce-slow {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Mobile slide-in animation */
+  .animate-in {
+    animation: animate-in 0.2s ease-out;
+  }
+
+  .slide-in-from-bottom {
+    --tw-enter-translate-y: 100%;
+  }
+
+  @keyframes animate-in {
+    from {
+      opacity: 0;
+      transform: translateY(var(--tw-enter-translate-y, 0));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Touch-friendly tap targets */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  /* WhatsApp pulse ring animation (green) */
+  .animate-pulse-ring {
+    animation: pulse-ring 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-ring {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 12px rgba(37, 211, 102, 0);
+    }
+  }
+
+  /* AI Assistant pulse ring animation (blue) */
+  .animate-pulse-ring-blue {
+    animation: pulse-ring-blue 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-ring-blue {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 12px rgba(37, 99, 235, 0);
+    }
+  }
+}

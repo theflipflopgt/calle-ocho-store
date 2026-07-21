@@ -1,0 +1,119 @@
+/**
+ * Preview de Emails
+ *
+ * Para ver una preview de los emails en el navegador:
+ *
+ * 1. Ejecuta: npm run email:dev
+ * 2. Abre: http://localhost:3001
+ *
+ * Si no tienes el script configurado, agrégalo a package.json:
+ * "email:dev": "email dev"
+ */
+
+import OrderConfirmationEmail from './order-confirmation';
+import NewOrderNotificationEmail from './new-order-notification';
+import OrderShippedEmail from './order-shipped';
+
+// Datos de ejemplo para preview
+export const orderConfirmationPreview = () => (
+  <OrderConfirmationEmail
+    customerName="Juan Pérez"
+    orderNumber="TFF-123ABC"
+    orderDate="14 de febrero de 2026, 10:30 AM"
+    items={[
+      {
+        product_name: "Nike Air Max 90",
+        brand_name: "Nike",
+        color_name: "Blanco/Negro",
+        size_us: 10,
+        quantity: 1,
+        unit_price: 850,
+        subtotal: 850,
+        product_image_url: "https://res.cloudinary.com/dv5nlnc0r/image/upload/v1/theflipflop/products/nike-air-max-90",
+      },
+      {
+        product_name: "Adidas Ultraboost 22",
+        brand_name: "Adidas",
+        color_name: "Triple Black",
+        size_us: 10,
+        quantity: 2,
+        unit_price: 1200,
+        subtotal: 2400,
+        product_image_url: "https://res.cloudinary.com/dv5nlnc0r/image/upload/v1/theflipflop/products/adidas-ultraboost",
+      },
+    ]}
+    subtotal={3250}
+    shippingCost={35}
+    discount={200}
+    total={3085}
+    shippingAddress={{
+      recipient_name: "Juan Pérez",
+      phone: "+502 1234-5678",
+      street_address: "5ta Avenida 10-50",
+      zone: "Zona 10",
+      neighborhood: "Oakland",
+      city: "Guatemala",
+      department: "Guatemala",
+    }}
+  />
+);
+
+export const newOrderNotificationPreview = () => (
+  <NewOrderNotificationEmail
+    customerName="Juan Pérez"
+    customerEmail="juan.perez@example.com"
+    orderNumber="TFF-123ABC"
+    orderDate="14 de febrero de 2026, 10:30 AM"
+    items={[
+      {
+        product_name: "Nike Air Max 90",
+        brand_name: "Nike",
+        color_name: "Blanco/Negro",
+        size_us: 10,
+        quantity: 1,
+        unit_price: 850,
+        subtotal: 850,
+        product_image_url: null,
+      },
+      {
+        product_name: "Adidas Ultraboost 22",
+        brand_name: "Adidas",
+        color_name: "Triple Black",
+        size_us: 10,
+        quantity: 2,
+        unit_price: 1200,
+        subtotal: 2400,
+        product_image_url: null,
+      },
+    ]}
+    subtotal={3250}
+    shippingCost={35}
+    discount={200}
+    total={3085}
+    shippingAddress={{
+      recipient_name: "Juan Pérez",
+      phone: "+502 1234-5678",
+      street_address: "5ta Avenida 10-50",
+      zone: "Zona 10",
+      neighborhood: "Oakland",
+      city: "Guatemala",
+      department: "Guatemala",
+    }}
+    customerNotes="Por favor llamar antes de entregar. Casa con portón negro."
+  />
+);
+
+export const orderShippedPreview = () => (
+  <OrderShippedEmail
+    customerName="Juan Pérez"
+    orderNumber="TFF-123ABC"
+    trackingNumber="GT1234567890"
+    estimatedDelivery="Viernes 16 de Febrero"
+  />
+);
+
+// Exports para React Email CLI
+export default orderConfirmationPreview;
+export { orderConfirmationPreview as OrderConfirmation };
+export { newOrderNotificationPreview as NewOrderNotification };
+export { orderShippedPreview as OrderShipped };
