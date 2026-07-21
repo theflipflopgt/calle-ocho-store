@@ -5,9 +5,10 @@ import {
   Users,
   DollarSign,
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   Clock,
+  Download,
+  FileText,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils/currency';
 import Link from 'next/link';
@@ -21,6 +22,9 @@ async function getDashboardStats() {
     { count: totalOrders },
     { count: totalCustomers },
     { count: pendingOrders },
+    { count: todayOrders },
+    { data: todayRevenueData },
+    { data: monthRevenueData },
     { count: lowStockVariants },
     { data: revenueData },
     { data: recentOrders },
@@ -30,6 +34,20 @@ async function getDashboardStats() {
     supabase.from('orders').select('*', { count: 'exact', head: true }),
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'customer'),
     supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
+    supabase
+      .from('orders')
+      .select('total')
+      .in('status', ['paid', 'processing', 'shipped', 'delivered'])
+      .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
+    supabase
+      .from('orders')
+      .select('total')
+      .in('status', ['paid', 'processing', 'shipped', 'delivered'])
+      .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
     supabase
       .from('product_variants')
       .select('*', { count: 'exact', head: true })
@@ -68,14 +86,21 @@ async function getDashboardStats() {
   ]);
 
   const totalRevenue = revenueData?.reduce((sum, order) => sum + Number(order.total), 0) || 0;
+  const todayRevenue = todayRevenueData?.reduce((sum, order) => sum + Number(order.total), 0) || 0;
+  const monthRevenue = monthRevenueData?.reduce((sum, order) => sum + Number(order.total), 0) || 0;
+  const averageTicket = revenueData?.length ? totalRevenue / revenueData.length : 0;
 
   return {
     totalProducts: totalProducts || 0,
     totalOrders: totalOrders || 0,
     totalCustomers: totalCustomers || 0,
     pendingOrders: pendingOrders || 0,
+    todayOrders: todayOrders || 0,
     lowStockVariants: lowStockVariants || 0,
     totalRevenue,
+    todayRevenue,
+    monthRevenue,
+    averageTicket,
     recentOrders: recentOrders || [],
     lowStockProducts: lowStockProducts || [],
   };
@@ -106,6 +131,22 @@ export default async function AdminDashboard() {
 
   const statCards = [
     {
+      name: 'Ventas de hoy',
+      value: formatPrice(stats.todayRevenue),
+      icon: DollarSign,
+      iconBg: 'bg-green-100',
+      iconColor: 'text-green-600',
+      subtext: `${stats.todayOrders} pedidos hoy`,
+    },
+    {
+      name: 'Ventas del mes',
+      value: formatPrice(stats.monthRevenue),
+      icon: TrendingUp,
+      iconBg: 'bg-blue-100',
+      iconColor: 'text-blue-600',
+      subtext: 'Pedidos pagados o en proceso',
+    },
+    {
       name: 'Ingresos Totales',
       value: formatPrice(stats.totalRevenue),
       icon: DollarSign,
@@ -114,12 +155,20 @@ export default async function AdminDashboard() {
       subtext: null as string | null,
     },
     {
-      name: 'Órdenes Totales',
-      value: stats.totalOrders,
+      name: 'Ticket promedio',
+      value: formatPrice(stats.averageTicket),
+      icon: ShoppingCart,
+      iconBg: 'bg-indigo-100',
+      iconColor: 'text-indigo-600',
+      subtext: `${stats.totalOrders} órdenes totales`,
+    },
+    {
+      name: 'Órdenes pendientes',
+      value: stats.pendingOrders,
       icon: ShoppingCart,
       iconBg: 'bg-blue-100',
       iconColor: 'text-blue-600',
-      subtext: `${stats.pendingOrders} pendientes`,
+      subtext: `${stats.totalOrders} órdenes totales`,
     },
     {
       name: 'Productos',
@@ -145,6 +194,27 @@ export default async function AdminDashboard() {
       <div>
         <h1 className="text-2xl font-bold text-brand-black">Dashboard</h1>
         <p className="text-gray-600 mt-1">Bienvenido al panel de administración</p>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Link href="/api/admin/exports/catalog">
+          <div className="inline-flex h-10 w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-brand-black transition-colors hover:bg-gray-50 sm:w-auto">
+            <FileText className="mr-2 h-4 w-4" />
+            Catálogo PDF
+          </div>
+        </Link>
+        <Link href="/api/admin/exports/products">
+          <div className="inline-flex h-10 w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-brand-black transition-colors hover:bg-gray-50 sm:w-auto">
+            <Download className="mr-2 h-4 w-4" />
+            Productos Excel
+          </div>
+        </Link>
+        <Link href="/api/admin/exports/sales">
+          <div className="inline-flex h-10 w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-brand-black transition-colors hover:bg-gray-50 sm:w-auto">
+            <Download className="mr-2 h-4 w-4" />
+            Ventas Excel
+          </div>
+        </Link>
       </div>
 
       {/* Stats Grid */}
@@ -270,35 +340,35 @@ export default async function AdminDashboard() {
 
       {/* Quick Actions */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="font-semibold text-brand-black mb-4">Acciones Rápidas</h2>
+        <h2 className="font-semibold text-brand-black mb-4">Acciones rápidas</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Link
             href="/admin/productos/nuevo"
             className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:border-brand-blue hover:bg-blue-50 transition-colors"
           >
             <Package className="h-6 w-6 text-brand-blue mb-2" />
-            <span className="text-sm font-medium text-brand-black">Nuevo Producto</span>
+            <span className="text-sm font-medium text-brand-black">Nuevo producto</span>
           </Link>
           <Link
             href="/admin/ordenes?status=pending"
             className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:border-brand-blue hover:bg-blue-50 transition-colors"
           >
             <Clock className="h-6 w-6 text-brand-blue mb-2" />
-            <span className="text-sm font-medium text-brand-black">Órdenes Pendientes</span>
+            <span className="text-sm font-medium text-brand-black">Órdenes pendientes</span>
           </Link>
           <Link
             href="/admin/cupones/nuevo"
             className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:border-brand-blue hover:bg-blue-50 transition-colors"
           >
             <DollarSign className="h-6 w-6 text-brand-blue mb-2" />
-            <span className="text-sm font-medium text-brand-black">Crear Cupón</span>
+            <span className="text-sm font-medium text-brand-black">Crear cupón</span>
           </Link>
           <Link
             href="/admin/marcas/nuevo"
             className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:border-brand-blue hover:bg-blue-50 transition-colors"
           >
             <TrendingUp className="h-6 w-6 text-brand-blue mb-2" />
-            <span className="text-sm font-medium text-brand-black">Nueva Marca</span>
+            <span className="text-sm font-medium text-brand-black">Nueva marca</span>
           </Link>
         </div>
       </div>

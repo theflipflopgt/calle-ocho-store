@@ -23,7 +23,7 @@ export async function BrandsGrid() {
         Nuestras Marcas
       </h2>
 
-      <div className="mx-auto grid max-w-6xl grid-cols-2 justify-items-center gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 lg:gap-6">
+      <div className="mx-auto grid max-w-6xl grid-cols-2 place-items-center gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 lg:gap-6">
         {brands.map((brand) => {
           const isSvg = brand.logo_url?.endsWith('.svg');
 
@@ -31,7 +31,7 @@ export async function BrandsGrid() {
             <Link
               key={brand.id}
               href={`/marcas/${brand.slug}`}
-              className="group flex aspect-square w-full max-w-[150px] items-center justify-center rounded-lg border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-brand-blue hover:shadow-lg sm:max-w-[160px]"
+              className="group flex aspect-square w-full max-w-[150px] items-center justify-center rounded-lg border border-gray-200 bg-white p-5 transition-all duration-300 hover:border-brand-blue hover:shadow-lg sm:max-w-[170px]"
             >
               {brand.logo_url ? (
                 isSvg ? (
@@ -42,7 +42,7 @@ export async function BrandsGrid() {
                     loading="lazy"
                     crossOrigin="anonymous"
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-contain brightness-0 group-hover:brightness-100 transition-all duration-300"
+                    className="h-full w-full object-contain brightness-0 transition-all duration-300 group-hover:brightness-100"
                     style={{ filter: 'brightness(0)' }}
                   />
                 ) : (
@@ -52,7 +52,7 @@ export async function BrandsGrid() {
                       alt={brand.name}
                       fill
                       sizes="(max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
-                      className="object-contain brightness-0 group-hover:brightness-100 transition-all duration-300"
+                    className="object-contain brightness-0 transition-all duration-300 group-hover:brightness-100"
                       style={{ filter: 'brightness(0)' }}
                     />
                   </div>

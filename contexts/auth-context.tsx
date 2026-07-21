@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
@@ -33,110 +33,37 @@ const AuthContext = createContext<AuthContextType>({
   refreshProfile: async () => { },
 });
 
-const PROFILE_CACHE_KEY = 'calleocho_profile_cache';
-const AUTH_TIMEOUT_MS = 4000;
-
-async function withTimeout<T>(promise: Promise<T>, fallback: T): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<T>((resolve) => {
-    timeoutId = setTimeout(() => resolve(fallback), AUTH_TIMEOUT_MS);
-  });
-
-  return Promise.race([promise, timeout]).finally(() => {
-    if (timeoutId) clearTimeout(timeoutId);
-  });
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = createClient();
 
-  const getCachedProfile = (userId: string) => {
-    try {
-      const cached = localStorage.getItem(PROFILE_CACHE_KEY);
-      if (!cached) return null;
-
-      const parsed = JSON.parse(cached) as Profile;
-      return parsed.id === userId ? parsed : null;
-    } catch {
-      return null;
-    }
-  };
-
-  const cacheProfile = (nextProfile: Profile) => {
-    try {
-      localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(nextProfile));
-    } catch {
-      // Ignore storage failures.
-    }
-  };
-
-  const ensureProfile = async (authUser: User) => {
-    const fullName =
-      authUser.user_metadata?.full_name ||
-      authUser.user_metadata?.name ||
-      authUser.email?.split('@')[0] ||
-      null;
-
-    const profileData = {
-      id: authUser.id,
-      email: authUser.email || '',
-      full_name: fullName,
-      phone: null,
-      avatar_url: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null,
-      role: 'customer' as const,
-      updated_at: new Date().toISOString(),
-    };
-
-    await supabase
-      .from('profiles')
-      .upsert(profileData, { onConflict: 'id', ignoreDuplicates: true });
-
-    return profileData as Profile;
-  };
-
-  const fetchProfile = async (authUser: User) => {
+  const fetchProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, email, phone, role, avatar_url')
-        .eq('id', authUser.id)
+        .eq('id', userId)
         .single();
 
       if (error) {
-        const cachedProfile = getCachedProfile(authUser.id);
-        if (cachedProfile) {
-          setProfile(cachedProfile);
-          return;
-        }
-
-        const fallbackProfile = await ensureProfile(authUser);
-        setProfile((currentProfile) =>
-          currentProfile?.id === authUser.id ? currentProfile : fallbackProfile
-        );
         return;
       }
 
       if (data) {
-        const nextProfile = data as Profile;
-        setProfile(nextProfile);
-        cacheProfile(nextProfile);
+        setProfile(data as Profile);
       }
     } catch {
-      const cachedProfile = getCachedProfile(authUser.id);
-      if (cachedProfile) {
-        setProfile(cachedProfile);
-      }
+      // Silently handle errors
     }
   };
 
   const refreshProfile = async () => {
-    if (user) {
-      await fetchProfile(user);
+    if (user?.id) {
+      await fetchProfile(user.id);
     }
   };
 
@@ -163,13 +90,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setProfile(null);
       setSession(null);
-      localStorage.removeItem(PROFILE_CACHE_KEY);
     } catch (err) {
       // Even if there's an error, clear local state
       setUser(null);
       setProfile(null);
       setSession(null);
-      localStorage.removeItem(PROFILE_CACHE_KEY);
       throw err;
     }
   };
@@ -177,23 +102,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const result = await withTimeout(
-        supabase.auth.getSession(),
-        { data: { session: null }, error: null }
-      );
-      const session = result.data.session;
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        const cachedProfile = getCachedProfile(session.user.id);
-        if (cachedProfile) {
-          setProfile(cachedProfile);
-        }
-
-        void fetchProfile(session.user);
-      } else {
-        setProfile(null);
+        await fetchProfile(session.user.id);
       }
 
       setIsLoading(false);
@@ -208,15 +122,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          const cachedProfile = getCachedProfile(session.user.id);
-          if (cachedProfile) {
-            setProfile(cachedProfile);
-          }
-
-          void fetchProfile(session.user);
+          await fetchProfile(session.user.id);
         } else {
           setProfile(null);
-          localStorage.removeItem(PROFILE_CACHE_KEY);
         }
 
         setIsLoading(false);

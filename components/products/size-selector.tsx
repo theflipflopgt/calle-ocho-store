@@ -34,7 +34,7 @@ export function SizeSelector({
   };
 
   const getStockStatus = (variant: ProductVariant) => {
-    if (variant.is_available === false || variant.stock_quantity === 0) {
+    if (!variant.is_available || variant.stock_quantity === 0) {
       return { label: dict.outOfStock, color: 'text-gray-400', bg: 'bg-gray-100' };
     }
     const threshold = variant.low_stock_threshold || 3;
@@ -58,7 +58,7 @@ export function SizeSelector({
       <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2">
         {variants.map((variant) => {
           const isSelected = variant.id === selectedVariantId;
-          const isAvailable = variant.is_available !== false && variant.stock_quantity > 0;
+          const isAvailable = variant.is_available && variant.stock_quantity > 0;
           const isLowStock = variant.stock_quantity > 0 && variant.stock_quantity <= (variant.low_stock_threshold || 3);
 
           return (

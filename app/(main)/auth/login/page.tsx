@@ -88,11 +88,11 @@ function LoginForm() {
         <div className="relative z-10 flex flex-col justify-center items-center w-full p-12 text-white">
           <Link href="/" className="mb-8">
             <Image
-              src="/logo.png"
+              src="/logo-light.png"
               alt="Calle Ocho Store"
-              width={200}
-              height={80}
-              className="brightness-0 invert"
+              width={180}
+              height={180}
+              className="h-36 w-36 object-contain sm:h-44 sm:w-44"
               priority
             />
           </Link>
@@ -109,8 +109,8 @@ function LoginForm() {
               src="/logo.png"
               alt="Calle Ocho Store"
               width={120}
-              height={48}
-              className="mx-auto sm:w-[150px] sm:h-auto"
+              height={120}
+              className="mx-auto h-24 w-24 object-contain sm:h-28 sm:w-28"
               priority
             />
           </Link>

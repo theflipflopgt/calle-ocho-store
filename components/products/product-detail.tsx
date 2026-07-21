@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, ShoppingBag, Minus, Plus, ChevronLeft, ChevronRight, Check, Truck, RotateCcw, Shield, Loader2 } from 'lucide-react';
@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { formatPrice } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/contexts/cart-context';
-import { useWishlistContext } from '@/contexts/wishlist-context';
 import type { ProductWithDetails } from '@/types/product';
 
 interface ProductDetailProps {
@@ -22,20 +21,15 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [cartMessage, setCartMessage] = useState<string | null>(null);
 
-  const { addItem, openCart } = useCart();
-  const { isInWishlist, toggleWishlist } = useWishlistContext();
+  const { addItem } = useCart();
 
   const selectedColor = product.colors[selectedColorIndex];
   const images = selectedColor?.images || [];
-  const variants = useMemo(
-    () => selectedColor?.variants || [],
-    [selectedColor]
-  );
+  const variants = selectedColor?.variants || [];
 
   const availableVariants = useMemo(() =>
-    variants.filter(v => v.is_available !== false && v.stock_quantity > 0),
+    variants.filter(v => v.is_available && v.stock_quantity > 0),
     [variants]
   );
 
@@ -45,12 +39,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
   );
 
   const maxQuantity = selectedVariant?.stock_quantity || 1;
-
-  useEffect(() => {
-    if (!selectedVariantId && availableVariants.length > 0) {
-      setSelectedVariantId(availableVariants[0].id);
-    }
-  }, [availableVariants, selectedVariantId]);
 
   // Reset image and variant when color changes
   const handleColorChange = (index: number) => {
@@ -69,23 +57,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
   };
 
   const handleAddToCart = async () => {
-    setCartMessage(null);
-
-    if (!selectedVariantId) {
-      setCartMessage('Selecciona una talla disponible antes de agregar al carrito.');
-      return;
-    }
-
-    if (isAddingToCart) return;
-
+    if (!selectedVariantId || isAddingToCart) return;
     setIsAddingToCart(true);
     try {
-      const added = await addItem(selectedVariantId, quantity, product);
-      if (added) {
-        setCartMessage('Producto agregado al carrito.');
-        openCart();
-      } else {
-        setCartMessage('No se pudo agregar. Revisa la disponibilidad e intenta de nuevo.');
+      for (let i = 0; i < quantity; i++) {
+        await addItem(selectedVariantId, 1);
       }
     } finally {
       setIsAddingToCart(false);
@@ -301,7 +277,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
           </div>
           <div className="flex flex-wrap gap-2">
             {variants.map((variant) => {
-              const isAvailable = variant.is_available !== false && variant.stock_quantity > 0;
+              const isAvailable = variant.is_available && variant.stock_quantity > 0;
               const isLowStock = isAvailable && variant.stock_quantity <= (variant.low_stock_threshold || 3);
               const isSelected = variant.id === selectedVariantId;
 
@@ -378,26 +354,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
           <Button
             size="lg"
             variant="outline"
-            className={cn(
-              "h-12 sm:h-14 w-12 sm:w-14 border-gray-200",
-              isInWishlist(product.id) && "text-brand-red border-brand-red"
-            )}
-            onClick={() => toggleWishlist(product.id, product)}
-            aria-label={isInWishlist(product.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+            className="h-12 sm:h-14 w-12 sm:w-14 border-gray-200"
           >
-            <Heart className={cn("w-5 h-5", isInWishlist(product.id) && "fill-current")} />
+            <Heart className="w-5 h-5" />
           </Button>
         </div>
-        {cartMessage && (
-          <p
-            className={cn(
-              "text-sm font-medium",
-              cartMessage.includes('agregado') ? "text-green-600" : "text-red-600"
-            )}
-          >
-            {cartMessage}
-          </p>
-        )}
 
         {/* Features */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pt-4 border-t border-gray-100">

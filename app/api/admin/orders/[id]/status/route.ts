@@ -92,31 +92,29 @@ export async function PATCH(
     );
   }
 
-  appLogger.info('admin.orders.status.updated', {
-    requestId,
-    orderId: id,
-    adminUserId: auth.user.id,
-    status: body.status,
-  });
-
   try {
     const { data: order } = await db
       .from('orders')
-      .select(`
-        order_number,
-        shipping_recipient_name,
-        tracking_number,
-        tracking_url,
-        profiles:user_id(email, full_name)
-      `)
+      .select(
+        `
+          order_number,
+          shipping_recipient_name,
+          tracking_number,
+          tracking_url,
+          profiles:user_id (email)
+        `
+      )
       .eq('id', id)
       .single();
 
-    const customerEmail = order?.profiles?.email;
-    if (order && customerEmail) {
+    const customerEmail = Array.isArray(order?.profiles)
+      ? order.profiles[0]?.email
+      : order?.profiles?.email;
+
+    if (customerEmail) {
       await sendOrderStatusUpdateEmail({
         to: customerEmail,
-        customerName: order.profiles?.full_name || order.shipping_recipient_name,
+        customerName: order.shipping_recipient_name || 'Cliente',
         orderNumber: order.order_number,
         status: body.status,
         trackingNumber: order.tracking_number,
@@ -128,10 +126,16 @@ export async function PATCH(
       requestId,
       orderId: id,
       adminUserId: auth.user.id,
-      status: body.status,
       error: emailError instanceof Error ? emailError.message : 'unknown_email_error',
     });
   }
+
+  appLogger.info('admin.orders.status.updated', {
+    requestId,
+    orderId: id,
+    adminUserId: auth.user.id,
+    status: body.status,
+  });
 
   return NextResponse.json({ success: true, status: data });
 }

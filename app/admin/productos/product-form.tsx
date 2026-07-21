@@ -54,6 +54,8 @@ interface ProductColor {
   product_variants: ProductVariant[];
 }
 
+type ProductGender = 'men' | 'women' | 'kids' | 'unisex';
+
 interface Product {
   id: string;
   brand_id: string;
@@ -110,7 +112,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     base_price: product?.base_price || 0,
     compare_at_price: product?.compare_at_price || '',
     status: product?.status || 'draft',
-    gender: normalizeGenderValue(product?.gender),
+    gender: product?.gender || 'unisex',
     is_featured: product?.is_featured || false,
     meta_title: product?.meta_title || '',
     meta_description: product?.meta_description || '',
@@ -119,6 +121,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
   const [colors, setColors] = useState<ProductColor[]>(
     product?.product_colors || []
   );
+  const [deletedVariantIds, setDeletedVariantIds] = useState<string[]>([]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -190,18 +193,75 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
 
   const generateVariantsForColor = (colorIndex: number) => {
     const color = colors[colorIndex];
-    const variants: ProductVariant[] = STANDARD_SIZES.map((size) => ({
+    const existingSizes = new Set(color.product_variants.map((variant) => variant.size_us));
+    const variants: ProductVariant[] = [
+      ...color.product_variants,
+      ...STANDARD_SIZES.filter((size) => !existingSizes.has(size.us)).map((size) => ({
+        size_us: size.us,
+        size_eu: size.eu,
+        size_uk: size.uk,
+        size_cm: size.cm,
+        sku: `${formData.sku}-${color.sku_suffix}-${size.us}`.toUpperCase(),
+        stock_quantity: 0,
+        low_stock_threshold: 5,
+        price_override: null,
+        is_available: true,
+      })),
+    ];
+    updateColor(colorIndex, { product_variants: variants });
+  };
+
+  const addVariantForSize = (colorIndex: number, size: (typeof STANDARD_SIZES)[number]) => {
+    const color = colors[colorIndex];
+    const alreadyExists = color.product_variants.some((variant) => variant.size_us === size.us);
+
+    if (alreadyExists) return;
+
+    const skuSuffix = color.sku_suffix || color.color_name.slice(0, 3) || 'CLR';
+    const newVariant: ProductVariant = {
       size_us: size.us,
       size_eu: size.eu,
       size_uk: size.uk,
       size_cm: size.cm,
-      sku: `${formData.sku}-${color.sku_suffix}-${size.us}`.toUpperCase(),
+      sku: `${formData.sku}-${skuSuffix}-${size.us}`.toUpperCase(),
       stock_quantity: 0,
       low_stock_threshold: 5,
       price_override: null,
       is_available: true,
-    }));
-    updateColor(colorIndex, { product_variants: variants });
+    };
+
+    updateColor(colorIndex, {
+      product_variants: [...color.product_variants, newVariant].sort(
+        (a, b) => a.size_us - b.size_us
+      ),
+    });
+  };
+
+  const removeVariant = (colorIndex: number, variantIndex: number) => {
+    const variant = colors[colorIndex].product_variants[variantIndex];
+
+    if (variant.id) {
+      setDeletedVariantIds((current) => [...current, variant.id!]);
+    }
+
+    updateColor(colorIndex, {
+      product_variants: colors[colorIndex].product_variants.filter(
+        (_, index) => index !== variantIndex
+      ),
+    });
+  };
+
+  const toggleSizeForColor = (colorIndex: number, size: (typeof STANDARD_SIZES)[number]) => {
+    const variantIndex = colors[colorIndex].product_variants.findIndex(
+      (variant) => variant.size_us === size.us
+    );
+
+    if (variantIndex >= 0) {
+      removeVariant(colorIndex, variantIndex);
+      return;
+    }
+
+    addVariantForSize(colorIndex, size);
   };
 
   const updateVariant = (
@@ -261,12 +321,18 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
         productId = data.id;
       }
 
+      if (deletedVariantIds.length > 0) {
+        const { error: deleteVariantsError } = await supabase
+          .from('product_variants')
+          .delete()
+          .in('id', deletedVariantIds);
+
+        if (deleteVariantsError) throw deleteVariantsError;
+      }
+
       // Handle colors, images, and variants
-      for (const [colorIndex, color] of colors.entries()) {
+      for (const color of colors) {
         let colorId: string;
-        const originalColor = color.id
-          ? product?.product_colors.find((item) => item.id === color.id)
-          : product?.product_colors[colorIndex];
 
         const colorData = {
           product_id: productId,
@@ -298,46 +364,31 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
           colorId = data.id;
         }
 
-        if (hasImageChanges(color.product_color_images, originalColor?.product_color_images || [])) {
-          const validImages = color.product_color_images
-            .filter((image) => image.image_url.trim())
-            .map((image) => ({
-              id: image.id,
-              product_color_id: colorId,
-              image_url: image.image_url.trim(),
-              alt_text: image.alt_text || null,
-              display_order: image.display_order ?? 0,
-              image_type: image.image_type || 'front',
-            }));
+        // Handle images
+        for (const image of color.product_color_images) {
+          if (!image.image_url) continue;
 
-          const existingImages = validImages.filter((image) => image.id);
+          const imageData = {
+            product_color_id: colorId,
+            image_url: image.image_url,
+            alt_text: image.alt_text || null,
+            display_order: image.display_order ?? 0,
+            image_type: image.image_type || 'front',
+          };
 
-          const newImages = validImages
-            .filter((image) => !image.id)
-            .map((image) => {
-              const imageData = { ...image };
-              delete imageData.id;
-              return imageData;
-            });
-
-          const imageResults = await Promise.all([
-            existingImages.length
-              ? supabase.from('product_color_images').upsert(existingImages, {
-                  onConflict: 'id',
-                })
-              : Promise.resolve({ error: null }),
-            newImages.length
-              ? supabase.from('product_color_images').insert(newImages)
-              : Promise.resolve({ error: null }),
-          ]);
-
-          const imageError = imageResults.find((result) => result.error)?.error;
-          if (imageError) throw imageError;
+          if (image.id) {
+            await supabase
+              .from('product_color_images')
+              .update(imageData)
+              .eq('id', image.id);
+          } else {
+            await supabase.from('product_color_images').insert(imageData);
+          }
         }
 
-        if (hasVariantChanges(color.product_variants, originalColor?.product_variants || [])) {
-          const variantRows = color.product_variants.map((variant) => ({
-            id: variant.id,
+        // Handle variants
+        for (const variant of color.product_variants) {
+          const variantData = {
             product_id: productId,
             product_color_id: colorId,
             size_us: variant.size_us,
@@ -349,31 +400,16 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
             low_stock_threshold: variant.low_stock_threshold ?? 5,
             price_override: variant.price_override || null,
             is_available: variant.is_available ?? true,
-          }));
+          };
 
-          const existingVariants = variantRows.filter((variant) => variant.id);
-
-          const newVariants = variantRows
-            .filter((variant) => !variant.id)
-            .map((variant) => {
-              const variantData = { ...variant };
-              delete variantData.id;
-              return variantData;
-            });
-
-          const variantResults = await Promise.all([
-            existingVariants.length
-              ? supabase.from('product_variants').upsert(existingVariants, {
-                  onConflict: 'id',
-                })
-              : Promise.resolve({ error: null }),
-            newVariants.length
-              ? supabase.from('product_variants').insert(newVariants)
-              : Promise.resolve({ error: null }),
-          ]);
-
-          const variantError = variantResults.find((result) => result.error)?.error;
-          if (variantError) throw variantError;
+          if (variant.id) {
+            await supabase
+              .from('product_variants')
+              .update(variantData)
+              .eq('id', variant.id);
+          } else {
+            await supabase.from('product_variants').insert(variantData);
+          }
         }
       }
 
@@ -588,9 +624,9 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                   required
                 >
                   <option value="unisex">Unisex</option>
-                  <option value="hombre">Hombre</option>
-                  <option value="mujer">Mujer</option>
-                  <option value="ninos">Niños</option>
+                  <option value="men">Hombre</option>
+                  <option value="women">Mujer</option>
+                  <option value="kids">Niños</option>
                 </select>
               </div>
 
@@ -787,7 +823,12 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
               {/* Variants */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label>Variantes (Tallas)</Label>
+                  <div>
+                    <Label>Variantes (Tallas)</Label>
+                    <p className="text-xs text-gray-500">
+                      Selecciona solo las tallas que tienes para este color.
+                    </p>
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
@@ -795,8 +836,31 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                     onClick={() => generateVariantsForColor(colorIndex)}
                   >
                     <Plus className="h-4 w-4 mr-1" />
-                    Generar Tallas Estándar
+                    Todas
                   </Button>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+                  {STANDARD_SIZES.map((size) => {
+                    const selected = color.product_variants.some(
+                      (variant) => variant.size_us === size.us
+                    );
+
+                    return (
+                      <button
+                        key={size.us}
+                        type="button"
+                        onClick={() => toggleSizeForColor(colorIndex, size)}
+                        className={`h-10 rounded-lg border text-sm font-medium transition-colors ${
+                          selected
+                            ? 'border-brand-blue bg-brand-blue text-white'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-brand-blue'
+                        }`}
+                      >
+                        {size.us}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {color.product_variants.length > 0 && (
@@ -809,6 +873,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                           <th className="px-3 py-2 text-left">SKU</th>
                           <th className="px-3 py-2 text-left">Stock</th>
                           <th className="px-3 py-2 text-left">Disponible</th>
+                          <th className="px-3 py-2 text-right">Acciones</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -843,6 +908,17 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                                   })
                                 }
                               />
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeVariant(colorIndex, variantIndex)}
+                                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -969,63 +1045,4 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
       </div>
     </form>
   );
-}
-
-function hasVariantChanges(current: ProductVariant[], original: ProductVariant[]) {
-  if (current.length !== original.length) return true;
-
-  const originalById = new Map(
-    original.filter((variant) => variant.id).map((variant) => [variant.id, variant])
-  );
-
-  return current.some((variant, index) => {
-    if (!variant.id) return true;
-
-    const originalVariant = originalById.get(variant.id) || original[index];
-    if (!originalVariant) return true;
-
-    return (
-      Number(variant.size_us) !== Number(originalVariant.size_us) ||
-      Number(variant.size_eu) !== Number(originalVariant.size_eu) ||
-      Number(variant.size_uk) !== Number(originalVariant.size_uk) ||
-      Number(variant.size_cm) !== Number(originalVariant.size_cm) ||
-      variant.sku !== originalVariant.sku ||
-      Number(variant.stock_quantity) !== Number(originalVariant.stock_quantity) ||
-      Number(variant.low_stock_threshold ?? 5) !== Number(originalVariant.low_stock_threshold ?? 5) ||
-      Number(variant.price_override ?? 0) !== Number(originalVariant.price_override ?? 0) ||
-      Boolean(variant.is_available ?? true) !== Boolean(originalVariant.is_available ?? true)
-    );
-  });
-}
-
-function normalizeGenderValue(gender?: string | null) {
-  if (gender === 'men') return 'hombre';
-  if (gender === 'women') return 'mujer';
-  if (gender === 'kids') return 'ninos';
-  return gender || 'unisex';
-}
-
-function hasImageChanges(current: ProductImage[], original: ProductImage[]) {
-  const currentValid = current.filter((image) => image.image_url.trim());
-  const originalValid = original.filter((image) => image.image_url.trim());
-
-  if (currentValid.length !== originalValid.length) return true;
-
-  const originalById = new Map(
-    originalValid.filter((image) => image.id).map((image) => [image.id, image])
-  );
-
-  return currentValid.some((image, index) => {
-    if (!image.id) return true;
-
-    const originalImage = originalById.get(image.id) || originalValid[index];
-    if (!originalImage) return true;
-
-    return (
-      image.image_url.trim() !== originalImage.image_url.trim() ||
-      (image.alt_text || '') !== (originalImage.alt_text || '') ||
-      Number(image.display_order ?? 0) !== Number(originalImage.display_order ?? 0) ||
-      (image.image_type || 'front') !== (originalImage.image_type || 'front')
-    );
-  });
 }

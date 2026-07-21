@@ -45,32 +45,6 @@ export async function GET(request: Request) {
     if (!error && data.user) {
       console.log('✅ [Auth Callback] Session created for user:', data.user.id);
 
-      const fullName =
-        data.user.user_metadata?.full_name ||
-        data.user.user_metadata?.name ||
-        data.user.email?.split('@')[0] ||
-        null;
-
-      await supabase
-        .from('profiles')
-        .upsert(
-          {
-            id: data.user.id,
-            email: data.user.email || '',
-            full_name: fullName,
-            avatar_url:
-              data.user.user_metadata?.avatar_url ||
-              data.user.user_metadata?.picture ||
-              null,
-            role: 'customer',
-            updated_at: new Date().toISOString(),
-          },
-          {
-            onConflict: 'id',
-            ignoreDuplicates: true,
-          }
-        );
-
       // Check if user is admin
       const { data: profile } = await supabase
         .from('profiles')

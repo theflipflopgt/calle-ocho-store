@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-import { Plus, Pencil, Eye, Search, Filter, Package } from 'lucide-react';
+import { Download, FileText, Plus, Pencil, Eye, Search, Filter, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatPrice } from '@/lib/utils/currency';
@@ -86,12 +86,26 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           <h1 className="text-2xl font-bold text-brand-black">Productos</h1>
           <p className="text-gray-600 mt-1">{products.length} productos encontrados</p>
         </div>
-        <Link href="/admin/productos/nuevo" className="w-full sm:w-auto">
-          <Button className="bg-brand-blue hover:bg-brand-blue/90 w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Producto
-          </Button>
-        </Link>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Link href="/api/admin/exports/catalog" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto">
+              <FileText className="h-4 w-4 mr-2" />
+              Catálogo PDF
+            </Button>
+          </Link>
+          <Link href="/api/admin/exports/products" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto">
+              <Download className="h-4 w-4 mr-2" />
+              Excel
+            </Button>
+          </Link>
+          <Link href="/admin/productos/nuevo" className="w-full sm:w-auto">
+            <Button className="bg-brand-blue hover:bg-brand-blue/90 w-full sm:w-auto">
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo producto
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

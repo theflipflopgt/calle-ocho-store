@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Plus, GripVertical, Eye, EyeOff, Trash2, Search, Package, RefreshCw } from 'lucide-react';
+import { Plus, GripVertical, Eye, EyeOff, Trash2, Search, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
@@ -44,7 +44,6 @@ export default function HeroCarouselPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const supabase = createClient();
 
   // Load featured products
@@ -119,16 +118,13 @@ export default function HeroCarouselPage() {
 
     // Save to database
     setIsSaving(true);
-    await Promise.all(
-      updatedItems.map((item) =>
-        supabase
-          .from('featured_products')
-          .update({ display_order: item.display_order })
-          .eq('id', item.id)
-      )
-    );
+    for (const item of updatedItems) {
+      await supabase
+        .from('featured_products')
+        .update({ display_order: item.display_order })
+        .eq('id', item.id);
+    }
     setIsSaving(false);
-    setStatusMessage('Orden actualizado. El cambio ya aplica en la home.');
   };
 
   const addProduct = async (productId: string) => {
@@ -166,7 +162,6 @@ export default function HeroCarouselPage() {
 
     if (!error && data) {
       setFeaturedProducts([...featuredProducts, data as any]);
-      setStatusMessage('Producto agregado al carrusel de inicio.');
     }
   };
 
@@ -177,7 +172,6 @@ export default function HeroCarouselPage() {
       .eq('id', featuredProductId);
 
     setFeaturedProducts(featuredProducts.filter(fp => fp.id !== featuredProductId));
-    setStatusMessage('Producto eliminado del carrusel.');
   };
 
   const toggleActive = async (featuredProductId: string, currentActive: boolean) => {
@@ -191,7 +185,6 @@ export default function HeroCarouselPage() {
         fp.id === featuredProductId ? { ...fp, is_active: !currentActive } : fp
       )
     );
-    setStatusMessage(currentActive ? 'Producto oculto de la home.' : 'Producto visible en la home.');
   };
 
   const filteredAvailableProducts = availableProducts.filter(
@@ -215,35 +208,9 @@ export default function HeroCarouselPage() {
       <div>
         <h1 className="text-2xl font-bold text-brand-black">Hero Carousel</h1>
         <p className="text-gray-600 mt-1">
-          Gestiona los productos destacados que aparecen en el inicio. Arrastra para reordenar.
+          Gestiona los productos destacados del carrusel principal. Arrastra para reordenar.
         </p>
       </div>
-
-      <div className="flex flex-col gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-medium text-blue-900">
-          Los productos activos de esta lista se muestran en el Hero Carousel de la página principal.
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="border-blue-300 text-blue-800 hover:bg-blue-100"
-          onClick={() => {
-            setStatusMessage(null);
-            loadFeaturedProducts();
-            loadAvailableProducts();
-          }}
-        >
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Actualizar
-        </Button>
-      </div>
-
-      {statusMessage && (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
-          {statusMessage}
-        </div>
-      )}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Featured Products (Drag & Drop) */}
@@ -336,16 +303,12 @@ export default function HeroCarouselPage() {
                                   size="sm"
                                   onClick={() => toggleActive(item.id, item.is_active)}
                                   title={item.is_active ? 'Desactivar' : 'Activar'}
-                                  className="gap-1"
                                 >
                                   {item.is_active ? (
                                     <Eye className="w-4 h-4 text-green-600" />
                                   ) : (
                                     <EyeOff className="w-4 h-4 text-gray-400" />
                                   )}
-                                  <span className="hidden xl:inline">
-                                    {item.is_active ? 'Visible' : 'Oculto'}
-                                  </span>
                                 </Button>
                                 <Button
                                   variant="ghost"
@@ -437,10 +400,9 @@ export default function HeroCarouselPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => addProduct(product.id)}
-                    className="flex-shrink-0 gap-1"
+                    className="flex-shrink-0"
                   >
                     <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">Agregar</span>
                   </Button>
                 </div>
               ))
@@ -451,7 +413,7 @@ export default function HeroCarouselPage() {
 
       {/* Info Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-medium text-brand-black mb-2">Consejos</h3>
+        <h3 className="font-medium text-brand-black mb-2">💡 Consejos</h3>
         <ul className="text-sm text-gray-600 space-y-1">
           <li>• Arrastra los productos para cambiar su orden en el carrusel</li>
           <li>• Usa el ícono de ojo para activar/desactivar sin eliminar</li>

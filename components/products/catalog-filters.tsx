@@ -64,7 +64,7 @@ export function CatalogFilters({
           onClick={() => setIsOpen(!isOpen)}
           className="flex items-center justify-between w-full text-left"
         >
-          <span className="font-medium text-sm text-white">{title}</span>
+          <span className="font-medium text-sm text-brand-black">{title}</span>
           <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
         </button>
         {isOpen && <div className="mt-3 space-y-2">{children}</div>}
@@ -84,7 +84,7 @@ export function CatalogFilters({
               "block w-full text-left px-2 py-1.5 text-sm rounded transition-colors",
               currentSort === option.value
                 ? "bg-brand-black text-white"
-                : "text-white hover:bg-gray-100"
+                : "text-gray-700 hover:bg-gray-100"
             )}
           >
             {option.label}
@@ -103,7 +103,7 @@ export function CatalogFilters({
                 "block w-full text-left px-2 py-1.5 text-sm rounded transition-colors",
                 currentBrand === brand.slug
                   ? "bg-brand-black text-white"
-                  : "text-white hover:bg-gray-100"
+                  : "text-gray-700 hover:bg-gray-100"
               )}
             >
               {brand.name}
@@ -123,7 +123,7 @@ export function CatalogFilters({
                 "block w-full text-left px-2 py-1.5 text-sm rounded transition-colors",
                 currentCategory === category.slug
                   ? "bg-brand-black text-white"
-                  : "text-white hover:bg-gray-100"
+                  : "text-gray-700 hover:bg-gray-100"
               )}
             >
               {category.name}
@@ -143,7 +143,7 @@ export function CatalogFilters({
                 "block w-full text-left px-2 py-1.5 text-sm rounded transition-colors capitalize",
                 currentGender === gender
                   ? "bg-brand-black text-white"
-                  : "text-white hover:bg-gray-100"
+                  : "text-gray-700 hover:bg-gray-100"
               )}
             >
               {gender}
@@ -214,7 +214,7 @@ export function CatalogFilters({
       {/* Desktop sidebar */}
       <div className="hidden lg:block w-60 flex-shrink-0">
         <div className="sticky top-24">
-          <h2 className="font-semibold text-white mb-4">Filtros</h2>
+          <h2 className="font-semibold text-brand-black mb-4">Filtros</h2>
           <FilterContent />
         </div>
       </div>

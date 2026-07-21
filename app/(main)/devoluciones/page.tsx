@@ -1,32 +1,38 @@
-import { RotateCcw } from 'lucide-react';
-import { FooterInfoPage } from '@/components/content/footer-info-page';
-
 export const metadata = {
-  title: 'Devoluciones | Calle Ocho Store',
-  description: 'Política general de cambios y devoluciones de Calle Ocho Store.',
+  title: 'Cambios y devoluciones | Calle Ocho Store',
+  description: 'Política de cambios y devoluciones de Calle Ocho Store.',
 };
 
 export default function DevolucionesPage() {
   return (
-    <FooterInfoPage
-      icon={<RotateCcw className="h-7 w-7" />}
-      title="Devoluciones"
-      intro="Queremos que compres con confianza. Por eso revisamos cada solicitud de cambio con datos claros y atencion personalizada."
-      sections={[
-        {
-          title: 'Condicion del producto',
-          body: 'El calzado debe conservar su estado original, empaque, etiquetas y comprobante de compra para ser evaluado.',
-        },
-        {
-          title: 'Tiempo de solicitud',
-          body: 'Reporta cualquier inconveniente lo antes posible despues de recibir tu pedido para poder revisar el caso.',
-        },
-        {
-          title: 'Disponibilidad',
-          body: 'Los cambios quedan sujetos a existencia de talla, color o modelo. Si no hay stock, te orientamos con opciones disponibles.',
-        },
-      ]}
-      primaryAction={{ label: 'Contactar soporte', href: '/contacto' }}
-    />
+    <main className="container mx-auto px-4 py-10 sm:py-14">
+      <section className="mx-auto max-w-3xl">
+        <h1 className="mb-3 text-3xl font-bold text-brand-black sm:text-4xl">
+          Cambios y devoluciones
+        </h1>
+        <p className="mb-8 text-gray-600">
+          Si necesitas cambiar una talla o reportar un problema con tu pedido, contáctanos lo antes posible.
+        </p>
+
+        <div className="space-y-6 text-gray-700">
+          <div>
+            <h2 className="mb-2 text-lg font-semibold text-brand-black">Condiciones</h2>
+            <p>El producto debe estar sin uso, en buen estado y con su empaque original cuando aplique.</p>
+          </div>
+          <div>
+            <h2 className="mb-2 text-lg font-semibold text-brand-black">Cambios de talla</h2>
+            <p>Los cambios dependen de la disponibilidad de inventario. Si la talla no está disponible, revisaremos alternativas contigo.</p>
+          </div>
+          <div>
+            <h2 className="mb-2 text-lg font-semibold text-brand-black">Productos en oferta</h2>
+            <p>Algunas ofertas pueden tener condiciones especiales. Te recomendamos confirmar cualquier duda antes de comprar.</p>
+          </div>
+          <div>
+            <h2 className="mb-2 text-lg font-semibold text-brand-black">Cómo solicitar ayuda</h2>
+            <p>Escríbenos con tu número de pedido, nombre completo y una breve descripción del caso.</p>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }

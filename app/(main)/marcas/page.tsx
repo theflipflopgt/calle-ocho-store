@@ -14,10 +14,10 @@ export default async function MarcasPage() {
     <main className="container mx-auto px-4 py-6 sm:py-8">
       {/* Header */}
       <div className="mb-8 sm:mb-12 text-center">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-black dark:text-white mb-2">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-black mb-2">
           Nuestras Marcas
         </h1>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+        <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">
           Las mejores marcas de tenis del mundo, todo en un solo lugar
         </p>
       </div>
@@ -28,7 +28,7 @@ export default async function MarcasPage() {
           <Link
             key={brand.id}
             href={`/marcas/${brand.slug}`}
-            className="group bg-white dark:bg-white border border-gray-200 dark:border-gray-200 rounded-xl p-4 sm:p-6 flex flex-col items-center justify-center hover:border-brand-black hover:shadow-lg transition-all aspect-square"
+            className="group bg-white border border-gray-200 rounded-xl p-4 sm:p-6 flex flex-col items-center justify-center hover:border-brand-black hover:shadow-lg transition-all aspect-square"
           >
             {brand.logo_url ? (
               <div className="relative w-16 h-16 sm:w-20 sm:h-20 mb-3">
@@ -46,7 +46,7 @@ export default async function MarcasPage() {
                 </span>
               </div>
             )}
-            <h2 className="font-semibold text-sm sm:text-base text-gray-900 text-center">
+            <h2 className="font-semibold text-sm sm:text-base text-brand-black text-center">
               {brand.name}
             </h2>
             {brand.country && (

@@ -8,22 +8,25 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 import {
   LayoutDashboard,
+  Home,
   Package,
   ShoppingCart,
   Users,
-  User,
   Tag,
   Ticket,
+  Settings,
   LogOut,
   Menu,
   X,
   ChevronDown,
   Layers,
+  ImageIcon,
   Sparkles,
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { name: 'Inicio', href: '/admin/inicio', icon: Home },
   { name: 'Hero Carousel', href: '/admin/hero-carousel', icon: Sparkles },
   {
     name: 'Productos',
@@ -39,6 +42,8 @@ const navigation = [
   { name: 'Marcas', href: '/admin/marcas', icon: Layers },
   { name: 'Categorías', href: '/admin/categorias', icon: Tag },
   { name: 'Cupones', href: '/admin/cupones', icon: Ticket },
+  { name: 'Media', href: '/admin/media', icon: ImageIcon },
+  { name: 'Configuración', href: '/admin/configuracion', icon: Settings },
 ];
 
 function AdminLayoutContent({
@@ -49,9 +54,7 @@ function AdminLayoutContent({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>(['Productos']);
   const pathname = usePathname();
-  const { profile, user, signOut, isLoading } = useAuth();
-  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Admin';
-  const displayEmail = profile?.email || user?.email || '';
+  const { profile, signOut, isLoading } = useAuth();
 
   const toggleExpand = (name: string) => {
     setExpandedItems((prev) =>
@@ -139,7 +142,7 @@ function AdminLayoutContent({
   };
 
   return (
-    <div className="admin-shell min-h-screen bg-gray-50 text-brand-black">
+    <div className="min-h-screen bg-gray-50">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -192,14 +195,14 @@ function AdminLayoutContent({
             <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-brand-blue rounded-full flex items-center justify-center">
                 <span className="text-white text-xs sm:text-sm font-medium">
-                  {displayName.charAt(0)}
+                  {profile?.full_name?.charAt(0) || 'A'}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs sm:text-sm font-medium text-brand-black truncate">
-                  {displayName}
+                  {profile?.full_name || 'Admin'}
                 </p>
-                <p className="text-[10px] sm:text-xs text-gray-600 truncate">{displayEmail}</p>
+                <p className="text-[10px] sm:text-xs text-gray-600 truncate">{profile?.email}</p>
               </div>
             </div>
           )}
@@ -228,7 +231,7 @@ function AdminLayoutContent({
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 h-14 sm:h-16 bg-white border-b border-gray-200 flex items-center justify-between px-3 sm:px-4 lg:px-8">
+        <header className="h-14 sm:h-16 bg-white border-b border-gray-200 flex items-center justify-between px-3 sm:px-4 lg:px-8">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
@@ -238,47 +241,14 @@ function AdminLayoutContent({
 
           <div className="flex-1 lg:flex-none" />
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden md:block text-right">
-              <p className="text-xs font-semibold text-brand-black truncate max-w-[180px]">
-                {displayName}
-              </p>
-              <p className="text-[11px] text-gray-500 truncate max-w-[180px]">
-                {displayEmail}
-              </p>
-            </div>
-            <Link
-              href="/cuenta"
-              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-brand-black"
-            >
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Mi cuenta</span>
-            </Link>
+          <div className="flex items-center gap-3 sm:gap-4">
             <Link
               href="/"
               target="_blank"
-              className="rounded-lg px-2.5 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-brand-black"
+              className="text-xs sm:text-sm text-gray-600 hover:text-brand-black"
             >
-              Ver tienda
+              Ver tienda →
             </Link>
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden sm:inline-flex gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-              onClick={async () => {
-                try {
-                  await signOut();
-                  window.location.href = '/';
-                } catch (err) {
-                  console.error('Error en signOut:', err);
-                  window.location.href = '/';
-                }
-              }}
-              disabled={isLoading}
-            >
-              <LogOut className="h-4 w-4" />
-              Cerrar sesión
-            </Button>
           </div>
         </header>
 

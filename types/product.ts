@@ -27,7 +27,7 @@ export interface ProductWithDetails extends Product {
 // Props para el ProductCard
 export interface ProductCardProps {
   product: ProductWithDetails;
-  onAddToWishlist?: (productId: string, product?: ProductWithDetails) => void;
-  onQuickAdd?: (variantId: string, product?: ProductWithDetails) => void | Promise<void>;
+  onAddToWishlist?: (productId: string) => void;
+  onQuickAdd?: (variantId: string) => void;
   isInWishlist?: boolean;
 }

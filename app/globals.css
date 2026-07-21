@@ -79,63 +79,6 @@
   body {
     @apply bg-background text-foreground;
   }
-
-  .dark body:not(.admin-shell) .text-brand-black {
-    color: #fff;
-  }
-
-  .dark body:not(.admin-shell) .hover\:text-brand-black:hover {
-    color: #fff;
-  }
-
-  .dark .admin-shell .text-brand-black,
-  .dark .admin-shell .hover\:text-brand-black:hover {
-    color: hsl(0 0% 10%);
-  }
-
-  .admin-shell,
-  .admin-shell * {
-    color-scheme: light;
-  }
-
-  .admin-shell {
-    background-color: #f9fafb;
-    color: #111827;
-  }
-
-  .admin-shell .bg-white,
-  .admin-shell .bg-gray-50 {
-    color: hsl(0 0% 10%);
-  }
-
-  .admin-shell label,
-  .admin-shell h1,
-  .admin-shell h2,
-  .admin-shell h3,
-  .admin-shell p,
-  .admin-shell span,
-  .admin-shell td,
-  .admin-shell th {
-    color: inherit;
-  }
-
-  .admin-shell input,
-  .admin-shell textarea,
-  .admin-shell select {
-    background-color: #fff;
-    color: #111827;
-  }
-
-  .admin-shell input::placeholder,
-  .admin-shell textarea::placeholder {
-    color: #6b7280;
-  }
-
-  .admin-shell .bg-brand-blue,
-  .admin-shell .bg-brand-blue *,
-  .admin-shell .text-white {
-    color: #fff;
-  }
 }
 
 @layer utilities {

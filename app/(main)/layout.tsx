@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { CartDrawer } from "@/components/cart/cart-drawer";
-import { WhatsAppButton } from "@/components/ui/whatsapp-button";
-import { BUSINESS_WHATSAPP_NUMBER } from "@/lib/constants/business";
 
 const defaultUrl = "https://calleochostore.com";
 
@@ -57,12 +54,7 @@ export default function MainLayout({
   return (
     <>
       <Header />
-      <CartDrawer />
       <main className="min-h-screen">{children}</main>
-      <WhatsAppButton
-        phoneNumber={BUSINESS_WHATSAPP_NUMBER}
-        message="Hola Calle Ocho Store, me interesa recibir ayuda con un producto."
-      />
       <Footer />
     </>
   );

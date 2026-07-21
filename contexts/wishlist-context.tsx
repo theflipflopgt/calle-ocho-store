@@ -2,13 +2,12 @@
 
 import { createContext, useContext, ReactNode } from 'react';
 import { useWishlist } from '@/hooks/use-wishlist';
-import type { ProductWithDetails } from '@/types/product';
 
 interface WishlistContextType {
-  items: { id: string; product_id: string; created_at: string | null; productSnapshot?: ProductWithDetails }[];
+  items: { id: string; product_id: string; created_at: string | null }[];
   loading: boolean;
   isInWishlist: (productId: string) => boolean;
-  toggleWishlist: (productId: string, productSnapshot?: ProductWithDetails) => Promise<void>;
+  toggleWishlist: (productId: string) => Promise<void>;
   clearWishlist: () => Promise<void>;
   count: number;
 }

@@ -3,11 +3,19 @@ import { render } from '@react-email/components';
 import OrderConfirmationEmail from '@/emails/order-confirmation';
 import NewOrderNotificationEmail from '@/emails/new-order-notification';
 import OrderShippedEmail from '@/emails/order-shipped';
-import OrderStatusUpdateEmail from '@/emails/order-status-update';
-import type { OrderStatus } from '@/types/order-workflow';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const emailFrom = process.env.EMAIL_FROM || 'Calle Ocho Store <pedidos@calleochostore.com>';
+
+const orderStatusLabels: Record<string, string> = {
+  pending: 'pendiente',
+  paid: 'pagado',
+  processing: 'en preparación',
+  shipped: 'enviado',
+  delivered: 'entregado',
+  cancelled: 'cancelado',
+  refunded: 'reembolsado',
+};
 
 interface OrderItem {
   product_name: string;
@@ -157,57 +165,6 @@ interface SendOrderShippedParams {
   estimatedDelivery?: string;
 }
 
-interface SendOrderStatusUpdateParams {
-  to: string;
-  customerName: string;
-  orderNumber: string;
-  status: OrderStatus;
-  trackingNumber?: string | null;
-  trackingUrl?: string | null;
-}
-
-const statusSubject: Record<OrderStatus, string> = {
-  pending: 'Tu pedido está pendiente',
-  paid: 'Pago confirmado',
-  processing: 'Estamos preparando tu pedido',
-  shipped: 'Tu pedido va en camino',
-  delivered: 'Pedido entregado',
-  cancelled: 'Pedido cancelado',
-  refunded: 'Reembolso actualizado',
-};
-
-export async function sendOrderStatusUpdateEmail(params: SendOrderStatusUpdateParams) {
-  try {
-    const emailHtml = await render(
-      OrderStatusUpdateEmail({
-        customerName: params.customerName,
-        orderNumber: params.orderNumber,
-        status: params.status,
-        trackingNumber: params.trackingNumber,
-        trackingUrl: params.trackingUrl,
-      })
-    );
-
-    const { data, error } = await resend.emails.send({
-      from: emailFrom,
-      to: params.to,
-      subject: `${statusSubject[params.status]} - Pedido ${params.orderNumber} - Calle Ocho Store`,
-      html: emailHtml,
-    });
-
-    if (error) {
-      console.error('Error sending order status update email:', error);
-      throw error;
-    }
-
-    console.log('Order status update email sent:', data);
-    return { success: true, data };
-  } catch (error) {
-    console.error('Failed to send order status update email:', error);
-    return { success: false, error };
-  }
-}
-
 export async function sendOrderShippedEmail(params: SendOrderShippedParams) {
   try {
     const emailHtml = await render(
@@ -235,6 +192,68 @@ export async function sendOrderShippedEmail(params: SendOrderShippedParams) {
     return { success: true, data };
   } catch (error) {
     console.error('Failed to send order shipped email:', error);
+    return { success: false, error };
+  }
+}
+
+interface SendOrderStatusUpdateParams {
+  to: string;
+  customerName: string;
+  orderNumber: string;
+  status: string;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+}
+
+export async function sendOrderStatusUpdateEmail(params: SendOrderStatusUpdateParams) {
+  try {
+    if (params.status === 'shipped') {
+      return sendOrderShippedEmail({
+        to: params.to,
+        customerName: params.customerName,
+        orderNumber: params.orderNumber,
+        trackingNumber: params.trackingNumber || undefined,
+      });
+    }
+
+    const statusLabel = orderStatusLabels[params.status] || params.status;
+    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://calleochostore.com';
+    const orderUrl = `${siteUrl}/cuenta/pedidos`;
+    const trackingLink = params.trackingUrl
+      ? `<p style="margin: 16px 0;"><a href="${params.trackingUrl}" style="color: #2563eb;">Ver seguimiento del envío</a></p>`
+      : '';
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
+        <h1 style="font-size: 24px; margin-bottom: 12px;">Actualización de tu pedido</h1>
+        <p>Hola ${params.customerName},</p>
+        <p>Tu pedido <strong>${params.orderNumber}</strong> ahora esta <strong>${statusLabel}</strong>.</p>
+        ${params.trackingNumber ? `<p>Número de guía: <strong>${params.trackingNumber}</strong></p>` : ''}
+        ${trackingLink}
+        <p style="margin: 24px 0;">
+          <a href="${orderUrl}" style="background: #111827; color: #ffffff; padding: 12px 18px; text-decoration: none; border-radius: 8px; display: inline-block;">
+            Ver mis pedidos
+          </a>
+        </p>
+        <p style="font-size: 13px; color: #6b7280;">Gracias por comprar en Calle Ocho Store.</p>
+      </div>
+    `;
+
+    const { data, error } = await resend.emails.send({
+      from: emailFrom,
+      to: params.to,
+      subject: `Tu pedido ${params.orderNumber} esta ${statusLabel} - Calle Ocho Store`,
+      html,
+    });
+
+    if (error) {
+      console.error('Error sending order status update email:', error);
+      throw error;
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Failed to send order status update email:', error);
     return { success: false, error };
   }
 }

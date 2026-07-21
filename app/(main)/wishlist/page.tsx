@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, Trash2, ShoppingBag, Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWishlistContext } from '@/contexts/wishlist-context';
+import { useCart } from '@/contexts/cart-context';
 import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils/currency';
-import type { ProductWithDetails } from '@/types/product';
+import { cn } from '@/lib/utils';
 
 interface WishlistProduct {
   id: string;
@@ -26,48 +27,14 @@ interface WishlistProduct {
   }[];
 }
 
-const WISHLIST_PRODUCTS_TIMEOUT_MS = 4000;
-
-async function withTimeout<T>(promise: PromiseLike<T>, fallback: T): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<T>((resolve) => {
-    timeoutId = setTimeout(() => resolve(fallback), WISHLIST_PRODUCTS_TIMEOUT_MS);
-  });
-
-  return Promise.race([promise, timeout]).finally(() => {
-    if (timeoutId) clearTimeout(timeoutId);
-  });
-}
-
-function wishlistProductFromSnapshot(product: ProductWithDetails): WishlistProduct {
-  return {
-    id: product.id,
-    name: product.name,
-    slug: product.slug,
-    base_price: product.base_price,
-    compare_at_price: product.compare_at_price,
-    brand: { name: product.brand.name, slug: product.brand.slug },
-    colors: product.colors.map((color) => ({
-      id: color.id,
-      color_name: color.color_name,
-      color_code: color.color_code || '',
-      images: color.images.map((image) => ({ image_url: image.image_url })),
-      variants: color.variants.map((variant) => ({
-        id: variant.id,
-        size_us: variant.size_us,
-        stock_quantity: variant.stock_quantity,
-        is_available: variant.is_available ?? true,
-      })),
-    })),
-  };
-}
-
 export default function WishlistPage() {
   const { items, loading: wishlistLoading, toggleWishlist, clearWishlist } = useWishlistContext();
+  const { addItem, openCart } = useCart();
   const [products, setProducts] = useState<WishlistProduct[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [addingToCart, setAddingToCart] = useState<string | null>(null);
 
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = createClient();
 
   // Fetch product details for wishlist items
   useEffect(() => {
@@ -79,51 +46,28 @@ export default function WishlistPage() {
       }
 
       const productIds = items.map(item => item.product_id);
-      const snapshotProducts = items
-        .filter((item) => item.productSnapshot)
-        .map((item) => wishlistProductFromSnapshot(item.productSnapshot!));
 
-      if (snapshotProducts.length === items.length) {
-        setProducts(snapshotProducts);
-        setIsLoadingProducts(false);
-        return;
-      }
-
-      const { data, error } = await withTimeout(
-        supabase
-          .from('products')
-          .select(`
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          id,
+          name,
+          slug,
+          base_price,
+          compare_at_price,
+          brand:brands(name, slug),
+          colors:product_colors(
             id,
-            name,
-            slug,
-            base_price,
-            compare_at_price,
-            brand:brands(name, slug),
-            colors:product_colors(
-              id,
-              color_name,
-              color_code,
-              images:product_color_images(image_url),
-              variants:product_variants(id, size_us, stock_quantity, is_available)
-            )
-          `)
-          .in('id', productIds),
-        {
-          data: null,
-          error: { name: 'PostgrestError', message: 'Wishlist products timeout', details: '', hint: '', code: 'TIMEOUT' },
-          count: null,
-          status: 408,
-          statusText: 'Request Timeout',
-        }
-      );
+            color_name,
+            color_code,
+            images:product_color_images(image_url),
+            variants:product_variants(id, size_us, stock_quantity, is_available)
+          )
+        `)
+        .in('id', productIds);
 
       if (!error && data) {
-        const fetchedProducts = data as unknown as WishlistProduct[];
-        const fetchedIds = new Set(fetchedProducts.map((product) => product.id));
-        const missingSnapshots = snapshotProducts.filter((product) => !fetchedIds.has(product.id));
-        setProducts([...fetchedProducts, ...missingSnapshots]);
-      } else {
-        setProducts(snapshotProducts);
+        setProducts(data as unknown as WishlistProduct[]);
       }
       setIsLoadingProducts(false);
     }
@@ -132,6 +76,21 @@ export default function WishlistPage() {
       fetchProducts();
     }
   }, [items, wishlistLoading, supabase]);
+
+  const handleQuickAdd = async (product: WishlistProduct) => {
+    // Find first available variant
+    const firstColor = product.colors[0];
+    const firstAvailableVariant = firstColor?.variants?.find(
+      v => v.is_available && v.stock_quantity > 0
+    );
+
+    if (!firstAvailableVariant) return;
+
+    setAddingToCart(product.id);
+    await addItem(firstAvailableVariant.id, 1);
+    setAddingToCart(null);
+    openCart();
+  };
 
   if (wishlistLoading || isLoadingProducts) {
     return (
@@ -147,13 +106,13 @@ export default function WishlistPage() {
     return (
       <main className="container mx-auto px-4 py-8 sm:py-12">
         <div className="max-w-md mx-auto text-center py-12 sm:py-20">
-          <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <Heart className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-brand-black dark:text-white mb-3">
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-black mb-3">
             Tu lista de deseos está vacía
           </h1>
-          <p className="text-gray-500 dark:text-gray-300 mb-8">
+          <p className="text-gray-500 mb-8">
             Guarda tus productos favoritos para comprarlos después
           </p>
           <Button size="lg" asChild>
@@ -172,10 +131,10 @@ export default function WishlistPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-brand-black dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-black">
             Lista de Deseos
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             {items.length} producto{items.length !== 1 ? 's' : ''} guardado{items.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -197,6 +156,8 @@ export default function WishlistPage() {
             key={product.id}
             product={product}
             onRemove={() => toggleWishlist(product.id)}
+            onQuickAdd={() => handleQuickAdd(product)}
+            isAddingToCart={addingToCart === product.id}
           />
         ))}
       </div>
@@ -207,18 +168,20 @@ export default function WishlistPage() {
 interface WishlistCardProps {
   product: WishlistProduct;
   onRemove: () => void;
+  onQuickAdd: () => void;
+  isAddingToCart: boolean;
 }
 
-function WishlistCard({ product, onRemove }: WishlistCardProps) {
+function WishlistCard({ product, onRemove, onQuickAdd, isAddingToCart }: WishlistCardProps) {
   const firstColor = product.colors[0];
   const image = firstColor?.images[0]?.image_url;
-  const hasStock = firstColor?.variants?.some(v => v.is_available !== false && v.stock_quantity > 0);
+  const hasStock = firstColor?.variants?.some(v => v.is_available && v.stock_quantity > 0);
   const hasDiscount = product.compare_at_price && product.compare_at_price > product.base_price;
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden group">
+    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden group">
       {/* Image */}
-      <div className="relative aspect-square bg-gray-100 dark:bg-gray-800">
+      <div className="relative aspect-square bg-gray-100">
         <Link href={`/producto/${product.slug}`}>
           {image ? (
             <Image
@@ -262,18 +225,18 @@ function WishlistCard({ product, onRemove }: WishlistCardProps) {
 
       {/* Info */}
       <div className="p-4">
-        <p className="text-xs text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-1">
+        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
           {product.brand.name}
         </p>
         <Link href={`/producto/${product.slug}`}>
-          <h3 className="font-medium text-brand-black dark:text-white line-clamp-2 hover:underline mb-2">
+          <h3 className="font-medium text-brand-black line-clamp-2 hover:underline mb-2">
             {product.name}
           </h3>
         </Link>
 
         {/* Price */}
         <div className="flex items-center gap-2 mb-4">
-          <span className="font-bold text-brand-black dark:text-white">
+          <span className="font-bold text-brand-black">
             {formatPrice(product.base_price)}
           </span>
           {hasDiscount && (
@@ -288,12 +251,17 @@ function WishlistCard({ product, onRemove }: WishlistCardProps) {
           {hasStock ? (
             <Button
               className="flex-1 h-10 bg-brand-black hover:bg-gray-800"
-              asChild
+              onClick={onQuickAdd}
+              disabled={isAddingToCart}
             >
-              <Link href={`/producto/${product.slug}`}>
-                <ShoppingBag className="w-4 h-4 mr-2" />
-                Elegir talla
-              </Link>
+              {isAddingToCart ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <ShoppingBag className="w-4 h-4 mr-2" />
+                  Agregar
+                </>
+              )}
             </Button>
           ) : (
             <Button

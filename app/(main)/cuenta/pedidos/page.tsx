@@ -35,25 +35,17 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
 };
 
 export default function PedidosPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const supabase = createClient();
 
   useEffect(() => {
     async function fetchOrders() {
-      if (authLoading) return;
-
-      if (!user) {
-        setOrders([]);
-        setIsLoading(false);
-        return;
-      }
+      if (!user) return;
 
       try {
-        setErrorMessage(null);
         const { data, error } = await supabase
           .from('orders')
           .select(`
@@ -77,14 +69,13 @@ export default function PedidosPage() {
         setOrders(data || []);
       } catch (error) {
         console.error('Error fetching orders:', error);
-        setErrorMessage('No pudimos cargar tus pedidos. Actualiza la página o vuelve a iniciar sesión.');
       } finally {
         setIsLoading(false);
       }
     }
 
     fetchOrders();
-  }, [authLoading, user, supabase]);
+  }, [user, supabase]);
 
   if (isLoading) {
     return (
@@ -101,10 +92,10 @@ export default function PedidosPage() {
           <Package className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400" />
         </div>
         <h2 className="text-xl font-semibold text-brand-black mb-2">
-          {errorMessage ? 'No se pudieron cargar tus pedidos' : 'No tienes pedidos'}
+          No tienes pedidos
         </h2>
         <p className="text-gray-500 mb-6">
-          {errorMessage || 'Cuando realices tu primera compra, aparecerá aquí'}
+          Cuando realices tu primera compra, aparecerá aquí
         </p>
         <Button asChild>
           <Link href="/hombre">
@@ -174,7 +165,7 @@ function OrderCard({ order }: { order: Order }) {
       {/* Products Preview */}
       <div className="p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-4">
-          {firstThreeItems.map((item) => (
+          {firstThreeItems.map((item, index) => (
             <div
               key={item.id}
               className="relative w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0"

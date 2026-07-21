@@ -23,12 +23,12 @@ export function ProductCard({
   const selectedColor = product.colors[selectedColorIndex];
   const mainImage = selectedColor?.images?.[0]?.image_url;
   const hoverImage = selectedColor?.images?.[1]?.image_url;
-  const availableVariants = selectedColor?.variants?.filter(v => v.is_available !== false && v.stock_quantity > 0) || [];
+  const availableVariants = selectedColor?.variants?.filter(v => v.is_available && v.stock_quantity > 0) || [];
 
-  const handleQuickAdd = useCallback(async (variantId: string) => {
-    await onQuickAdd?.(variantId, product);
+  const handleQuickAdd = useCallback((variantId: string) => {
+    onQuickAdd?.(variantId);
     setShowSizeSelector(false);
-  }, [onQuickAdd, product]);
+  }, [onQuickAdd]);
 
   // Toggle size selector on mobile tap
   const handleMobileQuickAdd = useCallback(() => {
@@ -109,12 +109,7 @@ export function ProductCard({
             "absolute top-2 right-2 sm:top-3 sm:right-3 z-10 bg-white/80 hover:bg-white transition-all w-8 h-8 sm:w-9 sm:h-9",
             isInWishlist ? "text-brand-red" : "text-gray-600 hover:text-brand-red"
           )}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onAddToWishlist?.(product.id, product);
-          }}
-          aria-label={isInWishlist ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+          onClick={() => onAddToWishlist?.(product.id)}
         >
           <Heart className={cn("h-4 w-4 sm:h-5 sm:w-5", isInWishlist && "fill-current")} />
         </Button>
@@ -161,11 +156,7 @@ export function ProductCard({
                         ? "border-brand-orange text-brand-orange hover:bg-brand-orange hover:text-white"
                         : "border-gray-300 hover:border-brand-black hover:bg-brand-black hover:text-white"
                     )}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      handleQuickAdd(variant.id);
-                    }}
+                    onClick={() => handleQuickAdd(variant.id)}
                   >
                     {variant.size_us}
                   </button>
@@ -205,11 +196,7 @@ export function ProductCard({
                       ? "border-brand-orange text-brand-orange active:bg-brand-orange active:text-white"
                       : "border-gray-300 active:border-brand-black active:bg-brand-black active:text-white"
                   )}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    handleQuickAdd(variant.id);
-                  }}
+                  onClick={() => handleQuickAdd(variant.id)}
                 >
                   {variant.size_us}
                 </button>
@@ -242,20 +229,20 @@ export function ProductCard({
         )}
 
         {/* Brand */}
-        <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-0.5 sm:mb-1">
+        <p className="text-[11px] sm:text-xs text-gray-500 uppercase tracking-wide mb-0.5 sm:mb-1">
           {product.brand.name}
         </p>
 
         {/* Name */}
         <Link href={`/producto/${product.slug}`}>
-          <h3 className="font-medium text-sm sm:text-base text-brand-black dark:text-white line-clamp-2 mb-1 sm:mb-2">
+          <h3 className="font-medium text-sm sm:text-base text-brand-black line-clamp-2 mb-1 sm:mb-2">
             {product.name}
           </h3>
         </Link>
 
         {/* Price */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-bold text-sm sm:text-base text-brand-black dark:text-white">
+          <span className="font-bold text-sm sm:text-base text-brand-black">
             {formatPrice(product.lowestPrice)}
           </span>
           {product.hasDiscount && product.compare_at_price && (

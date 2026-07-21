@@ -109,7 +109,7 @@ function ConfirmacionContent() {
           <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-brand-black mb-2">
-          ¡Pedido Confirmado!
+          ¡Pedido confirmado!
         </h1>
         <p className="text-gray-600">
           Gracias por tu compra. Te enviaremos un correo con los detalles.
@@ -127,7 +127,7 @@ function ConfirmacionContent() {
       {/* Order Status Timeline */}
       <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6 mb-6">
         <h2 className="text-lg font-semibold text-brand-black mb-4">
-          Estado del Pedido
+          Estado del pedido
         </h2>
         <div className="flex items-center justify-between">
           <OrderStep
