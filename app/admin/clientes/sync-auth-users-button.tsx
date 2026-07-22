@@ -26,7 +26,9 @@ export function SyncAuthUsersButton() {
         throw new Error(result?.error || 'No se pudo sincronizar.');
       }
 
-      setMessage(`${result.synced || 0} usuarios sincronizados.`);
+      setMessage(
+        `${result.synced || 0} usuarios sincronizados: ${result.inserted || 0} nuevos, ${result.updated || 0} actualizados.`
+      );
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo sincronizar.');

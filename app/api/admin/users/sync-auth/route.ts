@@ -18,7 +18,8 @@ export async function POST() {
 
   let page = 1;
   const perPage = 100;
-  let synced = 0;
+  let inserted = 0;
+  let updated = 0;
 
   try {
     while (true) {
@@ -79,6 +80,7 @@ export async function POST() {
             .eq('id', profile.id);
 
           if (updateError) throw updateError;
+          updated += 1;
         }
 
         if (profilesToInsert.length > 0) {
@@ -87,16 +89,20 @@ export async function POST() {
             .insert(profilesToInsert);
 
           if (insertError) throw insertError;
+          inserted += profilesToInsert.length;
         }
-
-        synced += profiles.length;
       }
 
       if (users.length < perPage) break;
       page += 1;
     }
 
-    return NextResponse.json({ success: true, synced });
+    return NextResponse.json({
+      success: true,
+      synced: inserted + updated,
+      inserted,
+      updated,
+    });
   } catch (error) {
     appLogger.error('admin.users.sync_auth.failed', {
       adminUserId: auth.user.id,

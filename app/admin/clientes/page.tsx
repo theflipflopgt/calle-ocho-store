@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
+import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { Search, Filter, User, Mail, Phone, ShoppingBag, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,15 +12,18 @@ interface CustomersPageProps {
 }
 
 async function getCustomers(filters: { q?: string; role?: string }) {
-  const supabase = await createClient();
+  const auth = await requireAuthenticatedUser();
 
-  let query = supabase
+  if (!auth.user || !auth.isAdmin) {
+    return [];
+  }
+
+  const admin = createAdminClient();
+  const db = (admin || auth.supabase) as any;
+
+  let query = db
     .from('profiles')
-    .select(`
-      *,
-      orders:orders(count),
-      total_spent:orders(total)
-    `)
+    .select('*')
     .order('created_at', { ascending: false });
 
   if (filters.role) {
@@ -37,14 +41,33 @@ async function getCustomers(filters: { q?: string; role?: string }) {
     return [];
   }
 
-  // Calculate total spent per customer
-  return customers.map((customer: any) => ({
+  const customerIds = (customers || []).map((customer: any) => customer.id);
+  const orderStats = new Map<string, { count: number; total: number }>();
+
+  if (customerIds.length > 0) {
+    const { data: orders, error: ordersError } = await db
+      .from('orders')
+      .select('user_id,total')
+      .in('user_id', customerIds);
+
+    if (ordersError) {
+      console.error('Error fetching customer order stats:', ordersError);
+    } else {
+      for (const order of orders || []) {
+        if (!order.user_id) continue;
+
+        const current = orderStats.get(order.user_id) || { count: 0, total: 0 };
+        current.count += 1;
+        current.total += Number(order.total || 0);
+        orderStats.set(order.user_id, current);
+      }
+    }
+  }
+
+  return (customers || []).map((customer: any) => ({
     ...customer,
-    order_count: customer.orders?.[0]?.count || 0,
-    total_spent: customer.total_spent?.reduce(
-      (sum: number, order: any) => sum + Number(order.total || 0),
-      0
-    ) || 0,
+    order_count: orderStats.get(customer.id)?.count || 0,
+    total_spent: orderStats.get(customer.id)?.total || 0,
   }));
 }
 
