@@ -22,15 +22,21 @@ export interface ShippingInput {
 export type CheckoutPaymentMethod = 'bank_transfer' | 'card' | 'neocuotas';
 
 export interface OrderCreateInput {
+  customerEmail?: string;
   shipping: ShippingInput;
   customerNotes?: string;
   couponCode?: string;
   paymentMethod: CheckoutPaymentMethod;
+  items?: {
+    variantId: string;
+    quantity: number;
+  }[];
 }
 
 export interface OrderCreateResult {
   orderId: string;
   orderNumber: string;
+  accessToken?: string;
   subtotal: number;
   shippingCost: number;
   discountAmount: number;

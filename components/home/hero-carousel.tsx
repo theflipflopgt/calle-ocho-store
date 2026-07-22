@@ -22,11 +22,13 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
   const visibleProducts = products.slice(0, 5);
 
   const nextSlide = useCallback(() => {
+    if (visibleProducts.length === 0) return;
     setDirection('right');
     setCurrentIndex((prev) => (prev + 1) % visibleProducts.length);
   }, [visibleProducts.length]);
 
   const prevSlide = useCallback(() => {
+    if (visibleProducts.length === 0) return;
     setDirection('left');
     setCurrentIndex((prev) => (prev - 1 + visibleProducts.length) % visibleProducts.length);
   }, [visibleProducts.length]);
@@ -53,7 +55,13 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
   }
 
   const currentProduct = visibleProducts[currentIndex];
-  const mainImage = currentProduct.colors[0]?.images?.[0]?.image_url;
+  const mainImage = currentProduct.colors
+    .flatMap((color) =>
+      [...(color.images || [])].sort(
+        (a, b) => Number(a.display_order || 0) - Number(b.display_order || 0)
+      )
+    )
+    .find((image) => Boolean(image.image_url))?.image_url;
 
   // Get background gradient based on product
   const getGradient = (index: number) => {

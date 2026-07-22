@@ -20,12 +20,13 @@ export default async function Home() {
     getFeaturedProducts(),
     getHomeContent(),
   ]);
+  const heroProducts = featuredProducts.length > 0 ? featuredProducts : newArrivals;
 
   return (
     <main>
       {/* Hero principal: carrusel de productos administrable; fallback al hero multimedia */}
-      {featuredProducts.length > 0 ? (
-        <HeroCarousel products={featuredProducts} />
+      {heroProducts.length > 0 ? (
+        <HeroCarousel products={heroProducts} />
       ) : (
         <section className="relative h-[600px] sm:h-[650px] lg:h-[700px] bg-brand-black overflow-hidden">
           <HeroMedia hero={homeContent.hero} />

@@ -4,8 +4,51 @@ import OrderConfirmationEmail from '@/emails/order-confirmation';
 import NewOrderNotificationEmail from '@/emails/new-order-notification';
 import OrderShippedEmail from '@/emails/order-shipped';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const emailFrom = process.env.EMAIL_FROM || 'Calle Ocho Store <pedidos@calleochostore.com>';
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const defaultEmailFrom = 'Calle Ocho Store <onboarding@resend.dev>';
+
+function getEmailFrom() {
+  return process.env.EMAIL_FROM || defaultEmailFrom;
+}
+
+function getResendClient() {
+  if (!process.env.RESEND_API_KEY) {
+    return null;
+  }
+
+  return new Resend(process.env.RESEND_API_KEY);
+}
+
+function isValidEmail(email: string) {
+  return email.length <= 254 && emailRegex.test(email);
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function getSiteUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://calleochostore.com';
+}
+
+function emailConfigError() {
+  return {
+    success: false,
+    error: 'RESEND_API_KEY no está configurada en el servidor.',
+  };
+}
+
+function invalidRecipientError(to: string) {
+  return {
+    success: false,
+    error: `Destinatario inválido: ${to}`,
+  };
+}
 
 const orderStatusLabels: Record<string, string> = {
   pending: 'pendiente',
@@ -67,6 +110,15 @@ interface SendNewOrderNotificationParams {
 
 export async function sendOrderConfirmationEmail(params: SendOrderConfirmationParams) {
   try {
+    if (!isValidEmail(params.to)) {
+      return invalidRecipientError(params.to);
+    }
+
+    const resend = getResendClient();
+    if (!resend) {
+      return emailConfigError();
+    }
+
     const emailHtml = await render(
       OrderConfirmationEmail({
         customerName: params.customerName,
@@ -90,7 +142,7 @@ export async function sendOrderConfirmationEmail(params: SendOrderConfirmationPa
     );
 
     const { data, error } = await resend.emails.send({
-      from: emailFrom,
+      from: getEmailFrom(),
       to: params.to,
       subject: `Confirmación de Pedido ${params.orderNumber} - Calle Ocho Store`,
       html: emailHtml,
@@ -111,6 +163,17 @@ export async function sendOrderConfirmationEmail(params: SendOrderConfirmationPa
 
 export async function sendNewOrderNotification(params: SendNewOrderNotificationParams) {
   try {
+    const businessEmail = process.env.BUSINESS_EMAIL || 'ventas@calleochostore.com';
+
+    if (!isValidEmail(businessEmail)) {
+      return invalidRecipientError(businessEmail);
+    }
+
+    const resend = getResendClient();
+    if (!resend) {
+      return emailConfigError();
+    }
+
     const emailHtml = await render(
       NewOrderNotificationEmail({
         customerName: params.customerName,
@@ -135,10 +198,8 @@ export async function sendNewOrderNotification(params: SendNewOrderNotificationP
       })
     );
 
-    const businessEmail = process.env.BUSINESS_EMAIL || 'ventas@calleochostore.com';
-
     const { data, error } = await resend.emails.send({
-      from: emailFrom,
+      from: getEmailFrom(),
       to: businessEmail,
       subject: `🎉 Nuevo Pedido ${params.orderNumber}`,
       html: emailHtml,
@@ -167,6 +228,15 @@ interface SendOrderShippedParams {
 
 export async function sendOrderShippedEmail(params: SendOrderShippedParams) {
   try {
+    if (!isValidEmail(params.to)) {
+      return invalidRecipientError(params.to);
+    }
+
+    const resend = getResendClient();
+    if (!resend) {
+      return emailConfigError();
+    }
+
     const emailHtml = await render(
       OrderShippedEmail({
         customerName: params.customerName,
@@ -177,7 +247,7 @@ export async function sendOrderShippedEmail(params: SendOrderShippedParams) {
     );
 
     const { data, error } = await resend.emails.send({
-      from: emailFrom,
+      from: getEmailFrom(),
       to: params.to,
       subject: `📦 Tu pedido ${params.orderNumber} ha sido enviado - Calle Ocho Store`,
       html: emailHtml,
@@ -207,6 +277,15 @@ interface SendOrderStatusUpdateParams {
 
 export async function sendOrderStatusUpdateEmail(params: SendOrderStatusUpdateParams) {
   try {
+    if (!isValidEmail(params.to)) {
+      return invalidRecipientError(params.to);
+    }
+
+    const resend = getResendClient();
+    if (!resend) {
+      return emailConfigError();
+    }
+
     if (params.status === 'shipped') {
       return sendOrderShippedEmail({
         to: params.to,
@@ -217,21 +296,25 @@ export async function sendOrderStatusUpdateEmail(params: SendOrderStatusUpdatePa
     }
 
     const statusLabel = orderStatusLabels[params.status] || params.status;
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://calleochostore.com';
+    const siteUrl = getSiteUrl();
     const orderUrl = `${siteUrl}/cuenta/pedidos`;
+    const customerName = escapeHtml(params.customerName);
+    const orderNumber = escapeHtml(params.orderNumber);
+    const safeStatusLabel = escapeHtml(statusLabel);
+    const trackingNumber = params.trackingNumber ? escapeHtml(params.trackingNumber) : '';
     const trackingLink = params.trackingUrl
-      ? `<p style="margin: 16px 0;"><a href="${params.trackingUrl}" style="color: #2563eb;">Ver seguimiento del envío</a></p>`
+      ? `<p style="margin: 16px 0;"><a href="${escapeHtml(params.trackingUrl)}" style="color: #2563eb;">Ver seguimiento del envío</a></p>`
       : '';
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
         <h1 style="font-size: 24px; margin-bottom: 12px;">Actualización de tu pedido</h1>
-        <p>Hola ${params.customerName},</p>
-        <p>Tu pedido <strong>${params.orderNumber}</strong> ahora esta <strong>${statusLabel}</strong>.</p>
-        ${params.trackingNumber ? `<p>Número de guía: <strong>${params.trackingNumber}</strong></p>` : ''}
+        <p>Hola ${customerName},</p>
+        <p>Tu pedido <strong>${orderNumber}</strong> ahora está <strong>${safeStatusLabel}</strong>.</p>
+        ${trackingNumber ? `<p>Número de guía: <strong>${trackingNumber}</strong></p>` : ''}
         ${trackingLink}
         <p style="margin: 24px 0;">
-          <a href="${orderUrl}" style="background: #111827; color: #ffffff; padding: 12px 18px; text-decoration: none; border-radius: 8px; display: inline-block;">
+          <a href="${escapeHtml(orderUrl)}" style="background: #111827; color: #ffffff; padding: 12px 18px; text-decoration: none; border-radius: 8px; display: inline-block;">
             Ver mis pedidos
           </a>
         </p>
@@ -240,7 +323,7 @@ export async function sendOrderStatusUpdateEmail(params: SendOrderStatusUpdatePa
     `;
 
     const { data, error } = await resend.emails.send({
-      from: emailFrom,
+      from: getEmailFrom(),
       to: params.to,
       subject: `Tu pedido ${params.orderNumber} esta ${statusLabel} - Calle Ocho Store`,
       html,
@@ -254,6 +337,101 @@ export async function sendOrderStatusUpdateEmail(params: SendOrderStatusUpdatePa
     return { success: true, data };
   } catch (error) {
     console.error('Failed to send order status update email:', error);
+    return { success: false, error };
+  }
+}
+
+interface SendNewsletterWelcomeEmailParams {
+  to: string;
+}
+
+export async function sendNewsletterWelcomeEmail(params: SendNewsletterWelcomeEmailParams) {
+  try {
+    if (!isValidEmail(params.to)) {
+      return invalidRecipientError(params.to);
+    }
+
+    const resend = getResendClient();
+    if (!resend) {
+      return emailConfigError();
+    }
+
+    const siteUrl = getSiteUrl();
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
+        <h1 style="font-size: 24px; margin-bottom: 12px;">Bienvenido a Calle Ocho Store</h1>
+        <p>Gracias por suscribirte a nuestro boletín.</p>
+        <p>Te enviaremos novedades, lanzamientos y ofertas de calzado. Cuidaremos tu correo y no lo compartiremos con terceros.</p>
+        <p style="margin: 24px 0;">
+          <a href="${escapeHtml(siteUrl)}" style="background: #111827; color: #ffffff; padding: 12px 18px; text-decoration: none; border-radius: 8px; display: inline-block;">
+            Ver tienda
+          </a>
+        </p>
+        <p style="font-size: 13px; color: #6b7280;">Calle Ocho Store, Guatemala.</p>
+      </div>
+    `;
+
+    const { data, error } = await resend.emails.send({
+      from: getEmailFrom(),
+      to: params.to,
+      subject: 'Bienvenido al boletín de Calle Ocho Store',
+      html,
+    });
+
+    if (error) {
+      console.error('Error sending newsletter welcome email:', error);
+      throw error;
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Failed to send newsletter welcome email:', error);
+    return { success: false, error };
+  }
+}
+
+interface SendNewsletterAdminNotificationParams {
+  subscriberEmail: string;
+  source: string;
+}
+
+export async function sendNewsletterAdminNotification(params: SendNewsletterAdminNotificationParams) {
+  try {
+    const businessEmail = process.env.BUSINESS_EMAIL || 'ventas@calleochostore.com';
+
+    if (!isValidEmail(businessEmail)) {
+      return invalidRecipientError(businessEmail);
+    }
+
+    const resend = getResendClient();
+    if (!resend) {
+      return emailConfigError();
+    }
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
+        <h1 style="font-size: 22px;">Nueva suscripción al boletín</h1>
+        <p><strong>Correo:</strong> ${escapeHtml(params.subscriberEmail)}</p>
+        <p><strong>Origen:</strong> ${escapeHtml(params.source)}</p>
+        <p><strong>Fecha:</strong> ${new Date().toLocaleString('es-GT')}</p>
+      </div>
+    `;
+
+    const { data, error } = await resend.emails.send({
+      from: getEmailFrom(),
+      to: businessEmail,
+      subject: 'Nueva suscripción al boletín - Calle Ocho Store',
+      html,
+    });
+
+    if (error) {
+      console.error('Error sending newsletter admin notification:', error);
+      throw error;
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Failed to send newsletter admin notification:', error);
     return { success: false, error };
   }
 }

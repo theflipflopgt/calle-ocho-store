@@ -36,6 +36,7 @@ const SHIPPING_COST = SHIPPING_COST_GTQ;
 const FREE_SHIPPING_THRESHOLD = FREE_SHIPPING_THRESHOLD_GTQ;
 
 interface ShippingFormData {
+  customerEmail: string;
   recipientName: string;
   phone: string;
   streetAddress: string;
@@ -64,6 +65,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('bank_transfer');
 
   const [formData, setFormData] = useState<ShippingFormData>({
+    customerEmail: '',
     recipientName: '',
     phone: '',
     streetAddress: '',
@@ -120,12 +122,14 @@ export default function CheckoutPage() {
     }
   }, [cartLoading, items.length, orderCreated, router]);
 
-  // Redirigir si no está autenticado
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/auth/login?redirect=/checkout');
+    if (user?.email) {
+      setFormData(prev => ({
+        ...prev,
+        customerEmail: prev.customerEmail || user.email || '',
+      }));
     }
-  }, [authLoading, user, router]);
+  }, [user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -134,6 +138,10 @@ export default function CheckoutPage() {
   };
 
   const validateShipping = (): boolean => {
+    if (!user && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.customerEmail.trim())) {
+      setError('Por favor ingresa un correo válido para recibir la confirmación');
+      return false;
+    }
     if (!formData.recipientName.trim()) {
       setError('Por favor ingresa el nombre del destinatario');
       return false;
@@ -165,14 +173,13 @@ export default function CheckoutPage() {
   };
 
   const handlePlaceOrder = async () => {
-    if (!user) return;
-
     setIsSubmitting(true);
     setError(null);
     setStep('processing');
 
     try {
       const payload: OrderCreateInput = {
+        customerEmail: user?.email || formData.customerEmail.trim().toLowerCase(),
         shipping: {
           recipientName: formData.recipientName,
           phone: formData.phone,
@@ -187,6 +194,12 @@ export default function CheckoutPage() {
         customerNotes: formData.customerNotes || undefined,
         couponCode: appliedCoupon?.coupon?.code,
         paymentMethod,
+        items: user
+          ? undefined
+          : items.map((item) => ({
+              variantId: item.variant_id,
+              quantity: item.quantity,
+            })),
       };
 
       const response = await fetch('/api/orders/create', {
@@ -206,7 +219,11 @@ export default function CheckoutPage() {
       setOrderCreated(true);
 
       // Navegar primero a la pantalla de agradecimiento.
-      router.replace(`/checkout/confirmacion?order=${encodeURIComponent(order.orderNumber)}`);
+      const params = new URLSearchParams({ order: order.orderNumber });
+      if (order.accessToken) {
+        params.set('token', order.accessToken);
+      }
+      router.replace(`/checkout/confirmacion?${params.toString()}`);
 
       // Limpiar el carrito sin bloquear la navegación.
       void clearCart();
@@ -229,7 +246,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!user || (items.length === 0 && !orderCreated)) {
+  if (items.length === 0 && !orderCreated) {
     return null;
   }
 
@@ -287,6 +304,7 @@ export default function CheckoutPage() {
               onChange={handleInputChange}
               error={error}
               onContinue={handleContinueToReview}
+              isGuest={!user}
             />
           )}
 
@@ -380,11 +398,13 @@ function ShippingForm({
   onChange,
   error,
   onContinue,
+  isGuest,
 }: {
   formData: ShippingFormData;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   error: string | null;
   onContinue: () => void;
+  isGuest: boolean;
 }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6">
@@ -402,6 +422,24 @@ function ShippingForm({
       )}
 
       <div className="space-y-4">
+        {isGuest && (
+          <div>
+            <Label htmlFor="customerEmail">Correo electrónico *</Label>
+            <Input
+              id="customerEmail"
+              name="customerEmail"
+              type="email"
+              value={formData.customerEmail}
+              onChange={onChange}
+              placeholder="tu-correo@ejemplo.com"
+              className="mt-1"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Te enviaremos la confirmación y el seguimiento de tu pedido a este correo.
+            </p>
+          </div>
+        )}
+
         {/* Recipient Name */}
         <div>
           <Label htmlFor="recipientName">Nombre del destinatario *</Label>

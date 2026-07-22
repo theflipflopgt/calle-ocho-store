@@ -27,6 +27,10 @@ function mergeHomeContent(content: Partial<HomeContent> | null | undefined): Hom
             ...category,
           }))
         : DEFAULT_HOME_CONTENT.categories,
+    footer: {
+      ...DEFAULT_HOME_CONTENT.footer,
+      ...(content?.footer || {}),
+    },
   };
 }
 

@@ -115,6 +115,13 @@ export default function AdminHomeContentPage() {
     }));
   };
 
+  const updateFooter = (updates: Partial<HomeContent['footer']>) => {
+    setContent((current) => ({
+      ...current,
+      footer: { ...current.footer, ...updates },
+    }));
+  };
+
   const addCategory = () => {
     setContent((current) => ({
       ...current,
@@ -301,6 +308,32 @@ export default function AdminHomeContentPage() {
               value={content.hero.buttonHref}
               onChange={(event) => updateHero({ buttonHref: event.target.value })}
               placeholder="/hombre"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-gray-200 bg-white p-6">
+        <div className="mb-5 flex items-center gap-2">
+          <ImageIcon className="h-5 w-5 text-brand-blue" />
+          <h2 className="font-semibold text-brand-black">Imagen del footer</h2>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="space-y-2 lg:col-span-2">
+            <Label>URL de imagen</Label>
+            <Input
+              value={content.footer.image}
+              onChange={(event) => updateFooter({ image: event.target.value })}
+              placeholder="https://..."
+            />
+          </div>
+          <div className="space-y-2 lg:col-span-2">
+            <Label>Texto alternativo</Label>
+            <Input
+              value={content.footer.alt}
+              onChange={(event) => updateFooter({ alt: event.target.value })}
+              placeholder="Calzado calleOCHO"
             />
           </div>
         </div>

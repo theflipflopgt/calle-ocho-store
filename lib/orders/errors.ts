@@ -1,6 +1,8 @@
 export const ORDER_ERROR_MESSAGES: Record<string, string> = {
   AUTH_REQUIRED: 'Debes iniciar sesión para completar la compra.',
+  INVALID_EMAIL: 'Ingresa un correo válido para recibir la confirmación.',
   EMPTY_CART: 'Tu carrito está vacío.',
+  INVALID_QUANTITY: 'Revisa las cantidades del carrito.',
   INVALID_SHIPPING: 'Completa correctamente tu información de envío.',
   INVALID_COUPON: 'El cupón no es válido.',
   COUPON_NOT_STARTED: 'El cupón aún no está disponible.',

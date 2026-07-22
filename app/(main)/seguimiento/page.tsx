@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { CheckCircle2, Clock, PackageCheck, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { TrackingForm } from './tracking-form';
 
 export const metadata = {
   title: 'Estado del pedido | Calle Ocho Store',
@@ -33,14 +34,16 @@ export default function SeguimientoPage() {
             <PackageCheck className="mb-4 h-9 w-9" />
             <h1 className="text-4xl font-bold sm:text-5xl">Estado del pedido</h1>
             <p className="mt-4 text-lg text-white/90">
-              Revisa tus pedidos, el estado actual y los detalles de compra desde tu cuenta.
+              Consulta el estado actual con tu número de pedido y el correo o teléfono usado en la compra.
             </p>
           </div>
         </div>
       </section>
 
       <section className="container mx-auto px-4 py-12">
-        <div className="grid gap-4 md:grid-cols-5">
+        <TrackingForm />
+
+        <div className="mt-12 grid gap-4 md:grid-cols-5">
           {statuses.map(([title, text, Icon]) => (
             <div key={title} className="rounded-lg border border-gray-200 bg-white p-4">
               <Icon className="mb-3 h-5 w-5 text-brand-blue" />
@@ -51,9 +54,6 @@ export default function SeguimientoPage() {
         </div>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Button asChild className="bg-brand-black hover:bg-gray-800">
-            <Link href="/cuenta/pedidos">Ver mis pedidos</Link>
-          </Button>
           <Button asChild variant="outline">
             <Link href="/contacto">Necesito ayuda</Link>
           </Button>

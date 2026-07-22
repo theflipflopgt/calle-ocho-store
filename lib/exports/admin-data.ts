@@ -132,6 +132,7 @@ export async function getSalesExportRows(db: any, url: URL) {
       shipping_phone,
       shipping_city,
       shipping_department,
+      guest_email,
       created_at,
       profiles:user_id (email),
       order_items (
@@ -197,7 +198,7 @@ export function salesRowsToXlsx(rows: any[]) {
       order.created_at ? new Date(order.created_at).toLocaleString('es-GT') : '',
       order.status,
       order.shipping_recipient_name || '',
-      Array.isArray(order.profiles) ? order.profiles[0]?.email || '' : order.profiles?.email || '',
+      (Array.isArray(order.profiles) ? order.profiles[0]?.email : order.profiles?.email) || order.guest_email || '',
       order.shipping_phone || '',
       order.shipping_city || '',
       order.shipping_department || '',

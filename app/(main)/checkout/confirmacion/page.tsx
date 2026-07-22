@@ -6,8 +6,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { CheckCircle2, Package, Truck, Phone, MapPin, Loader2, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/auth-context';
-import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
 import { BUSINESS_WHATSAPP_NUMBER } from '@/lib/constants/business';
@@ -26,6 +24,8 @@ interface OrderData {
   shipping_neighborhood: string | null;
   shipping_city: string;
   shipping_department: string;
+  tracking_number: string | null;
+  tracking_url: string | null;
   created_at: string | null;
   items: {
     id: string;
@@ -43,46 +43,46 @@ interface OrderData {
 function ConfirmacionContent() {
   const searchParams = useSearchParams();
   const orderNumber = searchParams.get('order');
-  const { user, isLoading: authLoading } = useAuth();
+  const accessToken = searchParams.get('token');
   const [order, setOrder] = useState<OrderData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
-
   useEffect(() => {
     async function fetchOrder() {
-      if (!orderNumber || !user) return;
+      if (!orderNumber) {
+        setError('Falta el número de pedido');
+        setIsLoading(false);
+        return;
+      }
 
       try {
-        const { data, error: fetchError } = await supabase
-          .from('orders')
-          .select(`
-            *,
-            items:order_items(*)
-          `)
-          .eq('order_number', orderNumber)
-          .eq('user_id', user.id)
-          .single();
+        const params = new URLSearchParams({ order: orderNumber });
+        if (accessToken) params.set('token', accessToken);
 
-        if (fetchError) throw fetchError;
-        if (data) {
-          setOrder(data as OrderData);
+        const response = await fetch(`/api/orders/lookup?${params.toString()}`, {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result?.error || 'No se pudo cargar la información del pedido');
         }
+
+        setOrder(result.order as OrderData);
       } catch (err) {
         console.error('Error fetching order:', err);
-        setError('No se pudo cargar la información del pedido');
+        setError(err instanceof Error ? err.message : 'No se pudo cargar la información del pedido');
       } finally {
         setIsLoading(false);
       }
     }
 
-    if (!authLoading) {
-      fetchOrder();
-    }
-  }, [orderNumber, user, authLoading, supabase]);
+    fetchOrder();
+  }, [orderNumber, accessToken]);
 
-  if (authLoading || isLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-8 h-8 animate-spin text-brand-blue" />
@@ -123,6 +123,23 @@ function ConfirmacionContent() {
           {order.order_number}
         </p>
       </div>
+
+      {order.tracking_number && (
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 sm:p-6 mb-6">
+          <p className="text-sm font-medium text-blue-900 mb-1">Número de rastreo</p>
+          <p className="font-mono text-blue-700">{order.tracking_number}</p>
+          {order.tracking_url && (
+            <a
+              href={order.tracking_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-block text-sm text-brand-blue hover:underline"
+            >
+              Ver seguimiento
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Order Status Timeline */}
       <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6 mb-6">
@@ -259,8 +276,8 @@ function ConfirmacionContent() {
           className="flex-1 h-12 bg-brand-black hover:bg-gray-800"
           asChild
         >
-          <Link href="/cuenta/pedidos">
-            Ver mis pedidos
+          <Link href="/seguimiento">
+            Consultar seguimiento
           </Link>
         </Button>
         <Button

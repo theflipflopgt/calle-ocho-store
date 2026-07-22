@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -44,6 +45,24 @@ export async function GET(request: Request) {
 
     if (!error && data.user) {
       console.log('✅ [Auth Callback] Session created for user:', data.user.id);
+      const admin = createAdminClient();
+      const userMetadata = data.user.user_metadata || {};
+      const fullName =
+        userMetadata.full_name || userMetadata.name || userMetadata.user_name || null;
+      const avatarUrl = userMetadata.avatar_url || userMetadata.picture || null;
+
+      if (admin && data.user.email) {
+        await (admin as any).from('profiles').upsert(
+          {
+            id: data.user.id,
+            email: data.user.email,
+            full_name: fullName,
+            avatar_url: avatarUrl,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'id' }
+        );
+      }
 
       // Check if user is admin
       const { data: profile } = await supabase

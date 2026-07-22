@@ -33,6 +33,10 @@ export interface HomeContent {
     slides: HomeHeroSlide[];
   };
   categories: HomeCategoryContent[];
+  footer: {
+    image: string;
+    alt: string;
+  };
 }
 
 export const DEFAULT_HOME_CONTENT: HomeContent = {
@@ -115,4 +119,9 @@ export const DEFAULT_HOME_CONTENT: HomeContent = {
       overlay: 'sale',
     },
   ],
+  footer: {
+    image:
+      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1200&auto=format&fit=crop',
+    alt: 'Calzado calleOCHO',
+  },
 };

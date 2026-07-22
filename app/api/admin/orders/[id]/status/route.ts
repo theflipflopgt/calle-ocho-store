@@ -98,6 +98,7 @@ export async function PATCH(
       .select(
         `
           order_number,
+          guest_email,
           shipping_recipient_name,
           tracking_number,
           tracking_url,
@@ -107,9 +108,10 @@ export async function PATCH(
       .eq('id', id)
       .single();
 
-    const customerEmail = Array.isArray(order?.profiles)
+    const profileEmail = Array.isArray(order?.profiles)
       ? order.profiles[0]?.email
       : order?.profiles?.email;
+    const customerEmail = profileEmail || order?.guest_email;
 
     if (customerEmail) {
       await sendOrderStatusUpdateEmail({
