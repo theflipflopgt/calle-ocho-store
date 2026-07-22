@@ -60,7 +60,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    shouldSendWelcomeEmail = existing?.status !== 'subscribed';
+    if (existing?.status === 'subscribed') {
+      return NextResponse.json({
+        success: true,
+        alreadySubscribed: true,
+      });
+    }
+
+    shouldSendWelcomeEmail = true;
 
     const result = await newsletterDb.from('newsletter_subscribers').upsert(
       {
@@ -91,6 +98,10 @@ export async function POST(request: NextRequest) {
     if (error?.code === '23505') {
       shouldSendWelcomeEmail = false;
       error = null;
+      return NextResponse.json({
+        success: true,
+        alreadySubscribed: true,
+      });
     }
   }
 

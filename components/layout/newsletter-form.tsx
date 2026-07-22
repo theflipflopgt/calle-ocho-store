@@ -29,7 +29,11 @@ export function NewsletterForm() {
 
       setNewsletterEmail('');
       setNewsletterStatus('success');
-      setNewsletterMessage('Listo. Te avisaremos de novedades y ofertas.');
+      setNewsletterMessage(
+        data?.alreadySubscribed
+          ? 'Este correo ya estaba suscrito.'
+          : 'Listo. Te avisaremos de novedades y ofertas.'
+      );
     } catch (error) {
       setNewsletterStatus('error');
       setNewsletterMessage(error instanceof Error ? error.message : 'Intenta de nuevo.');
