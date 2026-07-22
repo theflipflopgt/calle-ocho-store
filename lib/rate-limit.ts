@@ -16,6 +16,10 @@ interface RateLimitResult {
   retryAfterSeconds: number;
 }
 
+interface PersistentRateLimitOptions extends RateLimitOptions {
+  db?: any;
+}
+
 const buckets = new Map<string, Map<string, BucketEntry>>();
 
 function getBucket(bucket: string): Map<string, BucketEntry> {
@@ -68,6 +72,41 @@ export function consumeRateLimit({
     remaining: Math.max(max - current.count, 0),
     retryAfterSeconds: 0,
   };
+}
+
+export async function consumePersistentRateLimit({
+  bucket,
+  key,
+  max,
+  windowMs,
+  db,
+}: PersistentRateLimitOptions): Promise<RateLimitResult> {
+  const fallback = consumeRateLimit({ bucket, key, max, windowMs });
+
+  if (!fallback.allowed || !db) {
+    return fallback;
+  }
+
+  try {
+    const { data, error } = await db.rpc('consume_rate_limit', {
+      p_bucket: bucket,
+      p_key: key,
+      p_max: max,
+      p_window_seconds: Math.max(Math.ceil(windowMs / 1000), 1),
+    });
+
+    if (error || !data) {
+      return fallback;
+    }
+
+    return {
+      allowed: Boolean(data.allowed),
+      remaining: Number(data.remaining ?? 0),
+      retryAfterSeconds: Number(data.retryAfterSeconds ?? 0),
+    };
+  } catch {
+    return fallback;
+  }
 }
 
 export function getClientIpFromHeaders(headers: Headers): string {

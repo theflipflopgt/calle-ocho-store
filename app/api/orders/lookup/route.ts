@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { consumeRateLimit, getClientIpFromHeaders } from '@/lib/rate-limit';
+import { consumePersistentRateLimit, getClientIpFromHeaders } from '@/lib/rate-limit';
 import { appLogger } from '@/lib/logger';
 
 function normalizeOrderNumber(value: string | null) {
@@ -19,12 +19,14 @@ export async function GET(request: NextRequest) {
   const ip = getClientIpFromHeaders(request.headers);
   const orderNumber = normalizeOrderNumber(request.nextUrl.searchParams.get('order'));
   const token = normalizeToken(request.nextUrl.searchParams.get('token'));
+  const admin = createAdminClient();
 
-  const limit = consumeRateLimit({
+  const limit = await consumePersistentRateLimit({
     bucket: 'orders-lookup',
     key: ip,
     max: 30,
     windowMs: 60_000,
+    db: admin,
   });
 
   if (!limit.allowed) {
@@ -39,7 +41,7 @@ export async function GET(request: NextRequest) {
   }
 
   const auth = await requireAuthenticatedUser();
-  const db = token ? createAdminClient() : (auth.supabase as any);
+  const db = token ? admin : (auth.supabase as any);
 
   if (!db) {
     return NextResponse.json({ error: 'No autorizado.' }, { status: 401 });

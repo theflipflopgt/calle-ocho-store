@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendNewsletterAdminNotification, sendNewsletterWelcomeEmail } from '@/lib/email';
-import { consumeRateLimit, getClientIpFromHeaders } from '@/lib/rate-limit';
+import { consumePersistentRateLimit, getClientIpFromHeaders } from '@/lib/rate-limit';
 import { appLogger } from '@/lib/logger';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -10,11 +10,13 @@ const allowedSources = new Set(['footer', 'checkout', 'popup', 'account']);
 
 export async function POST(request: NextRequest) {
   const ip = getClientIpFromHeaders(request.headers);
-  const limit = consumeRateLimit({
+  const admin = createAdminClient();
+  const limit = await consumePersistentRateLimit({
     bucket: 'newsletter-subscribe',
     key: ip,
     max: 5,
     windowMs: 60_000,
+    db: admin,
   });
 
   if (!limit.allowed) {
@@ -40,7 +42,6 @@ export async function POST(request: NextRequest) {
   }
 
   const now = new Date().toISOString();
-  const admin = createAdminClient();
   let shouldSendWelcomeEmail = true;
   let error: { code?: string; message?: string } | null = null;
 

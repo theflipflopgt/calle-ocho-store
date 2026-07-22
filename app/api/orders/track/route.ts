@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { consumeRateLimit, getClientIpFromHeaders } from '@/lib/rate-limit';
+import { consumePersistentRateLimit, getClientIpFromHeaders } from '@/lib/rate-limit';
 import { appLogger } from '@/lib/logger';
 
 function normalizeOrderNumber(value: unknown) {
@@ -22,11 +22,13 @@ function digitsOnly(value: string) {
 export async function POST(request: NextRequest) {
   const requestId = crypto.randomUUID();
   const ip = getClientIpFromHeaders(request.headers);
-  const limit = consumeRateLimit({
+  const admin = createAdminClient();
+  const limit = await consumePersistentRateLimit({
     bucket: 'orders-track',
     key: ip,
     max: 12,
     windowMs: 60_000,
+    db: admin,
   });
 
   if (!limit.allowed) {
@@ -53,7 +55,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const admin = createAdminClient();
   if (!admin) {
     return NextResponse.json(
       { error: 'El seguimiento requiere SUPABASE_SERVICE_ROLE_KEY en el servidor.' },
