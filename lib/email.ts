@@ -311,24 +311,39 @@ export async function sendOrderStatusUpdateEmail(params: SendOrderStatusUpdatePa
     const customerName = escapeHtml(params.customerName);
     const orderNumber = escapeHtml(params.orderNumber);
     const safeStatusLabel = escapeHtml(statusLabel);
-    const trackingNumber = params.trackingNumber ? escapeHtml(params.trackingNumber) : '';
-    const trackingLink = params.trackingUrl
-      ? `<p style="margin: 16px 0;"><a href="${escapeHtml(params.trackingUrl)}" style="color: #2563eb;">Ver seguimiento del envío</a></p>`
-      : '';
+    const supportUrl = 'https://wa.me/50252498898';
 
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
-        <h1 style="font-size: 24px; margin-bottom: 12px;">${escapeHtml(headline)}</h1>
-        <p>Hola ${customerName},</p>
-        <p>Tu pedido <strong>${orderNumber}</strong> ahora está <strong>${safeStatusLabel}</strong>.</p>
-        ${trackingNumber ? `<p>Número de guía: <strong>${trackingNumber}</strong></p>` : ''}
-        ${trackingLink}
-        <p style="margin: 24px 0;">
-          <a href="${escapeHtml(orderUrl)}" style="background: #111827; color: #ffffff; padding: 12px 18px; text-decoration: none; border-radius: 8px; display: inline-block;">
-            Consultar seguimiento
-          </a>
-        </p>
-        <p style="font-size: 13px; color: #6b7280;">Gracias por comprar en Calle Ocho Store.</p>
+      <div style="background:#f4f6f8; padding:24px 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+        <div style="max-width:620px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; color:#111827;">
+          <div style="background:#111111; padding:30px 38px; text-align:center;">
+            <p style="color:#93c5fd; font-size:12px; font-weight:700; text-transform:uppercase; margin:0 0 10px;">Actualización de pedido</p>
+            <h1 style="color:#ffffff; font-size:28px; line-height:34px; margin:0;">${escapeHtml(headline)}</h1>
+          </div>
+          <div style="padding:32px 40px 12px;">
+            <p style="font-size:15px; line-height:24px; margin:0 0 12px; color:#374151;">Hola ${customerName},</p>
+            <p style="font-size:15px; line-height:24px; margin:0; color:#374151;">
+              Tu pedido <strong>${orderNumber}</strong> ahora está <strong>${safeStatusLabel}</strong>.
+            </p>
+          </div>
+          <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; margin:20px 40px 0; padding:20px;">
+            <p style="font-size:14px; font-weight:700; margin:0 0 8px; color:#111827;">Qué puedes hacer ahora</p>
+            <p style="font-size:14px; line-height:22px; margin:0; color:#4b5563;">
+              Si necesitas más información, puedes consultar el seguimiento o escribirnos por WhatsApp con tu número de pedido.
+            </p>
+          </div>
+          <div style="padding:26px 40px 34px; text-align:center;">
+            <a href="${escapeHtml(orderUrl)}" style="background:#111111; color:#ffffff; padding:12px 20px; border-radius:8px; display:inline-block; text-decoration:none; font-size:14px; font-weight:700;">
+              Consultar seguimiento
+            </a>
+          </div>
+          <div style="background:#111111; padding:24px 40px; text-align:center;">
+            <p style="color:#d1d5db; font-size:13px; line-height:20px; margin:0 0 8px;">
+              ¿Necesitas ayuda? WhatsApp: <a href="${supportUrl}" style="color:#ffffff;">+502 5249 8898</a>
+            </p>
+            <p style="color:#9ca3af; font-size:12px; margin:0;">Calle Ocho Store, Guatemala.</p>
+          </div>
+        </div>
       </div>
     `;
 
@@ -368,16 +383,31 @@ export async function sendNewsletterWelcomeEmail(params: SendNewsletterWelcomeEm
 
     const siteUrl = getSiteUrl();
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
-        <h1 style="font-size: 24px; margin-bottom: 12px;">Bienvenido a Calle Ocho Store</h1>
-        <p>Gracias por suscribirte a nuestro boletín.</p>
-        <p>Te enviaremos novedades, lanzamientos y ofertas de calzado. Cuidaremos tu correo y no lo compartiremos con terceros.</p>
-        <p style="margin: 24px 0;">
-          <a href="${escapeHtml(siteUrl)}" style="background: #111827; color: #ffffff; padding: 12px 18px; text-decoration: none; border-radius: 8px; display: inline-block;">
-            Ver tienda
-          </a>
-        </p>
-        <p style="font-size: 13px; color: #6b7280;">Calle Ocho Store, Guatemala.</p>
+      <div style="background:#f4f6f8; padding:24px 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+        <div style="max-width:620px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; color:#111827;">
+          <div style="background:#111111; padding:34px 40px; text-align:center;">
+            <p style="color:#93c5fd; font-size:12px; font-weight:700; text-transform:uppercase; margin:0 0 10px;">Calle Ocho Store</p>
+            <h1 style="color:#ffffff; font-size:30px; line-height:36px; margin:0;">Ya estás en la lista</h1>
+          </div>
+          <div style="padding:32px 40px 10px;">
+            <p style="font-size:15px; line-height:24px; margin:0 0 12px; color:#374151;">Gracias por suscribirte a nuestro boletín.</p>
+            <p style="font-size:15px; line-height:24px; margin:0; color:#374151;">
+              Te enviaremos novedades, lanzamientos y ofertas de calzado. Cuidaremos tu correo y no lo compartiremos con terceros.
+            </p>
+          </div>
+          <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; margin:22px 40px 0; padding:18px 20px;">
+            <p style="font-size:14px; font-weight:700; margin:0 0 8px; color:#111827;">Qué recibirás</p>
+            <p style="font-size:14px; line-height:22px; margin:0; color:#4b5563;">Avisos de nuevos modelos, ofertas seleccionadas y actualizaciones importantes de la tienda.</p>
+          </div>
+          <div style="padding:26px 40px 34px; text-align:center;">
+            <a href="${escapeHtml(siteUrl)}" style="background:#111111; color:#ffffff; padding:12px 20px; border-radius:8px; display:inline-block; text-decoration:none; font-size:14px; font-weight:700;">
+              Ver tienda
+            </a>
+          </div>
+          <div style="background:#111111; padding:22px 40px; text-align:center;">
+            <p style="color:#9ca3af; font-size:12px; margin:0;">Calle Ocho Store, Guatemala.</p>
+          </div>
+        </div>
       </div>
     `;
 
@@ -419,11 +449,18 @@ export async function sendNewsletterAdminNotification(params: SendNewsletterAdmi
     }
 
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
-        <h1 style="font-size: 22px;">Nueva suscripción al boletín</h1>
-        <p><strong>Correo:</strong> ${escapeHtml(params.subscriberEmail)}</p>
-        <p><strong>Origen:</strong> ${escapeHtml(params.source)}</p>
-        <p><strong>Fecha:</strong> ${new Date().toLocaleString('es-GT')}</p>
+      <div style="background:#f4f6f8; padding:24px 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+        <div style="max-width:620px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; color:#111827;">
+          <div style="background:#111111; padding:28px 40px;">
+            <p style="color:#93c5fd; font-size:12px; font-weight:700; text-transform:uppercase; margin:0 0 8px;">Boletín</p>
+            <h1 style="color:#ffffff; font-size:24px; margin:0;">Nueva suscripción</h1>
+          </div>
+          <div style="padding:28px 40px;">
+            <p style="font-size:14px; line-height:24px; margin:0 0 8px;"><strong>Correo:</strong> ${escapeHtml(params.subscriberEmail)}</p>
+            <p style="font-size:14px; line-height:24px; margin:0 0 8px;"><strong>Origen:</strong> ${escapeHtml(params.source)}</p>
+            <p style="font-size:14px; line-height:24px; margin:0;"><strong>Fecha:</strong> ${new Date().toLocaleString('es-GT')}</p>
+          </div>
+        </div>
       </div>
     `;
 

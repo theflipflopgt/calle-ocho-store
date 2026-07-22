@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { formatPrice } from '@/lib/utils/currency';
 import { DeleteProductButton } from './delete-button';
 import { CatalogExportButtons } from '@/components/admin/catalog-export-buttons';
+import { OfferButton } from './offer-button';
 
 interface ProductsPageProps {
   searchParams: Promise<{ status?: string; brand?: string; category?: string; q?: string }>;
@@ -246,6 +247,14 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                         <Eye className="h-4 w-4" />
                       </Button>
                     </Link>
+                    <OfferButton
+                      productId={product.id}
+                      productName={product.name}
+                      basePrice={Number(product.base_price)}
+                      compareAtPrice={
+                        product.compare_at_price ? Number(product.compare_at_price) : null
+                      }
+                    />
                     <DeleteProductButton productId={product.id} productName={product.name} />
                   </div>
                 </div>
@@ -362,6 +371,14 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
+                          <OfferButton
+                            productId={product.id}
+                            productName={product.name}
+                            basePrice={Number(product.base_price)}
+                            compareAtPrice={
+                              product.compare_at_price ? Number(product.compare_at_price) : null
+                            }
+                          />
                           <DeleteProductButton productId={product.id} productName={product.name} />
                         </div>
                       </td>

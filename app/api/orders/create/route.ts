@@ -8,7 +8,7 @@ import { appLogger } from '@/lib/logger';
 import type { OrderCreateInput, OrderCreateResult } from '@/types/order-workflow';
 import { sendNewOrderNotification, sendOrderConfirmationEmail } from '@/lib/email';
 
-const CAPITAL_OWN_DELIVERY_ZONES = new Set(['1', '2', '4', '5', '9', '10', '11', '12', '13', '14', '15', '16']);
+const CASH_ON_DELIVERY_ENABLED = process.env.CASH_ON_DELIVERY_ENABLED === 'true';
 const CAPITAL_CITY_NAMES = new Set([
   'guatemala',
   'ciudad de guatemala',
@@ -47,17 +47,15 @@ function normalizeText(value?: string | null) {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
-function normalizeZone(value?: string | null) {
-  const match = (value || '').match(/\d+/);
-  return match?.[0] || '';
+function supportsOwnDelivery(input: OrderCreateInput) {
+  const department = normalizeText(input.shipping.department);
+  const city = normalizeText(input.shipping.city);
+
+  return department === 'guatemala' && CAPITAL_CITY_NAMES.has(city);
 }
 
 function supportsCashOnDelivery(input: OrderCreateInput) {
-  const department = normalizeText(input.shipping.department);
-  const city = normalizeText(input.shipping.city);
-  const zone = normalizeZone(input.shipping.zone);
-
-  return department === 'guatemala' && CAPITAL_CITY_NAMES.has(city) && CAPITAL_OWN_DELIVERY_ZONES.has(zone);
+  return CASH_ON_DELIVERY_ENABLED && supportsOwnDelivery(input);
 }
 
 async function sendOrderEmails({
@@ -179,7 +177,17 @@ async function sendOrderEmails({
   }
 }
 
-async function updateManualPaymentMethod(db: any, orderId: string, paymentMethod: OrderCreateInput['paymentMethod']) {
+async function updateManualPaymentMethod({
+  db,
+  orderId,
+  paymentMethod,
+  isOwnDelivery,
+}: {
+  db: any;
+  orderId: string;
+  paymentMethod: OrderCreateInput['paymentMethod'];
+  isOwnDelivery: boolean;
+}) {
   const writeDb = createAdminClient() || db;
   const isCashOnDelivery = paymentMethod === 'cash_on_delivery';
 
@@ -192,7 +200,7 @@ async function updateManualPaymentMethod(db: any, orderId: string, paymentMethod
         selected_method: isCashOnDelivery ? 'cash_on_delivery' : 'bank_transfer',
         contact_channel: 'whatsapp',
         requires_manual_confirmation: !isCashOnDelivery,
-        delivery_method: isCashOnDelivery ? 'own_delivery' : 'guatex_or_manual_coordination',
+        delivery_method: isOwnDelivery ? 'own_delivery' : 'guatex_or_manual_coordination',
       },
     })
     .eq('order_id', orderId)
@@ -250,7 +258,7 @@ export async function POST(request: NextRequest) {
 
   if (payload.paymentMethod === 'cash_on_delivery' && !supportsCashOnDelivery(payload)) {
     return NextResponse.json(
-      { error: 'El pago contra entrega solo está disponible con mensajería propia en zonas cubiertas de Ciudad de Guatemala.' },
+      { error: 'El pago contra entrega solo está disponible cuando está habilitado y aplica mensajería propia en Ciudad Capital.' },
       { status: 400 }
     );
   }
@@ -307,7 +315,12 @@ export async function POST(request: NextRequest) {
   const orderResult = data as OrderCreateResult;
   const customerEmail = auth.user?.email || payload.customerEmail?.trim().toLowerCase();
 
-  await updateManualPaymentMethod(db, orderResult.orderId, payload.paymentMethod);
+  await updateManualPaymentMethod({
+    db,
+    orderId: orderResult.orderId,
+    paymentMethod: payload.paymentMethod,
+    isOwnDelivery: supportsOwnDelivery(payload),
+  });
 
   if (customerEmail) {
     await sendOrderEmails({

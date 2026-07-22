@@ -34,7 +34,7 @@ const DEPARTMENTS = [
 // Costo de envío
 const SHIPPING_COST = SHIPPING_COST_GTQ;
 const FREE_SHIPPING_THRESHOLD = FREE_SHIPPING_THRESHOLD_GTQ;
-const CAPITAL_OWN_DELIVERY_ZONES = new Set(['1', '2', '4', '5', '9', '10', '11', '12', '13', '14', '15', '16']);
+const CASH_ON_DELIVERY_ENABLED = process.env.NEXT_PUBLIC_CASH_ON_DELIVERY_ENABLED === 'true';
 const CAPITAL_CITY_NAMES = new Set([
   'guatemala',
   'ciudad de guatemala',
@@ -77,16 +77,19 @@ function getDeliveryCoverage(formData: ShippingFormData) {
   const city = normalizeText(formData.city);
   const zone = normalizeZone(formData.zone);
   const isCapitalCity = department === 'guatemala' && CAPITAL_CITY_NAMES.has(city);
-  const isOwnDelivery = isCapitalCity && CAPITAL_OWN_DELIVERY_ZONES.has(zone);
+  const isOwnDelivery = isCapitalCity;
 
   return {
     zone,
     isCapitalCity,
     isOwnDelivery,
-    deliveryLabel: isOwnDelivery ? 'Mensajería propia' : 'Guatex o coordinación por WhatsApp',
+    deliveryLabel: isOwnDelivery ? 'Mensajería propia en Ciudad Capital' : 'Guatex o coordinación por WhatsApp',
     paymentHint: isOwnDelivery
-      ? 'Disponible pago contra entrega o transferencia.'
-      : 'Para municipios y departamentos se requiere pago previo por transferencia. Tarjeta quedará disponible cuando se active NeoPay.',
+      ? CASH_ON_DELIVERY_ENABLED
+        ? 'Disponible transferencia bancaria o pago contra entrega con mensajería propia.'
+        : 'Disponible por transferencia bancaria. El pago contra entrega se mostrará únicamente cuando esté habilitado.'
+      : 'Para municipios y departamentos se requiere pago previo por depósito o transferencia. El envío se coordina por Guatex o WhatsApp.',
+    cashOnDeliveryEnabled: CASH_ON_DELIVERY_ENABLED,
   };
 }
 
@@ -172,10 +175,13 @@ export default function CheckoutPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!deliveryCoverage.isOwnDelivery && paymentMethod === 'cash_on_delivery') {
+    if (
+      (!deliveryCoverage.isOwnDelivery || !deliveryCoverage.cashOnDeliveryEnabled) &&
+      paymentMethod === 'cash_on_delivery'
+    ) {
       setPaymentMethod('bank_transfer');
     }
-  }, [deliveryCoverage.isOwnDelivery, paymentMethod]);
+  }, [deliveryCoverage.cashOnDeliveryEnabled, deliveryCoverage.isOwnDelivery, paymentMethod]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -206,11 +212,6 @@ export default function CheckoutPage() {
     }
     if (!formData.department) {
       setError('Por favor selecciona el departamento');
-      return false;
-    }
-    const coverage = getDeliveryCoverage(formData);
-    if (coverage.isCapitalCity && !coverage.zone) {
-      setError('Por favor indica la zona para confirmar si aplica mensajería propia o Guatex.');
       return false;
     }
     return true;
@@ -607,11 +608,11 @@ function ShippingForm({
         <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm">
           <p className="font-medium text-brand-black">{deliveryCoverage.deliveryLabel}</p>
           <p className="mt-1 text-gray-600">{deliveryCoverage.paymentHint}</p>
-          {deliveryCoverage.isCapitalCity && !deliveryCoverage.isOwnDelivery && (
-            <p className="mt-1 text-xs text-gray-500">
-              Si tu zona tiene cobertura especial, el equipo de ventas puede confirmarlo por WhatsApp.
-            </p>
-          )}
+          <p className="mt-1 text-xs text-gray-500">
+            {deliveryCoverage.isOwnDelivery
+              ? 'Aplica para Ciudad Capital sin importar la zona. El equipo puede confirmar horarios por WhatsApp.'
+              : 'Si tu municipio o departamento requiere cobertura especial, el equipo de ventas lo confirmará por WhatsApp.'}
+          </p>
         </div>
 
         {/* Additional References */}
@@ -779,11 +780,11 @@ function ReviewStep({
             checked={paymentMethod === 'bank_transfer'}
             onSelect={() => onPaymentMethodChange('bank_transfer')}
           />
-          {deliveryCoverage.isOwnDelivery && (
+          {deliveryCoverage.isOwnDelivery && deliveryCoverage.cashOnDeliveryEnabled && (
             <PaymentOption
               id="cash_on_delivery"
               title="Pago contra entrega"
-              description="Disponible únicamente con mensajería propia en zonas cubiertas de Ciudad de Guatemala. El equipo confirmará la entrega por WhatsApp."
+              description="Disponible únicamente con mensajería propia en Ciudad Capital cuando la opción esté habilitada. El equipo confirmará la entrega por WhatsApp."
               checked={paymentMethod === 'cash_on_delivery'}
               onSelect={() => onPaymentMethodChange('cash_on_delivery')}
             />
