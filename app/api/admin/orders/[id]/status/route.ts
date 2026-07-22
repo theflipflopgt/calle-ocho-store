@@ -6,6 +6,8 @@ import { appLogger } from '@/lib/logger';
 import { sendOrderStatusUpdateEmail } from '@/lib/email';
 import type { OrderStatus } from '@/types/order-workflow';
 
+const CUSTOMER_EMAIL_STATUSES = new Set<OrderStatus>(['shipped', 'cancelled', 'refunded']);
+
 interface StatusRequestBody {
   status?: OrderStatus;
   trackingNumber?: string;
@@ -92,44 +94,47 @@ export async function PATCH(
     );
   }
 
-  try {
-    const { data: order } = await db
-      .from('orders')
-      .select(
-        `
-          order_number,
-          guest_email,
-          shipping_recipient_name,
-          tracking_number,
-          tracking_url,
-          profiles:user_id (email)
-        `
-      )
-      .eq('id', id)
-      .single();
+  if (CUSTOMER_EMAIL_STATUSES.has(body.status)) {
+    try {
+      const { data: order } = await db
+        .from('orders')
+        .select(
+          `
+            order_number,
+            guest_email,
+            shipping_recipient_name,
+            tracking_number,
+            tracking_url,
+            profiles:user_id (email)
+          `
+        )
+        .eq('id', id)
+        .single();
 
-    const profileEmail = Array.isArray(order?.profiles)
-      ? order.profiles[0]?.email
-      : order?.profiles?.email;
-    const customerEmail = profileEmail || order?.guest_email;
+      const profileEmail = Array.isArray(order?.profiles)
+        ? order.profiles[0]?.email
+        : order?.profiles?.email;
+      const customerEmail = profileEmail || order?.guest_email;
 
-    if (customerEmail) {
-      await sendOrderStatusUpdateEmail({
-        to: customerEmail,
-        customerName: order.shipping_recipient_name || 'Cliente',
-        orderNumber: order.order_number,
+      if (customerEmail) {
+        await sendOrderStatusUpdateEmail({
+          to: customerEmail,
+          customerName: order.shipping_recipient_name || 'Cliente',
+          orderNumber: order.order_number,
+          status: body.status,
+          trackingNumber: order.tracking_number,
+          trackingUrl: order.tracking_url,
+        });
+      }
+    } catch (emailError) {
+      appLogger.warn('admin.orders.status.email_failed', {
+        requestId,
+        orderId: id,
+        adminUserId: auth.user.id,
         status: body.status,
-        trackingNumber: order.tracking_number,
-        trackingUrl: order.tracking_url,
+        error: emailError instanceof Error ? emailError.message : 'unknown_email_error',
       });
     }
-  } catch (emailError) {
-    appLogger.warn('admin.orders.status.email_failed', {
-      requestId,
-      orderId: id,
-      adminUserId: auth.user.id,
-      error: emailError instanceof Error ? emailError.message : 'unknown_email_error',
-    });
   }
 
   appLogger.info('admin.orders.status.updated', {

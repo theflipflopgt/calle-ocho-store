@@ -202,7 +202,7 @@ export default function OrderConfirmationEmail({
           {/* Footer */}
           <Section style={content}>
             <Text style={text}>
-              Te notificaremos cuando tu pedido avance a preparación o envío.
+              Te notificaremos cuando tu pedido sea enviado o si hay una novedad importante.
             </Text>
             <Text style={text}>
               <Link href={`${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://calleochostore.com'}/seguimiento`} style={button}>

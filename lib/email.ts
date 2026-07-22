@@ -60,6 +60,11 @@ const orderStatusLabels: Record<string, string> = {
   refunded: 'reembolsado',
 };
 
+const customerOrderStatusEmailSubjects: Record<string, string> = {
+  cancelled: 'Tu pedido fue cancelado',
+  refunded: 'Tu pedido fue reembolsado',
+};
+
 interface OrderItem {
   product_name: string;
   brand_name: string;
@@ -277,6 +282,10 @@ interface SendOrderStatusUpdateParams {
 
 export async function sendOrderStatusUpdateEmail(params: SendOrderStatusUpdateParams) {
   try {
+    if (!['shipped', 'cancelled', 'refunded'].includes(params.status)) {
+      return { success: true, skipped: true };
+    }
+
     if (!isValidEmail(params.to)) {
       return invalidRecipientError(params.to);
     }
@@ -296,8 +305,9 @@ export async function sendOrderStatusUpdateEmail(params: SendOrderStatusUpdatePa
     }
 
     const statusLabel = orderStatusLabels[params.status] || params.status;
+    const headline = customerOrderStatusEmailSubjects[params.status] || 'Actualización de tu pedido';
     const siteUrl = getSiteUrl();
-    const orderUrl = `${siteUrl}/cuenta/pedidos`;
+    const orderUrl = `${siteUrl}/seguimiento`;
     const customerName = escapeHtml(params.customerName);
     const orderNumber = escapeHtml(params.orderNumber);
     const safeStatusLabel = escapeHtml(statusLabel);
@@ -308,14 +318,14 @@ export async function sendOrderStatusUpdateEmail(params: SendOrderStatusUpdatePa
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
-        <h1 style="font-size: 24px; margin-bottom: 12px;">Actualización de tu pedido</h1>
+        <h1 style="font-size: 24px; margin-bottom: 12px;">${escapeHtml(headline)}</h1>
         <p>Hola ${customerName},</p>
         <p>Tu pedido <strong>${orderNumber}</strong> ahora está <strong>${safeStatusLabel}</strong>.</p>
         ${trackingNumber ? `<p>Número de guía: <strong>${trackingNumber}</strong></p>` : ''}
         ${trackingLink}
         <p style="margin: 24px 0;">
           <a href="${escapeHtml(orderUrl)}" style="background: #111827; color: #ffffff; padding: 12px 18px; text-decoration: none; border-radius: 8px; display: inline-block;">
-            Ver mis pedidos
+            Consultar seguimiento
           </a>
         </p>
         <p style="font-size: 13px; color: #6b7280;">Gracias por comprar en Calle Ocho Store.</p>
@@ -325,7 +335,7 @@ export async function sendOrderStatusUpdateEmail(params: SendOrderStatusUpdatePa
     const { data, error } = await resend.emails.send({
       from: getEmailFrom(),
       to: params.to,
-      subject: `Tu pedido ${params.orderNumber} esta ${statusLabel} - Calle Ocho Store`,
+      subject: `${headline}: ${params.orderNumber} - Calle Ocho Store`,
       html,
     });
 
