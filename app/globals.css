@@ -73,11 +73,26 @@
 }
 
 @layer base {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
+    min-width: 320px;
+  }
+
+  header,
+  main,
+  footer {
+    max-width: 100%;
+    overflow-x: clip;
   }
 }
 
