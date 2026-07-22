@@ -50,11 +50,45 @@ export async function POST() {
         }));
 
       if (profiles.length > 0) {
-        const { error: upsertError } = await (admin as any)
+        const ids = profiles.map((profile) => profile.id);
+        const { data: existingProfiles, error: existingError } = await (admin as any)
           .from('profiles')
-          .upsert(profiles, { onConflict: 'id' });
+          .select('id')
+          .in('id', ids);
 
-        if (upsertError) throw upsertError;
+        if (existingError) throw existingError;
+
+        const existingIds = new Set((existingProfiles || []).map((profile: any) => profile.id));
+        const profilesToUpdate = profiles.filter((profile) => existingIds.has(profile.id));
+        const profilesToInsert = profiles
+          .filter((profile) => !existingIds.has(profile.id))
+          .map((profile) => ({
+            ...profile,
+            role: 'customer',
+          }));
+
+        for (const profile of profilesToUpdate) {
+          const { error: updateError } = await (admin as any)
+            .from('profiles')
+            .update({
+              email: profile.email,
+              full_name: profile.full_name,
+              avatar_url: profile.avatar_url,
+              updated_at: profile.updated_at,
+            })
+            .eq('id', profile.id);
+
+          if (updateError) throw updateError;
+        }
+
+        if (profilesToInsert.length > 0) {
+          const { error: insertError } = await (admin as any)
+            .from('profiles')
+            .insert(profilesToInsert);
+
+          if (insertError) throw insertError;
+        }
+
         synced += profiles.length;
       }
 

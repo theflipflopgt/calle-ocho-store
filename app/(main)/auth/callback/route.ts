@@ -52,16 +52,32 @@ export async function GET(request: Request) {
       const avatarUrl = userMetadata.avatar_url || userMetadata.picture || null;
 
       if (admin && data.user.email) {
-        await (admin as any).from('profiles').upsert(
-          {
+        const { data: existingProfile } = await (admin as any)
+          .from('profiles')
+          .select('id')
+          .eq('id', data.user.id)
+          .maybeSingle();
+
+        if (existingProfile) {
+          await (admin as any)
+            .from('profiles')
+            .update({
+              email: data.user.email,
+              full_name: fullName,
+              avatar_url: avatarUrl,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', data.user.id);
+        } else {
+          await (admin as any).from('profiles').insert({
             id: data.user.id,
             email: data.user.email,
             full_name: fullName,
             avatar_url: avatarUrl,
+            role: 'customer',
             updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'id' }
-        );
+          });
+        }
       }
 
       // Check if user is admin
