@@ -62,7 +62,7 @@ export async function proxy(request: NextRequest) {
 
     const role = profile?.role || null;
 
-    if (!['admin', 'seller'].includes(role)) {
+    if (!['admin', 'seller', 'warehouse'].includes(role)) {
       const url = request.nextUrl.clone();
       url.pathname = '/';
       return copyCookies(response, NextResponse.redirect(url));
@@ -74,11 +74,29 @@ export async function proxy(request: NextRequest) {
       return copyCookies(response, NextResponse.redirect(url));
     }
 
+    if (role === 'warehouse' && pathname === '/admin') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin/productos';
+      return copyCookies(response, NextResponse.redirect(url));
+    }
+
     const sellerAllowedPaths = ['/admin/ordenes', '/admin/productos/inventario'];
+    const warehouseAllowedPaths = [
+      '/admin/productos',
+      '/admin/marcas',
+      '/admin/categorias',
+      '/admin/media',
+    ];
 
     if (role === 'seller' && !sellerAllowedPaths.some((path) => pathname.startsWith(path))) {
       const url = request.nextUrl.clone();
       url.pathname = '/admin/ordenes';
+      return copyCookies(response, NextResponse.redirect(url));
+    }
+
+    if (role === 'warehouse' && !warehouseAllowedPaths.some((path) => pathname.startsWith(path))) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin/productos';
       return copyCookies(response, NextResponse.redirect(url));
     }
   }

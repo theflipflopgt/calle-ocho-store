@@ -9,7 +9,7 @@ export interface Profile {
   full_name: string | null;
   email: string | null;
   phone: string | null;
-  role: 'customer' | 'admin' | 'seller';
+  role: 'customer' | 'admin' | 'seller' | 'warehouse';
   avatar_url: string | null;
 }
 
@@ -88,7 +88,9 @@ export function AuthProvider({
         ? 'admin'
         : authUser.app_metadata?.role === 'seller' || authUser.user_metadata?.role === 'seller'
           ? 'seller'
-          : 'customer',
+          : authUser.app_metadata?.role === 'warehouse' || authUser.user_metadata?.role === 'warehouse'
+            ? 'warehouse'
+            : 'customer',
     avatar_url: authUser.user_metadata?.avatar_url || null,
   }), []);
 
@@ -145,7 +147,7 @@ export function AuthProvider({
       if (!error && data) {
         setProfile(data as Profile);
         setServerIsAdmin(data.role === 'admin');
-        setServerCanAccessAdmin(['admin', 'seller'].includes(data.role));
+        setServerCanAccessAdmin(['admin', 'seller', 'warehouse'].includes(data.role));
       } else {
         setProfile((current) => current?.id === expectedUserId ? current : getFallbackProfile(authUser));
       }
@@ -249,9 +251,18 @@ export function AuthProvider({
     user?.app_metadata?.role === 'admin' || user?.user_metadata?.role === 'admin';
   const metadataIsSeller =
     user?.app_metadata?.role === 'seller' || user?.user_metadata?.role === 'seller';
+  const metadataIsWarehouse =
+    user?.app_metadata?.role === 'warehouse' || user?.user_metadata?.role === 'warehouse';
   const isAdmin = Boolean(user && (profile?.role === 'admin' || metadataIsAdmin || serverIsAdmin));
   const canAccessAdmin = Boolean(
-    user && (isAdmin || profile?.role === 'seller' || metadataIsSeller || serverCanAccessAdmin)
+    user && (
+      isAdmin ||
+      profile?.role === 'seller' ||
+      profile?.role === 'warehouse' ||
+      metadataIsSeller ||
+      metadataIsWarehouse ||
+      serverCanAccessAdmin
+    )
   );
 
   const value = useMemo(() => ({

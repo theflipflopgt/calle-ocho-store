@@ -95,6 +95,9 @@ export async function GET(request: Request) {
       } else if (profile?.role === 'seller' && next === '/') {
         finalRedirect = '/admin/ordenes';
         console.log('✅ [Auth Callback] Seller user detected, redirecting to /admin/ordenes');
+      } else if (profile?.role === 'warehouse' && next === '/') {
+        finalRedirect = '/admin/productos';
+        console.log('✅ [Auth Callback] Warehouse user detected, redirecting to /admin/productos');
       } else {
         console.log('✅ [Auth Callback] Redirecting to:', next);
       }

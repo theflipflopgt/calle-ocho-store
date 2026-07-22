@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/auth-context';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +27,11 @@ export function DeleteProductButton({ productId, productName }: DeleteProductBut
   const [isDeleting, setIsDeleting] = useState(false);
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const { isAdmin } = useAuth();
+
+  if (!isAdmin) {
+    return null;
+  }
 
   const handleDelete = async () => {
     setIsDeleting(true);

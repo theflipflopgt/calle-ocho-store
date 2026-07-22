@@ -79,6 +79,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
     total: customers.length,
     admins: customers.filter((c: any) => c.role === 'admin').length,
     sellers: customers.filter((c: any) => c.role === 'seller').length,
+    warehouse: customers.filter((c: any) => c.role === 'warehouse').length,
     customers: customers.filter((c: any) => c.role === 'customer').length,
     withOrders: customers.filter((c: any) => c.order_count > 0).length,
   };
@@ -90,7 +91,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
         <div>
           <h1 className="text-2xl font-bold text-brand-black">Usuarios</h1>
           <p className="text-gray-600 mt-1">
-            {stats.total} usuarios registrados • {stats.customers} clientes • {stats.sellers} vendedores • {stats.admins} admins • {stats.withOrders} han comprado
+            {stats.total} usuarios registrados • {stats.customers} clientes • {stats.sellers} vendedores • {stats.warehouse} bodega • {stats.admins} admins • {stats.withOrders} han comprado
           </p>
         </div>
         <SyncAuthUsersButton />
@@ -120,6 +121,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
             <option value="">Todos los roles</option>
             <option value="customer">Clientes</option>
             <option value="seller">Vendedores</option>
+            <option value="warehouse">Bodega</option>
             <option value="admin">Administradores</option>
           </select>
 
@@ -168,10 +170,12 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                           ? 'bg-purple-100 text-purple-800'
                           : customer.role === 'seller'
                             ? 'bg-blue-100 text-blue-800'
+                            : customer.role === 'warehouse'
+                              ? 'bg-amber-100 text-amber-800'
                             : 'bg-gray-100 text-gray-600'
                       }`}
                     >
-                      {customer.role === 'admin' ? 'Admin' : customer.role === 'seller' ? 'Vendedor' : 'Cliente'}
+                      {customer.role === 'admin' ? 'Admin' : customer.role === 'seller' ? 'Vendedor' : customer.role === 'warehouse' ? 'Bodega' : 'Cliente'}
                     </span>
                   </div>
                   {customer.phone && (
@@ -322,10 +326,12 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                             ? 'bg-purple-100 text-purple-800'
                             : customer.role === 'seller'
                               ? 'bg-blue-100 text-blue-800'
+                              : customer.role === 'warehouse'
+                                ? 'bg-amber-100 text-amber-800'
                               : 'bg-gray-100 text-gray-600'
                         }`}
                       >
-                        {customer.role === 'admin' ? 'Admin' : customer.role === 'seller' ? 'Vendedor' : 'Cliente'}
+                        {customer.role === 'admin' ? 'Admin' : customer.role === 'seller' ? 'Vendedor' : customer.role === 'warehouse' ? 'Bodega' : 'Cliente'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">

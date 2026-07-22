@@ -14,8 +14,11 @@ export async function requireAuthenticatedUser() {
       role: null,
       isAdmin: false,
       isSeller: false,
+      isWarehouse: false,
+      canAccessAdmin: false,
       canManageOrders: false,
       canViewInventory: false,
+      canManageProducts: false,
     };
   }
 
@@ -28,6 +31,7 @@ export async function requireAuthenticatedUser() {
   const role = profile?.role || null;
   const isAdmin = role === 'admin';
   const isSeller = role === 'seller';
+  const isWarehouse = role === 'warehouse';
 
   return {
     supabase,
@@ -35,7 +39,10 @@ export async function requireAuthenticatedUser() {
     role,
     isAdmin,
     isSeller,
+    isWarehouse,
+    canAccessAdmin: isAdmin || isSeller || isWarehouse,
     canManageOrders: isAdmin || isSeller,
-    canViewInventory: isAdmin || isSeller,
+    canViewInventory: isAdmin || isSeller || isWarehouse,
+    canManageProducts: isAdmin || isWarehouse,
   };
 }

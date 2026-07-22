@@ -50,6 +50,21 @@ const sellerNavigation = [
   { name: 'Inventario', href: '/admin/productos/inventario', icon: Package },
 ];
 
+const warehouseNavigation = [
+  {
+    name: 'Productos',
+    icon: Package,
+    children: [
+      { name: 'Todos los productos', href: '/admin/productos' },
+      { name: 'Crear producto', href: '/admin/productos/nuevo' },
+      { name: 'Inventario', href: '/admin/productos/inventario' },
+    ],
+  },
+  { name: 'Marcas', href: '/admin/marcas', icon: Layers },
+  { name: 'Categorías', href: '/admin/categorias', icon: Tag },
+  { name: 'Media', href: '/admin/media', icon: ImageIcon },
+];
+
 function AdminLayoutContent({
   children,
 }: {
@@ -60,7 +75,8 @@ function AdminLayoutContent({
   const pathname = usePathname();
   const { user, profile, signOut, isLoading } = useAuth();
   const isSeller = profile?.role === 'seller';
-  const visibleNavigation = isSeller ? sellerNavigation : navigation;
+  const isWarehouse = profile?.role === 'warehouse';
+  const visibleNavigation = isSeller ? sellerNavigation : isWarehouse ? warehouseNavigation : navigation;
 
   const toggleExpand = (name: string) => {
     setExpandedItems((prev) =>
@@ -166,12 +182,12 @@ function AdminLayoutContent({
       >
         {/* Logo */}
         <div className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-4 border-b border-gray-200">
-          <Link href={isSeller ? '/admin/ordenes' : '/admin'} className="flex items-center gap-2">
+          <Link href={isSeller ? '/admin/ordenes' : isWarehouse ? '/admin/productos' : '/admin'} className="flex items-center gap-2">
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-brand-black rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xs sm:text-sm">TF</span>
             </div>
             <span className="font-semibold text-brand-black text-sm sm:text-base truncate">
-              {isSeller ? 'Ventas' : 'Admin Panel'}
+              {isSeller ? 'Ventas' : isWarehouse ? 'Bodega' : 'Admin Panel'}
             </span>
           </Link>
           <button

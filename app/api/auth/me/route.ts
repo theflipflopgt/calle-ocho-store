@@ -29,6 +29,6 @@ export async function GET() {
     },
     profile: profile || null,
     isAdmin: auth.isAdmin,
-    canAccessAdmin: auth.canManageOrders,
+    canAccessAdmin: auth.canAccessAdmin,
   });
 }
