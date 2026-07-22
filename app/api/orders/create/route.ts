@@ -8,6 +8,15 @@ import { appLogger } from '@/lib/logger';
 import type { OrderCreateInput, OrderCreateResult } from '@/types/order-workflow';
 import { sendNewOrderNotification, sendOrderConfirmationEmail } from '@/lib/email';
 
+const CAPITAL_OWN_DELIVERY_ZONES = new Set(['1', '2', '4', '5', '9', '10', '11', '12', '13', '14', '15', '16']);
+const CAPITAL_CITY_NAMES = new Set([
+  'guatemala',
+  'ciudad de guatemala',
+  'guatemala city',
+  'capital',
+  'ciudad capital',
+]);
+
 function rateLimitResponse(retryAfterSeconds: number) {
   return NextResponse.json(
     { error: 'Demasiados intentos. Intenta nuevamente en unos segundos.' },
@@ -28,6 +37,27 @@ function getOrderDate(value?: string | null) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function normalizeText(value?: string | null) {
+  return (value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function normalizeZone(value?: string | null) {
+  const match = (value || '').match(/\d+/);
+  return match?.[0] || '';
+}
+
+function supportsCashOnDelivery(input: OrderCreateInput) {
+  const department = normalizeText(input.shipping.department);
+  const city = normalizeText(input.shipping.city);
+  const zone = normalizeZone(input.shipping.zone);
+
+  return department === 'guatemala' && CAPITAL_CITY_NAMES.has(city) && CAPITAL_OWN_DELIVERY_ZONES.has(zone);
 }
 
 async function sendOrderEmails({
@@ -149,18 +179,20 @@ async function sendOrderEmails({
   }
 }
 
-async function markManualPaymentAsBankTransfer(db: any, orderId: string) {
+async function updateManualPaymentMethod(db: any, orderId: string, paymentMethod: OrderCreateInput['paymentMethod']) {
   const writeDb = createAdminClient() || db;
+  const isCashOnDelivery = paymentMethod === 'cash_on_delivery';
 
   const { error } = await writeDb
     .from('payments')
     .update({
-      payment_method: 'bank_transfer',
+      payment_method: isCashOnDelivery ? 'cash_on_delivery' : 'bank_transfer',
       payment_details: {
         mode: 'manual',
-        selected_method: 'bank_transfer',
+        selected_method: isCashOnDelivery ? 'cash_on_delivery' : 'bank_transfer',
         contact_channel: 'whatsapp',
-        requires_manual_confirmation: true,
+        requires_manual_confirmation: !isCashOnDelivery,
+        delivery_method: isCashOnDelivery ? 'own_delivery' : 'guatex_or_manual_coordination',
       },
     })
     .eq('order_id', orderId)
@@ -216,7 +248,14 @@ export async function POST(request: NextRequest) {
 
   const payload = body as OrderCreateInput;
 
-  if (payload.paymentMethod !== 'bank_transfer') {
+  if (payload.paymentMethod === 'cash_on_delivery' && !supportsCashOnDelivery(payload)) {
+    return NextResponse.json(
+      { error: 'El pago contra entrega solo está disponible con mensajería propia en zonas cubiertas de Ciudad de Guatemala.' },
+      { status: 400 }
+    );
+  }
+
+  if (!['bank_transfer', 'cash_on_delivery'].includes(payload.paymentMethod)) {
     return NextResponse.json(
       { error: 'NeoPay todavía no está habilitado. Selecciona transferencia bancaria mientras se completa la certificación.' },
       { status: 503 }
@@ -268,7 +307,7 @@ export async function POST(request: NextRequest) {
   const orderResult = data as OrderCreateResult;
   const customerEmail = auth.user?.email || payload.customerEmail?.trim().toLowerCase();
 
-  await markManualPaymentAsBankTransfer(db, orderResult.orderId);
+  await updateManualPaymentMethod(db, orderResult.orderId, payload.paymentMethod);
 
   if (customerEmail) {
     await sendOrderEmails({

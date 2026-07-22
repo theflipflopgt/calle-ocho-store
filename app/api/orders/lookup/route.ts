@@ -65,6 +65,9 @@ export async function GET(request: NextRequest) {
         tracking_number,
         tracking_url,
         created_at,
+        payments (
+          payment_method
+        ),
         items:order_items(
           id,
           product_name,

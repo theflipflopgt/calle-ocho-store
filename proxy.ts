@@ -74,7 +74,9 @@ export async function proxy(request: NextRequest) {
       return copyCookies(response, NextResponse.redirect(url));
     }
 
-    if (role === 'seller' && !pathname.startsWith('/admin/ordenes')) {
+    const sellerAllowedPaths = ['/admin/ordenes', '/admin/productos/inventario'];
+
+    if (role === 'seller' && !sellerAllowedPaths.some((path) => pathname.startsWith(path))) {
       const url = request.nextUrl.clone();
       url.pathname = '/admin/ordenes';
       return copyCookies(response, NextResponse.redirect(url));

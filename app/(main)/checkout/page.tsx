@@ -34,6 +34,14 @@ const DEPARTMENTS = [
 // Costo de envío
 const SHIPPING_COST = SHIPPING_COST_GTQ;
 const FREE_SHIPPING_THRESHOLD = FREE_SHIPPING_THRESHOLD_GTQ;
+const CAPITAL_OWN_DELIVERY_ZONES = new Set(['1', '2', '4', '5', '9', '10', '11', '12', '13', '14', '15', '16']);
+const CAPITAL_CITY_NAMES = new Set([
+  'guatemala',
+  'ciudad de guatemala',
+  'guatemala city',
+  'capital',
+  'ciudad capital',
+]);
 
 interface ShippingFormData {
   customerEmail: string;
@@ -50,6 +58,37 @@ interface ShippingFormData {
 }
 
 type CheckoutStep = 'shipping' | 'review' | 'processing';
+
+function normalizeText(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function normalizeZone(value: string) {
+  const match = value.match(/\d+/);
+  return match?.[0] || '';
+}
+
+function getDeliveryCoverage(formData: ShippingFormData) {
+  const department = normalizeText(formData.department);
+  const city = normalizeText(formData.city);
+  const zone = normalizeZone(formData.zone);
+  const isCapitalCity = department === 'guatemala' && CAPITAL_CITY_NAMES.has(city);
+  const isOwnDelivery = isCapitalCity && CAPITAL_OWN_DELIVERY_ZONES.has(zone);
+
+  return {
+    zone,
+    isCapitalCity,
+    isOwnDelivery,
+    deliveryLabel: isOwnDelivery ? 'Mensajería propia' : 'Guatex o coordinación por WhatsApp',
+    paymentHint: isOwnDelivery
+      ? 'Disponible pago contra entrega o transferencia.'
+      : 'Para municipios y departamentos se requiere pago previo por transferencia. Tarjeta quedará disponible cuando se active NeoPay.',
+  };
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -82,6 +121,7 @@ export default function CheckoutPage() {
   const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
   const discountAmount = appliedCoupon?.discount_amount || 0;
   const total = subtotal + shippingCost - discountAmount;
+  const deliveryCoverage = getDeliveryCoverage(formData);
 
   // Cargar dirección guardada del usuario
   useEffect(() => {
@@ -131,6 +171,12 @@ export default function CheckoutPage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!deliveryCoverage.isOwnDelivery && paymentMethod === 'cash_on_delivery') {
+      setPaymentMethod('bank_transfer');
+    }
+  }, [deliveryCoverage.isOwnDelivery, paymentMethod]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -160,6 +206,11 @@ export default function CheckoutPage() {
     }
     if (!formData.department) {
       setError('Por favor selecciona el departamento');
+      return false;
+    }
+    const coverage = getDeliveryCoverage(formData);
+    if (coverage.isCapitalCity && !coverage.zone) {
+      setError('Por favor indica la zona para confirmar si aplica mensajería propia o Guatex.');
       return false;
     }
     return true;
@@ -305,6 +356,7 @@ export default function CheckoutPage() {
               error={error}
               onContinue={handleContinueToReview}
               isGuest={!user}
+              deliveryCoverage={deliveryCoverage}
             />
           )}
 
@@ -318,6 +370,7 @@ export default function CheckoutPage() {
               error={error}
               paymentMethod={paymentMethod}
               onPaymentMethodChange={setPaymentMethod}
+              deliveryCoverage={deliveryCoverage}
             />
           )}
 
@@ -399,12 +452,14 @@ function ShippingForm({
   error,
   onContinue,
   isGuest,
+  deliveryCoverage,
 }: {
   formData: ShippingFormData;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   error: string | null;
   onContinue: () => void;
   isGuest: boolean;
+  deliveryCoverage: ReturnType<typeof getDeliveryCoverage>;
 }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6">
@@ -549,6 +604,17 @@ function ShippingForm({
         </div>
 
         {/* Additional References */}
+        <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm">
+          <p className="font-medium text-brand-black">{deliveryCoverage.deliveryLabel}</p>
+          <p className="mt-1 text-gray-600">{deliveryCoverage.paymentHint}</p>
+          {deliveryCoverage.isCapitalCity && !deliveryCoverage.isOwnDelivery && (
+            <p className="mt-1 text-xs text-gray-500">
+              Si tu zona tiene cobertura especial, el equipo de ventas puede confirmarlo por WhatsApp.
+            </p>
+          )}
+        </div>
+
+        {/* Additional References */}
         <div>
           <Label htmlFor="additionalReferences">Referencias adicionales</Label>
           <Textarea
@@ -597,6 +663,7 @@ function ReviewStep({
   error,
   paymentMethod,
   onPaymentMethodChange,
+  deliveryCoverage,
 }: {
   items: any[];
   formData: ShippingFormData;
@@ -606,6 +673,7 @@ function ReviewStep({
   error: string | null;
   paymentMethod: CheckoutPaymentMethod;
   onPaymentMethodChange: (method: CheckoutPaymentMethod) => void;
+  deliveryCoverage: ReturnType<typeof getDeliveryCoverage>;
 }) {
   return (
     <div className="space-y-6">
@@ -699,14 +767,27 @@ function ReviewStep({
             Método de Pago
           </h2>
         </div>
+        <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm">
+          <p className="font-medium text-brand-black">{deliveryCoverage.deliveryLabel}</p>
+          <p className="mt-1 text-gray-600">{deliveryCoverage.paymentHint}</p>
+        </div>
         <div className="space-y-3">
           <PaymentOption
             id="bank_transfer"
             title={MANUAL_PAYMENT_LABEL}
-            description="Enviaremos tu pedido al equipo de ventas. Te contactaremos por WhatsApp para validar disponibilidad, datos de transferencia y comprobante."
+            description="Pago previo. Enviaremos tu pedido al equipo de ventas y te contactaremos por WhatsApp para validar disponibilidad, datos de transferencia y comprobante."
             checked={paymentMethod === 'bank_transfer'}
             onSelect={() => onPaymentMethodChange('bank_transfer')}
           />
+          {deliveryCoverage.isOwnDelivery && (
+            <PaymentOption
+              id="cash_on_delivery"
+              title="Pago contra entrega"
+              description="Disponible únicamente con mensajería propia en zonas cubiertas de Ciudad de Guatemala. El equipo confirmará la entrega por WhatsApp."
+              checked={paymentMethod === 'cash_on_delivery'}
+              onSelect={() => onPaymentMethodChange('cash_on_delivery')}
+            />
+          )}
           <PaymentOption
             id="card"
             title="Tarjeta de crédito o débito"

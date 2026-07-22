@@ -45,6 +45,11 @@ const navigation = [
   { name: 'Configuración', href: '/admin/configuracion', icon: Settings },
 ];
 
+const sellerNavigation = [
+  { name: 'Órdenes', href: '/admin/ordenes', icon: ShoppingCart },
+  { name: 'Inventario', href: '/admin/productos/inventario', icon: Package },
+];
+
 function AdminLayoutContent({
   children,
 }: {
@@ -55,9 +60,7 @@ function AdminLayoutContent({
   const pathname = usePathname();
   const { user, profile, signOut, isLoading } = useAuth();
   const isSeller = profile?.role === 'seller';
-  const visibleNavigation = isSeller
-    ? navigation.filter((item) => item.href === '/admin/ordenes')
-    : navigation;
+  const visibleNavigation = isSeller ? sellerNavigation : navigation;
 
   const toggleExpand = (name: string) => {
     setExpandedItems((prev) =>

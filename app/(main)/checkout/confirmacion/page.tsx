@@ -27,6 +27,9 @@ interface OrderData {
   tracking_number: string | null;
   tracking_url: string | null;
   created_at: string | null;
+  payments?: {
+    payment_method: string;
+  }[];
   items: {
     id: string;
     product_name: string;
@@ -101,8 +104,12 @@ function ConfirmacionContent() {
     );
   }
 
+  const paymentMethod = order.payments?.[0]?.payment_method || 'bank_transfer';
+  const isCashOnDelivery = paymentMethod === 'cash_on_delivery';
   const whatsappMessage = encodeURIComponent(
-    `Hola calleOCHO, quiero coordinar el pago por transferencia de mi pedido ${order.order_number}.`
+    isCashOnDelivery
+      ? `Hola calleOCHO, quiero coordinar la entrega de mi pedido ${order.order_number}. Elegí pago contra entrega.`
+      : `Hola calleOCHO, quiero coordinar el pago por transferencia de mi pedido ${order.order_number}.`
   );
   const whatsappHref = `https://wa.me/${BUSINESS_WHATSAPP_NUMBER}?text=${whatsappMessage}`;
 
@@ -117,7 +124,9 @@ function ConfirmacionContent() {
           Pedido recibido
         </h1>
         <p className="text-gray-600">
-          Gracias. Tu pedido quedó pendiente de validación; te contactaremos por WhatsApp para coordinar la transferencia y la entrega.
+          {isCashOnDelivery
+            ? 'Gracias. Tu pedido quedó pendiente de coordinación; te contactaremos por WhatsApp para confirmar la entrega con mensajería propia.'
+            : 'Gracias. Tu pedido quedó pendiente de validación; te contactaremos por WhatsApp para coordinar la transferencia y la entrega.'}
         </p>
       </div>
 
@@ -202,16 +211,22 @@ function ConfirmacionContent() {
           <div className="text-sm text-gray-600 space-y-2">
             <p>{order.shipping_phone}</p>
             <p className="text-xs text-gray-500">
-              Te contactaremos para coordinar la entrega y validar el pago por transferencia.
+              {isCashOnDelivery
+                ? 'Te contactaremos para coordinar la entrega con mensajería propia.'
+                : 'Te contactaremos para coordinar la entrega y validar el pago por transferencia.'}
             </p>
           </div>
         </div>
       </div>
 
       <div className="bg-green-50 border border-green-100 rounded-xl p-4 sm:p-6 mb-6">
-        <h3 className="font-semibold text-brand-black mb-2">Pago por transferencia pendiente</h3>
+        <h3 className="font-semibold text-brand-black mb-2">
+          {isCashOnDelivery ? 'Pago contra entrega pendiente' : 'Pago por transferencia pendiente'}
+        </h3>
         <p className="text-sm text-gray-600 mb-4">
-          Nuestro equipo de ventas revisará tu pedido y te compartirá por WhatsApp los datos finales para completar la transferencia.
+          {isCashOnDelivery
+            ? 'Nuestro equipo de ventas revisará tu pedido y confirmará por WhatsApp la cobertura y hora aproximada de entrega.'
+            : 'Nuestro equipo de ventas revisará tu pedido y te compartirá por WhatsApp los datos finales para completar la transferencia.'}
         </p>
         <Button asChild className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
           <a href={whatsappHref} target="_blank" rel="noopener noreferrer">

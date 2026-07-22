@@ -19,7 +19,7 @@ export interface ShippingInput {
   additionalReferences?: string;
 }
 
-export type CheckoutPaymentMethod = 'bank_transfer' | 'card' | 'neocuotas';
+export type CheckoutPaymentMethod = 'bank_transfer' | 'cash_on_delivery' | 'card' | 'neocuotas';
 
 export interface OrderCreateInput {
   customerEmail?: string;
@@ -44,7 +44,7 @@ export interface OrderCreateResult {
 }
 
 export interface PaymentManualRecord {
-  method: CheckoutPaymentMethod | 'cash_on_delivery';
+  method: CheckoutPaymentMethod;
   status: 'pending' | 'completed' | 'refunded';
   amount: number;
 }

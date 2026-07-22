@@ -8,7 +8,15 @@ export async function requireAuthenticatedUser() {
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    return { supabase, user: null, role: null, isAdmin: false, isSeller: false, canManageOrders: false };
+    return {
+      supabase,
+      user: null,
+      role: null,
+      isAdmin: false,
+      isSeller: false,
+      canManageOrders: false,
+      canViewInventory: false,
+    };
   }
 
   const { data: profile } = await supabase
@@ -28,5 +36,6 @@ export async function requireAuthenticatedUser() {
     isAdmin,
     isSeller,
     canManageOrders: isAdmin || isSeller,
+    canViewInventory: isAdmin || isSeller,
   };
 }

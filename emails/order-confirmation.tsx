@@ -84,10 +84,10 @@ export default function OrderConfirmationEmail({
               Hola {customerName},
             </Text>
             <Text style={text}>
-              Gracias por tu compra. Hemos recibido tu pedido <strong>{orderNumber}</strong>. El pago por transferencia queda pendiente de validación.
+              Gracias por tu compra. Hemos recibido tu pedido <strong>{orderNumber}</strong>. La forma de pago y entrega queda pendiente de validación.
             </Text>
             <Text style={text}>
-              Nuestro equipo te contactará por WhatsApp para confirmar disponibilidad, datos de transferencia y comprobante antes de preparar el envío.
+              Nuestro equipo te contactará por WhatsApp para confirmar disponibilidad, forma de pago, cobertura de entrega y siguientes pasos.
             </Text>
             <Text style={text}>
               Fecha del pedido: {orderDate}
@@ -202,7 +202,7 @@ export default function OrderConfirmationEmail({
           {/* Footer */}
           <Section style={content}>
             <Text style={text}>
-              Te notificaremos cuando el pago sea validado y tu pedido avance a preparación o envío.
+              Te notificaremos cuando tu pedido avance a preparación o envío.
             </Text>
             <Text style={text}>
               <Link href={`${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://calleochostore.com'}/seguimiento`} style={button}>

@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
+import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { Search, Filter, AlertTriangle, Package, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,11 @@ interface InventoryPageProps {
 }
 
 async function getInventory(filters: { stock?: string; q?: string }) {
-  const supabase = await createClient();
+  const auth = await requireAuthenticatedUser();
+  if (!auth.canViewInventory) return [];
+
+  const admin = createAdminClient();
+  const supabase = (admin || auth.supabase) as any;
 
   let query = supabase
     .from('product_variants')
@@ -198,12 +203,9 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                   return (
                     <tr key={variant.id} className={`hover:bg-gray-50 ${isOutOfStock ? 'bg-red-50/50' : ''}`}>
                       <td className="px-6 py-4">
-                        <Link
-                          href={`/admin/productos/${variant.products?.id}`}
-                          className="font-medium text-brand-black hover:text-brand-blue"
-                        >
+                        <span className="font-medium text-brand-black">
                           {variant.products?.name || 'Producto eliminado'}
-                        </Link>
+                        </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">

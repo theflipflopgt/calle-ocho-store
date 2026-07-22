@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { OrderStatusUpdater } from './status-updater';
 import { AdminNotesEditor } from './admin-notes-editor';
+import { OrderAdjustmentsEditor } from './order-adjustments-editor';
 import type { OrderStatus } from '@/types/order-workflow';
 
 interface OrderDetailPageProps {
@@ -53,7 +54,7 @@ async function getOrder(id: string) {
     return null;
   }
 
-  return order;
+  return { order, auth };
 }
 
 const statusConfig: Record<string, { label: string; class: string }> = {
@@ -83,12 +84,13 @@ const paymentStatusLabels: Record<string, { label: string; className: string }> 
 
 export default async function OrderDetailPage({ params }: OrderDetailPageProps) {
   const { id } = await params;
-  const order = await getOrder(id);
+  const result = await getOrder(id);
 
-  if (!order) {
+  if (!result) {
     notFound();
   }
 
+  const { order, auth } = result;
   const status = statusConfig[order.status] || statusConfig.pending;
 
   return (
@@ -231,6 +233,16 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
         <div className="space-y-6">
           {/* Status Update */}
           <OrderStatusUpdater orderId={order.id} currentStatus={order.status as OrderStatus} />
+
+          {auth.isAdmin && (
+            <OrderAdjustmentsEditor
+              orderId={order.id}
+              subtotal={Number(order.subtotal)}
+              shippingCost={Number(order.shipping_cost)}
+              discountAmount={Number(order.discount_amount || 0)}
+              status={order.status}
+            />
+          )}
 
           {/* Customer Info */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">

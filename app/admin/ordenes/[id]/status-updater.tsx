@@ -27,7 +27,8 @@ export function OrderStatusUpdater({ orderId, currentStatus }: OrderStatusUpdate
   const [trackingUrl, setTrackingUrl] = useState('');
   const [note, setNote] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [isSavingNote, setIsSavingNote] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
 
@@ -36,7 +37,7 @@ export function OrderStatusUpdater({ orderId, currentStatus }: OrderStatusUpdate
 
   const handleUpdateStatus = async (newStatus: OrderStatus) => {
     setIsLoading(true);
-    setSuccess(false);
+    setSuccessMessage(null);
     setErrorMessage(null);
 
     try {
@@ -57,15 +58,43 @@ export function OrderStatusUpdater({ orderId, currentStatus }: OrderStatusUpdate
       }
 
       setStatus(newStatus);
-      setSuccess(true);
+      setSuccessMessage('Estado actualizado correctamente');
       setNote('');
-      setTimeout(() => setSuccess(false), 3000);
+      setTimeout(() => setSuccessMessage(null), 3000);
       router.refresh();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'No se pudo actualizar el estado');
       console.error('Error updating order status:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSaveNote = async () => {
+    setIsSavingNote(true);
+    setSuccessMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/notes`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: note }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || 'No se pudo guardar la nota interna');
+      }
+
+      setSuccessMessage('Nota interna guardada');
+      setTimeout(() => setSuccessMessage(null), 3000);
+      router.refresh();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'No se pudo guardar la nota interna');
+      console.error('Error saving order note:', error);
+    } finally {
+      setIsSavingNote(false);
     }
   };
 
@@ -163,20 +192,30 @@ export function OrderStatusUpdater({ orderId, currentStatus }: OrderStatusUpdate
       )}
 
       <div className="space-y-2 mb-6">
-        <Label htmlFor="statusNote" className="text-xs">Nota interna del cambio (opcional)</Label>
+        <Label htmlFor="statusNote" className="text-xs">Nota interna del pedido</Label>
         <Input
           id="statusNote"
           value={note}
           onChange={(event) => setNote(event.target.value)}
           placeholder="Ej: Cliente confirmó recepción por WhatsApp"
         />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={handleSaveNote}
+          disabled={isSavingNote || isLoading}
+        >
+          {isSavingNote ? 'Guardando nota...' : 'Guardar nota interna'}
+        </Button>
       </div>
 
       {/* Success Message */}
-      {success && (
+      {successMessage && (
         <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm flex items-center gap-2 mb-4">
           <CheckCircle className="h-4 w-4" />
-          Estado actualizado correctamente
+          {successMessage}
         </div>
       )}
 
