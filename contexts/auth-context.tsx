@@ -83,14 +83,7 @@ export function AuthProvider({
     full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || null,
     email: authUser.email || null,
     phone: authUser.phone || null,
-    role:
-      authUser.app_metadata?.role === 'admin' || authUser.user_metadata?.role === 'admin'
-        ? 'admin'
-        : authUser.app_metadata?.role === 'seller' || authUser.user_metadata?.role === 'seller'
-          ? 'seller'
-          : authUser.app_metadata?.role === 'warehouse' || authUser.user_metadata?.role === 'warehouse'
-            ? 'warehouse'
-            : 'customer',
+    role: 'customer',
     avatar_url: authUser.user_metadata?.avatar_url || null,
   }), []);
 
@@ -247,20 +240,12 @@ export function AuthProvider({
     };
   }, [applySession, fetchServerIdentity, initialUser, supabase]);
 
-  const metadataIsAdmin =
-    user?.app_metadata?.role === 'admin' || user?.user_metadata?.role === 'admin';
-  const metadataIsSeller =
-    user?.app_metadata?.role === 'seller' || user?.user_metadata?.role === 'seller';
-  const metadataIsWarehouse =
-    user?.app_metadata?.role === 'warehouse' || user?.user_metadata?.role === 'warehouse';
-  const isAdmin = Boolean(user && (profile?.role === 'admin' || metadataIsAdmin || serverIsAdmin));
+  const isAdmin = Boolean(user && (profile?.role === 'admin' || serverIsAdmin));
   const canAccessAdmin = Boolean(
     user && (
       isAdmin ||
       profile?.role === 'seller' ||
       profile?.role === 'warehouse' ||
-      metadataIsSeller ||
-      metadataIsWarehouse ||
       serverCanAccessAdmin
     )
   );

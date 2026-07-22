@@ -130,7 +130,6 @@ export async function POST(request: NextRequest) {
       shipping_cost: order.shipping_cost,
       total: order.total,
       shipping_recipient_name: order.shipping_recipient_name,
-      shipping_phone: order.shipping_phone,
       shipping_city: order.shipping_city,
       shipping_department: order.shipping_department,
       tracking_number: order.tracking_number,

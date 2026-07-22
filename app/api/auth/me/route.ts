@@ -24,8 +24,6 @@ export async function GET() {
       id: auth.user.id,
       email: auth.user.email,
       phone: auth.user.phone,
-      app_metadata: auth.user.app_metadata,
-      user_metadata: auth.user.user_metadata,
     },
     profile: profile || null,
     isAdmin: auth.isAdmin,

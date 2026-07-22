@@ -15,7 +15,6 @@ interface TrackedOrder {
   shipping_cost: number;
   total: number;
   shipping_recipient_name: string;
-  shipping_phone: string;
   shipping_city: string;
   shipping_department: string;
   tracking_number: string | null;
