@@ -8,7 +8,7 @@ import { CheckCircle2, Package, Truck, Phone, MapPin, Loader2, ShoppingBag } fro
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
-import { BUSINESS_WHATSAPP_NUMBER } from '@/lib/constants/business';
+import { BUSINESS_WHATSAPP_DISPLAY, BUSINESS_WHATSAPP_NUMBER } from '@/lib/constants/business';
 
 interface OrderData {
   id: string;
@@ -101,6 +101,11 @@ function ConfirmacionContent() {
     );
   }
 
+  const whatsappMessage = encodeURIComponent(
+    `Hola calleOCHO, quiero coordinar el pago por transferencia de mi pedido ${order.order_number}.`
+  );
+  const whatsappHref = `https://wa.me/${BUSINESS_WHATSAPP_NUMBER}?text=${whatsappMessage}`;
+
   return (
     <div className="max-w-3xl mx-auto">
       {/* Success Header */}
@@ -109,10 +114,10 @@ function ConfirmacionContent() {
           <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-brand-black mb-2">
-          ¡Pedido confirmado!
+          Pedido recibido
         </h1>
         <p className="text-gray-600">
-          Gracias por tu compra. Te enviaremos un correo con los detalles.
+          Gracias. Tu pedido quedó pendiente de validación; te contactaremos por WhatsApp para coordinar la transferencia y la entrega.
         </p>
       </div>
 
@@ -149,7 +154,7 @@ function ConfirmacionContent() {
         <div className="flex items-center justify-between">
           <OrderStep
             icon={<Package className="w-5 h-5" />}
-            label="Confirmado"
+            label="Pendiente"
             isActive={true}
             isComplete={true}
           />
@@ -197,10 +202,22 @@ function ConfirmacionContent() {
           <div className="text-sm text-gray-600 space-y-2">
             <p>{order.shipping_phone}</p>
             <p className="text-xs text-gray-500">
-              Te contactaremos para coordinar la entrega y el pago.
+              Te contactaremos para coordinar la entrega y validar el pago por transferencia.
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="bg-green-50 border border-green-100 rounded-xl p-4 sm:p-6 mb-6">
+        <h3 className="font-semibold text-brand-black mb-2">Pago por transferencia pendiente</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Nuestro equipo de ventas revisará tu pedido y te compartirá por WhatsApp los datos finales para completar la transferencia.
+        </p>
+        <Button asChild className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
+          <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
+            Contactar por WhatsApp {BUSINESS_WHATSAPP_DISPLAY}
+          </a>
+        </Button>
       </div>
 
       {/* Order Items */}

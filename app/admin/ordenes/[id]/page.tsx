@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
+import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { notFound } from 'next/navigation';
 import { formatPrice } from '@/lib/utils/currency';
 import { ArrowLeft, Package, MapPin, User, CreditCard, Truck } from 'lucide-react';
@@ -13,7 +14,11 @@ interface OrderDetailPageProps {
 }
 
 async function getOrder(id: string) {
-  const supabase = await createClient();
+  const auth = await requireAuthenticatedUser();
+  if (!auth.canManageOrders) return null;
+
+  const admin = createAdminClient();
+  const supabase = (admin || auth.supabase) as any;
 
   const { data: order, error } = await supabase
     .from('orders')
@@ -52,7 +57,7 @@ async function getOrder(id: string) {
 }
 
 const statusConfig: Record<string, { label: string; class: string }> = {
-  pending: { label: 'Pendiente', class: 'bg-yellow-100 text-yellow-800' },
+  pending: { label: 'Pendiente de pago', class: 'bg-yellow-100 text-yellow-800' },
   paid: { label: 'Pagado', class: 'bg-blue-100 text-blue-800' },
   processing: { label: 'Procesando', class: 'bg-purple-100 text-purple-800' },
   shipped: { label: 'Enviado', class: 'bg-indigo-100 text-indigo-800' },

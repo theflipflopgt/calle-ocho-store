@@ -87,11 +87,14 @@ export async function GET(request: Request) {
         .eq('id', data.user.id)
         .single();
 
-      // If user is admin and no specific redirect, send to admin panel
+      // If staff has no specific redirect, send them to their panel area.
       let finalRedirect = next;
       if (profile?.role === 'admin' && next === '/') {
         finalRedirect = '/admin';
         console.log('✅ [Auth Callback] Admin user detected, redirecting to /admin');
+      } else if (profile?.role === 'seller' && next === '/') {
+        finalRedirect = '/admin/ordenes';
+        console.log('✅ [Auth Callback] Seller user detected, redirecting to /admin/ordenes');
       } else {
         console.log('✅ [Auth Callback] Redirecting to:', next);
       }

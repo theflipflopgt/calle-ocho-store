@@ -19,7 +19,7 @@ import { useCart } from '@/contexts/cart-context';
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const { user, profile, isLoading, isAdmin, signOut } = useAuth();
+  const { user, profile, isLoading, canAccessAdmin, signOut } = useAuth();
   const { itemCount, openCart } = useCart();
 
   const handleSignOut = async () => {
@@ -116,12 +116,12 @@ export function Header() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    {isAdmin && (
+                    {canAccessAdmin && (
                       <>
                         <DropdownMenuItem asChild>
                           <Link href="/admin" className="cursor-pointer font-medium text-brand-blue">
                             <ShieldCheck className="mr-2 h-4 w-4" />
-                            Admin Panel
+                            Panel de gestión
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -230,14 +230,14 @@ export function Header() {
               {/* Auth section in mobile menu */}
               {user ? (
                 <>
-                  {isAdmin && (
+                  {canAccessAdmin && (
                     <Link
                       href="/admin"
                       className="flex items-center gap-3 py-2.5 sm:py-3 text-sm sm:text-base font-medium text-brand-blue active:bg-gray-50"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <ShieldCheck className="h-5 w-5" />
-                      Admin Panel
+                      Panel de gestión
                     </Link>
                   )}
                       <Link

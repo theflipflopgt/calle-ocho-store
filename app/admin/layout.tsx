@@ -54,6 +54,10 @@ function AdminLayoutContent({
   const [expandedItems, setExpandedItems] = useState<string[]>(['Productos']);
   const pathname = usePathname();
   const { user, profile, signOut, isLoading } = useAuth();
+  const isSeller = profile?.role === 'seller';
+  const visibleNavigation = isSeller
+    ? navigation.filter((item) => item.href === '/admin/ordenes')
+    : navigation;
 
   const toggleExpand = (name: string) => {
     setExpandedItems((prev) =>
@@ -159,11 +163,13 @@ function AdminLayoutContent({
       >
         {/* Logo */}
         <div className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-4 border-b border-gray-200">
-          <Link href="/admin" className="flex items-center gap-2">
+          <Link href={isSeller ? '/admin/ordenes' : '/admin'} className="flex items-center gap-2">
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-brand-black rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xs sm:text-sm">TF</span>
             </div>
-            <span className="font-semibold text-brand-black text-sm sm:text-base truncate">Admin Panel</span>
+            <span className="font-semibold text-brand-black text-sm sm:text-base truncate">
+              {isSeller ? 'Ventas' : 'Admin Panel'}
+            </span>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -175,7 +181,7 @@ function AdminLayoutContent({
 
         {/* Navigation */}
         <nav className="p-3 sm:p-4 space-y-1 overflow-y-auto h-[calc(100vh-7rem)] sm:h-[calc(100vh-8rem)]">
-          {navigation.map((item) => (
+          {visibleNavigation.map((item) => (
             <NavItem key={item.name} item={item} />
           ))}
         </nav>

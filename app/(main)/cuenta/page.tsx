@@ -226,7 +226,7 @@ export default function CuentaPage() {
           <div className="flex justify-between py-2 border-b border-gray-50">
             <span className="text-gray-600">Tipo de cuenta</span>
             <span className="font-medium text-brand-black">
-              {profile.role === 'admin' ? 'Administrador' : 'Cliente'}
+              {profile.role === 'admin' ? 'Administrador' : profile.role === 'seller' ? 'Vendedor' : 'Cliente'}
             </span>
           </div>
           <div className="flex justify-between py-2">

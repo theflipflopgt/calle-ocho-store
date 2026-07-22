@@ -60,9 +60,23 @@ export async function proxy(request: NextRequest) {
       .eq('id', userId)
       .maybeSingle();
 
-    if (profile?.role !== 'admin') {
+    const role = profile?.role || null;
+
+    if (!['admin', 'seller'].includes(role)) {
       const url = request.nextUrl.clone();
       url.pathname = '/';
+      return copyCookies(response, NextResponse.redirect(url));
+    }
+
+    if (role === 'seller' && pathname === '/admin') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin/ordenes';
+      return copyCookies(response, NextResponse.redirect(url));
+    }
+
+    if (role === 'seller' && !pathname.startsWith('/admin/ordenes')) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin/ordenes';
       return copyCookies(response, NextResponse.redirect(url));
     }
   }

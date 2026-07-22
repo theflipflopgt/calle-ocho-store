@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
+import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
+import { createAdminClient } from '@/lib/supabase/admin';
 import Link from 'next/link';
 import { Download, Eye, Search, Filter, Package, Clock, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,11 @@ interface OrdersPageProps {
 }
 
 async function getOrders(filters: { status?: string; q?: string; from?: string; to?: string }) {
-  const supabase = await createClient();
+  const auth = await requireAuthenticatedUser();
+  if (!auth.canManageOrders) return [];
+
+  const admin = createAdminClient();
+  const supabase = (admin || auth.supabase) as any;
 
   let query = supabase
     .from('orders')
@@ -53,7 +58,7 @@ async function getOrders(filters: { status?: string; q?: string; from?: string; 
 }
 
 const statusConfig: Record<string, { label: string; class: string }> = {
-  pending: { label: 'Pendiente', class: 'bg-yellow-100 text-yellow-800' },
+  pending: { label: 'Pendiente de pago', class: 'bg-yellow-100 text-yellow-800' },
   paid: { label: 'Pagado', class: 'bg-blue-100 text-blue-800' },
   processing: { label: 'Procesando', class: 'bg-purple-100 text-purple-800' },
   shipped: { label: 'Enviado', class: 'bg-indigo-100 text-indigo-800' },
@@ -64,6 +69,7 @@ const statusConfig: Record<string, { label: string; class: string }> = {
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const filters = await searchParams;
+  const auth = await requireAuthenticatedUser();
   const orders = await getOrders(filters);
   const exportParams = new URLSearchParams();
   if (filters.status) exportParams.set('status', filters.status);
@@ -87,15 +93,17 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
           <h1 className="text-2xl font-bold text-brand-black">Órdenes</h1>
           <p className="text-gray-600 mt-1">Gestiona los pedidos de la tienda</p>
         </div>
-        <Link
-          href={exportHref}
-          className="w-full sm:w-auto"
-        >
-          <Button variant="outline" className="w-full sm:w-auto">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar ventas
-          </Button>
-        </Link>
+        {auth.isAdmin && (
+          <Link
+            href={exportHref}
+            className="w-full sm:w-auto"
+          >
+            <Button variant="outline" className="w-full sm:w-auto">
+              <Download className="h-4 w-4 mr-2" />
+              Exportar ventas
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Stats */}

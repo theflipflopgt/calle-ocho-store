@@ -63,7 +63,7 @@ export default function OrderConfirmationEmail({
   return (
     <Html>
       <Head />
-      <Preview>Tu pedido {orderNumber} ha sido confirmado - Calle Ocho Store</Preview>
+      <Preview>Recibimos tu pedido {orderNumber} - Calle Ocho Store</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header */}
@@ -79,12 +79,15 @@ export default function OrderConfirmationEmail({
 
           {/* Success Message */}
           <Section style={content}>
-            <Heading style={h1}>¡Pedido Confirmado!</Heading>
+            <Heading style={h1}>Pedido recibido</Heading>
             <Text style={text}>
               Hola {customerName},
             </Text>
             <Text style={text}>
-              Gracias por tu compra. Hemos recibido tu pedido <strong>{orderNumber}</strong> y lo estamos preparando.
+              Gracias por tu compra. Hemos recibido tu pedido <strong>{orderNumber}</strong>. El pago por transferencia queda pendiente de validación.
+            </Text>
+            <Text style={text}>
+              Nuestro equipo te contactará por WhatsApp para confirmar disponibilidad, datos de transferencia y comprobante antes de preparar el envío.
             </Text>
             <Text style={text}>
               Fecha del pedido: {orderDate}
@@ -199,11 +202,11 @@ export default function OrderConfirmationEmail({
           {/* Footer */}
           <Section style={content}>
             <Text style={text}>
-              Te notificaremos cuando tu pedido sea enviado. Puedes hacer seguimiento de tu pedido en tu cuenta.
+              Te notificaremos cuando el pago sea validado y tu pedido avance a preparación o envío.
             </Text>
             <Text style={text}>
-              <Link href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/cuenta/pedidos`} style={button}>
-                Ver mi pedido
+              <Link href={`${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://calleochostore.com'}/seguimiento`} style={button}>
+                Consultar seguimiento
               </Link>
             </Text>
           </Section>
@@ -211,7 +214,7 @@ export default function OrderConfirmationEmail({
           {/* Contact */}
           <Section style={footer}>
             <Text style={footerText}>
-              ¿Necesitas ayuda? Contáctanos por WhatsApp: <Link href="https://wa.me/50212345678" style={link}>+502 1234-5678</Link>
+              ¿Necesitas ayuda? Contáctanos por WhatsApp: <Link href="https://wa.me/50252498898" style={link}>+502 5249 8898</Link>
             </Text>
             <Text style={footerText}>
               © 2026 Calle Ocho Store. Todos los derechos reservados.

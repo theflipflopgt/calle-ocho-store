@@ -149,6 +149,32 @@ async function sendOrderEmails({
   }
 }
 
+async function markManualPaymentAsBankTransfer(db: any, orderId: string) {
+  const writeDb = createAdminClient() || db;
+
+  const { error } = await writeDb
+    .from('payments')
+    .update({
+      payment_method: 'bank_transfer',
+      payment_details: {
+        mode: 'manual',
+        selected_method: 'bank_transfer',
+        contact_channel: 'whatsapp',
+        requires_manual_confirmation: true,
+      },
+    })
+    .eq('order_id', orderId)
+    .in('payment_method', ['cash_on_delivery', 'bank_transfer'])
+    .eq('status', 'pending');
+
+  if (error) {
+    appLogger.warn('orders.create.payment_method_update_failed', {
+      orderId,
+      error: error.message,
+    });
+  }
+}
+
 export async function POST(request: NextRequest) {
   const requestId = crypto.randomUUID();
   const ip = getClientIpFromHeaders(request.headers);
@@ -241,6 +267,8 @@ export async function POST(request: NextRequest) {
 
   const orderResult = data as OrderCreateResult;
   const customerEmail = auth.user?.email || payload.customerEmail?.trim().toLowerCase();
+
+  await markManualPaymentAsBankTransfer(db, orderResult.orderId);
 
   if (customerEmail) {
     await sendOrderEmails({

@@ -188,7 +188,7 @@ export default function NewOrderNotificationEmail({
           {/* Actions */}
           <Section style={content}>
             <Text style={text}>
-              <Link href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/pedidos`} style={button}>
+              <Link href={`${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://calleochostore.com'}/admin/ordenes`} style={button}>
                 Ver pedido en el panel de administración
               </Link>
             </Text>

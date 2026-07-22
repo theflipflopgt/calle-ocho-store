@@ -30,7 +30,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  if (!auth.isAdmin) {
+  if (!auth.canManageOrders) {
     return NextResponse.json({ error: 'Permisos insuficientes' }, { status: 403 });
   }
 

@@ -217,6 +217,13 @@ export function salesRowsToXlsx(rows: any[]) {
   ];
 }
 
+function normalizeCatalogGender(gender?: string | null) {
+  if (gender === 'women') return 'mujer';
+  if (gender === 'men') return 'hombre';
+  if (gender === 'kids') return 'ninos';
+  return gender || 'unisex';
+}
+
 export function rowsToCatalogProducts(rows: any[]) {
   const map = new Map<string, any>();
 
@@ -225,6 +232,8 @@ export function rowsToCatalogProducts(rows: any[]) {
       map.set(product.id, {
         name: product.name,
         brand: product.brands?.name || 'Sin marca',
+        gender: normalizeCatalogGender(product.gender),
+        isOffer: Number(product.compare_at_price || 0) > Number(product.base_price || 0),
         sku: product.sku || '',
         price: formatPrice(Number(product.base_price || 0)),
         previousPrice:
@@ -244,7 +253,7 @@ export function rowsToCatalogProducts(rows: any[]) {
     if (variant?.is_available && Number(variant.stock_quantity || 0) > 0) {
       map
         .get(product.id)
-        .variants.push(`${color?.color_name || 'Color'} US ${variant.size_us} - ${variant.stock_quantity} disp.`);
+        .variants.push(`Talla US ${variant.size_us} - ${color?.color_name || 'Color'} - ${variant.stock_quantity} disp.`);
     }
   }
 

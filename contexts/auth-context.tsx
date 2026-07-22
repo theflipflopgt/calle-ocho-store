@@ -9,7 +9,7 @@ export interface Profile {
   full_name: string | null;
   email: string | null;
   phone: string | null;
-  role: 'customer' | 'admin';
+  role: 'customer' | 'admin' | 'seller';
   avatar_url: string | null;
 }
 
@@ -19,6 +19,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   isAdmin: boolean;
+  canAccessAdmin: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -28,6 +29,7 @@ interface AuthProviderProps {
   initialUser?: User | null;
   initialProfile?: Profile | null;
   initialIsAdmin?: boolean;
+  initialCanAccessAdmin?: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -36,6 +38,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   isLoading: true,
   isAdmin: false,
+  canAccessAdmin: false,
   signOut: async () => {},
   refreshProfile: async () => {},
 });
@@ -63,6 +66,7 @@ export function AuthProvider({
   initialUser = null,
   initialProfile = null,
   initialIsAdmin = false,
+  initialCanAccessAdmin = false,
 }: AuthProviderProps) {
   const supabase = useMemo(() => createClient(), []);
   const [user, setUser] = useState<User | null>(initialUser);
@@ -70,6 +74,7 @@ export function AuthProvider({
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(!initialUser);
   const [serverIsAdmin, setServerIsAdmin] = useState(initialIsAdmin);
+  const [serverCanAccessAdmin, setServerCanAccessAdmin] = useState(initialCanAccessAdmin);
   const mountedRef = useRef(true);
   const activeUserIdRef = useRef<string | null>(initialUser?.id ?? null);
 
@@ -81,7 +86,9 @@ export function AuthProvider({
     role:
       authUser.app_metadata?.role === 'admin' || authUser.user_metadata?.role === 'admin'
         ? 'admin'
-        : 'customer',
+        : authUser.app_metadata?.role === 'seller' || authUser.user_metadata?.role === 'seller'
+          ? 'seller'
+          : 'customer',
     avatar_url: authUser.user_metadata?.avatar_url || null,
   }), []);
 
@@ -103,6 +110,7 @@ export function AuthProvider({
           setSession(null);
           setProfile(null);
           setServerIsAdmin(false);
+          setServerCanAccessAdmin(false);
         }
         return;
       }
@@ -113,6 +121,7 @@ export function AuthProvider({
       setUser((current) => current ?? (data.user as User));
       if (data.profile) setProfile(data.profile as Profile);
       setServerIsAdmin(Boolean(data.isAdmin));
+      setServerCanAccessAdmin(Boolean(data.canAccessAdmin));
     } catch {
       // A temporary network failure must never log the user out or hide the profile menu.
     }
@@ -136,6 +145,7 @@ export function AuthProvider({
       if (!error && data) {
         setProfile(data as Profile);
         setServerIsAdmin(data.role === 'admin');
+        setServerCanAccessAdmin(['admin', 'seller'].includes(data.role));
       } else {
         setProfile((current) => current?.id === expectedUserId ? current : getFallbackProfile(authUser));
       }
@@ -159,6 +169,7 @@ export function AuthProvider({
     } else {
       setProfile(null);
       setServerIsAdmin(false);
+      setServerCanAccessAdmin(false);
     }
   }, [fetchProfile, getFallbackProfile]);
 
@@ -187,6 +198,7 @@ export function AuthProvider({
     setUser(null);
     setProfile(null);
     setServerIsAdmin(false);
+    setServerCanAccessAdmin(false);
     setIsLoading(false);
   }, [supabase]);
 
@@ -235,7 +247,12 @@ export function AuthProvider({
 
   const metadataIsAdmin =
     user?.app_metadata?.role === 'admin' || user?.user_metadata?.role === 'admin';
+  const metadataIsSeller =
+    user?.app_metadata?.role === 'seller' || user?.user_metadata?.role === 'seller';
   const isAdmin = Boolean(user && (profile?.role === 'admin' || metadataIsAdmin || serverIsAdmin));
+  const canAccessAdmin = Boolean(
+    user && (isAdmin || profile?.role === 'seller' || metadataIsSeller || serverCanAccessAdmin)
+  );
 
   const value = useMemo(() => ({
     user,
@@ -243,9 +260,10 @@ export function AuthProvider({
     session,
     isLoading,
     isAdmin,
+    canAccessAdmin,
     signOut,
     refreshProfile,
-  }), [isAdmin, isLoading, profile, refreshProfile, session, signOut, user]);
+  }), [canAccessAdmin, isAdmin, isLoading, profile, refreshProfile, session, signOut, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

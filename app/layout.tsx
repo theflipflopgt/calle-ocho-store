@@ -45,6 +45,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             initialUser={user}
             initialProfile={initialProfile}
             initialIsAdmin={initialProfile?.role === 'admin'}
+            initialCanAccessAdmin={['admin', 'seller'].includes(initialProfile?.role || '')}
           >
             <CartProvider>
               <WishlistProvider>{children}</WishlistProvider>

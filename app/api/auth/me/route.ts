@@ -9,6 +9,7 @@ export async function GET() {
       user: null,
       profile: null,
       isAdmin: false,
+      canAccessAdmin: false,
     });
   }
 
@@ -28,5 +29,6 @@ export async function GET() {
     },
     profile: profile || null,
     isAdmin: auth.isAdmin,
+    canAccessAdmin: auth.canManageOrders,
   });
 }

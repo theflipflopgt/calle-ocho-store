@@ -481,7 +481,7 @@ function ShippingForm({
         </div>
 
         {/* Zone and Neighborhood */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="zone">Zona</Label>
             <Input
@@ -703,7 +703,7 @@ function ReviewStep({
           <PaymentOption
             id="bank_transfer"
             title={MANUAL_PAYMENT_LABEL}
-            description="Recibirás los datos bancarios y tu pedido quedará pendiente de confirmación."
+            description="Enviaremos tu pedido al equipo de ventas. Te contactaremos por WhatsApp para validar disponibilidad, datos de transferencia y comprobante."
             checked={paymentMethod === 'bank_transfer'}
             onSelect={() => onPaymentMethodChange('bank_transfer')}
           />
@@ -750,7 +750,7 @@ function ReviewStep({
               Procesando...
             </>
           ) : (
-            'Confirmar Pedido'
+            'Enviar pedido'
           )}
         </Button>
       </div>
@@ -834,7 +834,7 @@ function OrderSummary({
   showCouponInput?: boolean;
 }) {
   return (
-    <div className="bg-gray-50 rounded-xl p-4 sm:p-6 sticky top-24">
+    <div className="bg-gray-50 rounded-xl p-4 sm:p-6 lg:sticky lg:top-24">
       <h2 className="text-lg font-semibold text-brand-black mb-4">
         Resumen del Pedido
       </h2>

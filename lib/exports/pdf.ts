@@ -112,9 +112,14 @@ function getJpegDimensions(buffer: Buffer) {
   return null;
 }
 
-async function fetchJpeg(url?: string | null) {
-  if (!url) return null;
+function toCloudinaryJpegUrl(url: string) {
+  if (!url.includes('/upload/')) return null;
+  if (url.includes('/f_jpg') || url.includes('/f_auto')) return null;
 
+  return url.replace('/upload/', '/upload/f_jpg,q_auto/');
+}
+
+async function fetchJpegFromUrl(url: string) {
   try {
     const response = await fetch(url, { signal: AbortSignal.timeout(3500) });
     if (!response.ok) return null;
@@ -136,6 +141,18 @@ async function fetchJpeg(url?: string | null) {
   }
 }
 
+async function fetchJpeg(url?: string | null) {
+  if (!url) return null;
+
+  const directImage = await fetchJpegFromUrl(url);
+  if (directImage) return directImage;
+
+  const cloudinaryJpegUrl = toCloudinaryJpegUrl(url);
+  if (!cloudinaryJpegUrl) return null;
+
+  return fetchJpegFromUrl(cloudinaryJpegUrl);
+}
+
 interface PdfImage {
   name: string;
   buffer: Buffer;
@@ -146,6 +163,8 @@ interface PdfImage {
 export interface CatalogPdfProduct {
   name: string;
   brand: string;
+  gender?: string | null;
+  isOffer?: boolean;
   sku: string;
   price: string;
   previousPrice?: string | null;
@@ -156,6 +175,12 @@ export interface CatalogPdfProduct {
 
 interface PreparedProduct extends CatalogPdfProduct {
   image?: PdfImage;
+}
+
+export interface CatalogPdfSection {
+  title: string;
+  products: CatalogPdfProduct[];
+  showPreviousPrice?: boolean;
 }
 
 function drawImage(image: PdfImage, x: number, y: number, boxWidth: number, boxHeight: number) {
@@ -190,6 +215,14 @@ function drawFooter() {
     'S',
     text('Precios y disponibilidad sujetos a cambios. Contáctanos para cotizaciones empresariales.', 42, 28, 8, 'F1', '#6b7280'),
     text('WhatsApp: 5249-8898  |  Correo: pedidos@calleochostore.com', 42, 16, 8, 'F2', '#1d4ed8'),
+  ].join('\n');
+}
+
+function drawSectionBanner(title: string, productCount: number) {
+  return [
+    rect(42, 704, 528, 24, '#eff6ff'),
+    text(title, 58, 712, 12, 'F2', '#1d4ed8'),
+    text(`${productCount} modelo${productCount === 1 ? '' : 's'} con stock disponible`, 430, 712, 9, 'F1', '#374151'),
   ].join('\n');
 }
 
@@ -231,7 +264,7 @@ function drawProductCard(product: PreparedProduct, index: number, showPreviousPr
   } else {
     commands.push(text(product.price, textX, cardY + 78, 16, 'F2', '#111827'));
   }
-  commands.push(text(`SKU: ${product.sku || 'N/D'}`, textX, cardY + 56, 9, 'F1', '#4b5563'));
+  commands.push(text(`Código: ${product.sku || 'N/D'}`, textX, cardY + 56, 9, 'F1', '#4b5563'));
   commands.push(rect(textX, cardY + 36, 88, 18, '#dcfce7'));
   commands.push(text('DISPONIBLE', textX + 12, cardY + 42, 8, 'F2', '#166534'));
 
@@ -243,7 +276,7 @@ function drawProductCard(product: PreparedProduct, index: number, showPreviousPr
   return commands.join('\n');
 }
 
-async function prepareProducts(products: CatalogPdfProduct[]): Promise<PreparedProduct[]> {
+async function prepareProducts(products: CatalogPdfProduct[], imagePrefix = 'Im'): Promise<PreparedProduct[]> {
   const productsWithStock = products.filter((product) => product.variants.length > 0);
 
   return Promise.all(
@@ -254,7 +287,7 @@ async function prepareProducts(products: CatalogPdfProduct[]): Promise<PreparedP
         ...product,
         image: image
           ? {
-              name: `Im${index + 1}`,
+              name: `${imagePrefix}${index + 1}`,
               ...image,
             }
           : undefined,
@@ -360,19 +393,84 @@ function buildPdf(pages: string[], images: PdfImage[]): Buffer {
 
 export async function createCatalogPdf(
   products: CatalogPdfProduct[],
-  options: { title?: string; showPreviousPrice?: boolean } = {}
+  options: { title?: string; showPreviousPrice?: boolean; sections?: CatalogPdfSection[] } = {}
 ): Promise<Buffer> {
   const title = options.title || 'Catálogo Completo';
-  const preparedProducts = await prepareProducts(products);
   const logo = await loadLogoJpeg();
+  const perPage = 3;
+  const pages: string[] = [];
+
+  if (options.sections?.length) {
+    const preparedSections = await Promise.all(
+      options.sections.map(async (section, sectionIndex) => ({
+        ...section,
+        products: await prepareProducts(section.products, `S${sectionIndex + 1}Im`),
+      }))
+    );
+    const visibleSections = preparedSections.filter((section) => section.products.length > 0);
+    const allImages = [
+      ...(logo ? [logo] : []),
+      ...visibleSections
+        .flatMap((section) => section.products.map((product) => product.image))
+        .filter((image): image is PdfImage => Boolean(image)),
+    ];
+    const pageGroups: Array<{
+      section: (typeof visibleSections)[number];
+      products: PreparedProduct[];
+    }> = [];
+
+    for (const section of visibleSections) {
+      for (let index = 0; index < section.products.length; index += perPage) {
+        pageGroups.push({
+          section,
+          products: section.products.slice(index, index + perPage),
+        });
+      }
+    }
+
+    if (pageGroups.length === 0) {
+      pages.push(
+        [
+          drawHeader(1, 1, title),
+          rect(42, 560, 528, 120, '#eff6ff'),
+          text('No hay productos con stock disponible para catálogo.', 78, 620, 16, 'F2', '#111827'),
+          text('Agrega stock a una talla para incluir el calzado en el PDF comercial.', 78, 596, 11, 'F1', '#374151'),
+          drawFooter(),
+        ].join('\n')
+      );
+
+      return buildPdf(pages, allImages);
+    }
+
+    const totalPages = pageGroups.length;
+
+    pageGroups.forEach((pageGroup, pageIndex) => {
+      const commands = [
+        drawHeader(pageIndex + 1, totalPages, title),
+        drawSectionBanner(pageGroup.section.title, pageGroup.section.products.length),
+      ];
+
+      if (logo) {
+        commands.push(drawImage(logo, 492, 744, 54, 38));
+      }
+
+      pageGroup.products.forEach((product, index) => {
+        commands.push(drawProductCard(product, index, pageGroup.section.showPreviousPrice));
+      });
+
+      commands.push(drawFooter());
+      pages.push(commands.join('\n'));
+    });
+
+    return buildPdf(pages, allImages);
+  }
+
+  const preparedProducts = await prepareProducts(products);
   const allImages = [
     ...(logo ? [logo] : []),
     ...preparedProducts.map((product) => product.image).filter((image): image is PdfImage => Boolean(image)),
   ];
-
-  const perPage = 3;
   const totalPages = Math.max(1, Math.ceil(preparedProducts.length / perPage));
-  const pages: string[] = [];
 
   if (preparedProducts.length === 0) {
     pages.push(
@@ -389,8 +487,7 @@ export async function createCatalogPdf(
       const pageProducts = preparedProducts.slice(pageIndex * perPage, pageIndex * perPage + perPage);
       const commands = [
         drawHeader(pageIndex + 1, totalPages, title),
-        rect(42, 704, 528, 24, '#eff6ff'),
-        text('Productos disponibles para venta empresarial', 58, 712, 11, 'F2', '#1d4ed8'),
+        drawSectionBanner('Productos disponibles para venta empresarial', preparedProducts.length),
       ];
 
       if (logo) {
