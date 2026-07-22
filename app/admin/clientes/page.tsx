@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatPrice } from '@/lib/utils/currency';
 import Link from 'next/link';
+import { SyncAuthUsersButton } from './sync-auth-users-button';
 
 interface CustomersPageProps {
   searchParams: Promise<{ q?: string; role?: string }>;
@@ -61,11 +62,14 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-brand-black">Usuarios</h1>
-        <p className="text-gray-600 mt-1">
-          {stats.total} usuarios registrados • {stats.customers} clientes • {stats.admins} admins • {stats.withOrders} han comprado
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-black">Usuarios</h1>
+          <p className="text-gray-600 mt-1">
+            {stats.total} usuarios registrados • {stats.customers} clientes • {stats.admins} admins • {stats.withOrders} han comprado
+          </p>
+        </div>
+        <SyncAuthUsersButton />
       </div>
 
       {/* Filters */}

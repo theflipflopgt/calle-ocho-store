@@ -1,18 +1,21 @@
 import Image from 'next/image';
 import { Heart, ShieldCheck, Sparkles } from 'lucide-react';
+import { getHomeContent } from '@/lib/home-content';
 
 export const metadata = {
   title: 'Nuestra historia | Calle Ocho Store',
   description: 'Conoce la historia y el propósito de Calle Ocho Store.',
 };
 
-export default function NosotrosPage() {
+export default async function NosotrosPage() {
+  const homeContent = await getHomeContent();
+
   return (
     <main>
       <section className="relative min-h-[380px] overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1800&auto=format&fit=crop"
-          alt="Estilo urbano Calle Ocho Store"
+          src={homeContent.footerPages.nosotros.image}
+          alt={homeContent.footerPages.nosotros.alt}
           fill
           className="object-cover"
           priority

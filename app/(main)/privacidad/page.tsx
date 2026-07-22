@@ -1,12 +1,14 @@
 import Image from 'next/image';
 import { Bell, LockKeyhole, MailCheck, UserCheck } from 'lucide-react';
+import { getHomeContent } from '@/lib/home-content';
 
 export const metadata = {
   title: 'Política de privacidad | Calle Ocho Store',
   description: 'Política de privacidad y uso de datos de Calle Ocho Store.',
 };
 
-export default function PrivacidadPage() {
+export default async function PrivacidadPage() {
+  const homeContent = await getHomeContent();
   const sections = [
     ['Datos que podemos recopilar', 'Nombre, correo electrónico, teléfono, dirección de envío, historial de pedidos y datos necesarios para brindarte atención.', UserCheck],
     ['Uso de la información', 'Usamos tus datos para crear pedidos, coordinar entregas, enviar confirmaciones y responder solicitudes de soporte.', MailCheck],
@@ -18,8 +20,8 @@ export default function PrivacidadPage() {
     <main>
       <section className="relative min-h-[320px] overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1563013544-824ae1b704d3?q=80&w=1800&auto=format&fit=crop"
-          alt="Privacidad y seguridad"
+          src={homeContent.footerPages.privacidad.image}
+          alt={homeContent.footerPages.privacidad.alt}
           fill
           className="object-cover"
           priority

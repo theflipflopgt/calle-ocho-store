@@ -2,19 +2,22 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Mail, MessageCircle, PhoneCall } from 'lucide-react';
 import { BUSINESS_WHATSAPP_DISPLAY, BUSINESS_WHATSAPP_NUMBER } from '@/lib/constants/business';
+import { getHomeContent } from '@/lib/home-content';
 
 export const metadata = {
   title: 'Contáctanos | Calle Ocho Store',
   description: 'Contacta a Calle Ocho Store para resolver dudas sobre productos, pedidos y entregas.',
 };
 
-export default function ContactoPage() {
+export default async function ContactoPage() {
+  const homeContent = await getHomeContent();
+
   return (
     <main>
       <section className="relative min-h-[340px] overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1523398002811-999ca8dec234?q=80&w=1800&auto=format&fit=crop"
-          alt="Atención de Calle Ocho Store"
+          src={homeContent.footerPages.contacto.image}
+          alt={homeContent.footerPages.contacto.alt}
           fill
           className="object-cover"
           priority

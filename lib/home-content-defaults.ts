@@ -37,6 +37,21 @@ export interface HomeContent {
     image: string;
     alt: string;
   };
+  footerPages: {
+    seguimiento: HomeFooterPageContent;
+    envios: HomeFooterPageContent;
+    guiaTallas: HomeFooterPageContent;
+    devoluciones: HomeFooterPageContent;
+    contacto: HomeFooterPageContent;
+    nosotros: HomeFooterPageContent;
+    terminos: HomeFooterPageContent;
+    privacidad: HomeFooterPageContent;
+  };
+}
+
+export interface HomeFooterPageContent {
+  image: string;
+  alt: string;
 }
 
 export const DEFAULT_HOME_CONTENT: HomeContent = {
@@ -123,5 +138,47 @@ export const DEFAULT_HOME_CONTENT: HomeContent = {
     image:
       'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1200&auto=format&fit=crop',
     alt: 'Calzado calleOCHO',
+  },
+  footerPages: {
+    seguimiento: {
+      image:
+        'https://images.unsplash.com/photo-1552346154-21d32810aba3?q=80&w=1800&auto=format&fit=crop',
+      alt: 'Seguimiento de pedido',
+    },
+    envios: {
+      image:
+        'https://images.unsplash.com/photo-1616401784845-180882ba9ba8?q=80&w=1800&auto=format&fit=crop',
+      alt: 'Entrega de calzado',
+    },
+    guiaTallas: {
+      image:
+        'https://images.unsplash.com/photo-1514989940723-e8e51635b782?q=80&w=1800&auto=format&fit=crop',
+      alt: 'Guía de tallas de calzado',
+    },
+    devoluciones: {
+      image:
+        'https://images.unsplash.com/photo-1543508282-6319a3e2621f?q=80&w=1800&auto=format&fit=crop',
+      alt: 'Tenis para cambios y devoluciones',
+    },
+    contacto: {
+      image:
+        'https://images.unsplash.com/photo-1523398002811-999ca8dec234?q=80&w=1800&auto=format&fit=crop',
+      alt: 'Atención de Calle Ocho Store',
+    },
+    nosotros: {
+      image:
+        'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1800&auto=format&fit=crop',
+      alt: 'Estilo urbano Calle Ocho Store',
+    },
+    terminos: {
+      image:
+        'https://images.unsplash.com/photo-1521093470119-a3acdc43374a?q=80&w=1800&auto=format&fit=crop',
+      alt: 'Términos de Calle Ocho Store',
+    },
+    privacidad: {
+      image:
+        'https://images.unsplash.com/photo-1563013544-824ae1b704d3?q=80&w=1800&auto=format&fit=crop',
+      alt: 'Privacidad y seguridad',
+    },
   },
 };

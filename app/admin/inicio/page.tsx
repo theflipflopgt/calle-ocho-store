@@ -10,8 +10,23 @@ import {
   DEFAULT_HOME_CONTENT,
   type HomeCategoryContent,
   type HomeContent,
+  type HomeFooterPageContent,
   type HomeHeroSlide,
 } from '@/lib/home-content-defaults';
+
+const footerPageLabels: {
+  key: keyof HomeContent['footerPages'];
+  label: string;
+}[] = [
+  { key: 'seguimiento', label: 'Estado del pedido' },
+  { key: 'envios', label: 'Envío y entrega' },
+  { key: 'guiaTallas', label: 'Guía de tallas' },
+  { key: 'devoluciones', label: 'Devoluciones' },
+  { key: 'contacto', label: 'Contáctanos' },
+  { key: 'nosotros', label: 'Nuestra historia' },
+  { key: 'terminos', label: 'Términos de uso' },
+  { key: 'privacidad', label: 'Política de privacidad' },
+];
 
 function blankCategory(order: number): HomeCategoryContent {
   return {
@@ -115,10 +130,19 @@ export default function AdminHomeContentPage() {
     }));
   };
 
-  const updateFooter = (updates: Partial<HomeContent['footer']>) => {
+  const updateFooterPage = (
+    key: keyof HomeContent['footerPages'],
+    updates: Partial<HomeFooterPageContent>
+  ) => {
     setContent((current) => ({
       ...current,
-      footer: { ...current.footer, ...updates },
+      footerPages: {
+        ...current.footerPages,
+        [key]: {
+          ...current.footerPages[key],
+          ...updates,
+        },
+      },
     }));
   };
 
@@ -316,26 +340,32 @@ export default function AdminHomeContentPage() {
       <section className="rounded-xl border border-gray-200 bg-white p-6">
         <div className="mb-5 flex items-center gap-2">
           <ImageIcon className="h-5 w-5 text-brand-blue" />
-          <h2 className="font-semibold text-brand-black">Imagen del footer</h2>
+          <h2 className="font-semibold text-brand-black">Imagenes de paginas del footer</h2>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="space-y-2 lg:col-span-2">
-            <Label>URL de imagen</Label>
-            <Input
-              value={content.footer.image}
-              onChange={(event) => updateFooter({ image: event.target.value })}
-              placeholder="https://..."
-            />
-          </div>
-          <div className="space-y-2 lg:col-span-2">
-            <Label>Texto alternativo</Label>
-            <Input
-              value={content.footer.alt}
-              onChange={(event) => updateFooter({ alt: event.target.value })}
-              placeholder="Calzado calleOCHO"
-            />
-          </div>
+        <div className="space-y-5">
+          {footerPageLabels.map(({ key, label }) => (
+            <div key={key} className="rounded-lg border border-gray-200 p-4">
+              <p className="mb-4 font-medium text-brand-black">{label}</p>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div className="space-y-2 lg:col-span-2">
+                  <Label>URL de imagen</Label>
+                  <Input
+                    value={content.footerPages[key].image}
+                    onChange={(event) => updateFooterPage(key, { image: event.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="space-y-2 lg:col-span-2">
+                  <Label>Texto alternativo</Label>
+                  <Input
+                    value={content.footerPages[key].alt}
+                    onChange={(event) => updateFooterPage(key, { alt: event.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

@@ -1,4 +1,6 @@
+import Image from 'next/image';
 import { Ruler, Shirt, Users } from 'lucide-react';
+import { getHomeContent } from '@/lib/home-content';
 
 export const metadata = {
   title: 'Guía de tallas | Calle Ocho Store',
@@ -87,17 +89,25 @@ const sizeTables: { title: string; icon: typeof Ruler; rows: SizeRow[] }[] = [
   },
 ];
 
-export default function GuiaDeTallasPage() {
+export default async function GuiaDeTallasPage() {
+  const homeContent = await getHomeContent();
+
   return (
     <main className="bg-white">
-      <section className="border-b border-gray-100 bg-gray-50">
-        <div className="container mx-auto px-4 py-12 sm:py-16">
+      <section className="relative min-h-[340px] overflow-hidden">
+        <Image
+          src={homeContent.footerPages.guiaTallas.image}
+          alt={homeContent.footerPages.guiaTallas.alt}
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-transparent" />
+        <div className="container relative z-10 mx-auto flex min-h-[340px] items-center px-4 text-white">
           <div className="max-w-3xl">
-            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-brand-black text-white">
-              <Ruler className="h-7 w-7" />
-            </div>
-            <h1 className="text-4xl font-bold text-brand-black sm:text-5xl">Guía de tallas</h1>
-            <p className="mt-4 text-xl leading-relaxed text-gray-700">
+            <Ruler className="mb-4 h-9 w-9" />
+            <h1 className="text-4xl font-bold sm:text-5xl">Guía de tallas</h1>
+            <p className="mt-4 text-lg leading-relaxed text-white/90">
               Consulta aquí nuestra guía de tallas antes de comprar. Si estás entre dos tallas, escríbenos y te ayudamos a elegir.
             </p>
           </div>

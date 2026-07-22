@@ -1,29 +1,13 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { Facebook, Instagram, Mail } from 'lucide-react';
-import { getHomeContent } from '@/lib/home-content';
 import { NewsletterForm } from './newsletter-form';
 
-export async function Footer() {
-  const homeContent = await getHomeContent();
-
+export function Footer() {
   return (
     <footer className="bg-brand-black text-white mt-12 sm:mt-16 md:mt-20">
       {/* Main Footer */}
       <div className="container mx-auto px-4 py-8 sm:py-10 md:py-16">
-        <div className="grid grid-cols-2 gap-6 sm:gap-8 md:grid-cols-5 md:gap-10">
-          <div className="col-span-2 md:col-span-1">
-            <div className="relative h-32 overflow-hidden rounded-lg border border-white/10 bg-white/5 sm:h-40">
-              <Image
-                src={homeContent.footer.image}
-                alt={homeContent.footer.alt}
-                fill
-                sizes="(max-width: 768px) 100vw, 220px"
-                className="object-cover"
-              />
-            </div>
-          </div>
-
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 md:gap-12">
           {/* Shop */}
           <div>
             <h4 className="text-xs sm:text-sm font-bold mb-3 sm:mb-4 uppercase tracking-wider">Comprar</h4>

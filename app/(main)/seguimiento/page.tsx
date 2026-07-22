@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { CheckCircle2, Clock, PackageCheck, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getHomeContent } from '@/lib/home-content';
 import { TrackingForm } from './tracking-form';
 
 export const metadata = {
@@ -9,7 +10,8 @@ export const metadata = {
   description: 'Consulta el estado de tus pedidos en Calle Ocho Store.',
 };
 
-export default function SeguimientoPage() {
+export default async function SeguimientoPage() {
+  const homeContent = await getHomeContent();
   const statuses = [
     ['Pendiente', 'Recibimos tu pedido y estamos validando la información.', Clock],
     ['Pagado', 'El pago fue confirmado.', CheckCircle2],
@@ -22,8 +24,8 @@ export default function SeguimientoPage() {
     <main>
       <section className="relative min-h-[340px] overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1552346154-21d32810aba3?q=80&w=1800&auto=format&fit=crop"
-          alt="Seguimiento de pedido"
+          src={homeContent.footerPages.seguimiento.image}
+          alt={homeContent.footerPages.seguimiento.alt}
           fill
           className="object-cover"
           priority

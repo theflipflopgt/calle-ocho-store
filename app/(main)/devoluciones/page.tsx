@@ -1,12 +1,14 @@
 import Image from 'next/image';
 import { CheckCircle2, RotateCcw, ShoppingBag, MessageCircle } from 'lucide-react';
+import { getHomeContent } from '@/lib/home-content';
 
 export const metadata = {
   title: 'Cambios y devoluciones | Calle Ocho Store',
   description: 'Política de cambios y devoluciones de Calle Ocho Store.',
 };
 
-export default function DevolucionesPage() {
+export default async function DevolucionesPage() {
+  const homeContent = await getHomeContent();
   const items = [
     ['Condiciones', 'El producto debe estar sin uso, en buen estado y con su empaque original cuando aplique.', CheckCircle2],
     ['Cambios de talla', 'Los cambios dependen de la disponibilidad de inventario. Si la talla no está disponible, revisaremos alternativas contigo.', RotateCcw],
@@ -18,8 +20,8 @@ export default function DevolucionesPage() {
     <main>
       <section className="relative min-h-[340px] overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1543508282-6319a3e2621f?q=80&w=1800&auto=format&fit=crop"
-          alt="Tenis para cambios y devoluciones"
+          src={homeContent.footerPages.devoluciones.image}
+          alt={homeContent.footerPages.devoluciones.alt}
           fill
           className="object-cover"
           priority

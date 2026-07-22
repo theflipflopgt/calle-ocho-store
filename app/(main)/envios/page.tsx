@@ -1,18 +1,21 @@
 import Image from 'next/image';
 import { MapPin, PackageCheck, Truck } from 'lucide-react';
+import { getHomeContent } from '@/lib/home-content';
 
 export const metadata = {
   title: 'Envío y entrega | Calle Ocho Store',
   description: 'Información sobre envíos y entregas de Calle Ocho Store en Guatemala.',
 };
 
-export default function EnviosPage() {
+export default async function EnviosPage() {
+  const homeContent = await getHomeContent();
+
   return (
     <main>
       <section className="relative min-h-[360px] overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1616401784845-180882ba9ba8?q=80&w=1800&auto=format&fit=crop"
-          alt="Entrega de calzado"
+          src={homeContent.footerPages.envios.image}
+          alt={homeContent.footerPages.envios.alt}
           fill
           className="object-cover"
           priority

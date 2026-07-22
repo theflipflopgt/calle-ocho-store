@@ -36,7 +36,7 @@ export async function proxy(request: NextRequest) {
   const userId = !error && data?.claims?.sub ? String(data.claims.sub) : null;
   const pathname = request.nextUrl.pathname;
 
-  const protectedPaths = ['/cuenta', '/account', '/checkout', '/pedidos', '/orders'];
+  const protectedPaths = ['/cuenta', '/account', '/pedidos', '/orders'];
   const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
 
   if (isProtected && !userId) {

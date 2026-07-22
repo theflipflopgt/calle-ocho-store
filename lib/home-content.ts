@@ -31,6 +31,40 @@ function mergeHomeContent(content: Partial<HomeContent> | null | undefined): Hom
       ...DEFAULT_HOME_CONTENT.footer,
       ...(content?.footer || {}),
     },
+    footerPages: {
+      seguimiento: {
+        ...DEFAULT_HOME_CONTENT.footerPages.seguimiento,
+        ...(content?.footerPages?.seguimiento || {}),
+      },
+      envios: {
+        ...DEFAULT_HOME_CONTENT.footerPages.envios,
+        ...(content?.footerPages?.envios || {}),
+      },
+      guiaTallas: {
+        ...DEFAULT_HOME_CONTENT.footerPages.guiaTallas,
+        ...(content?.footerPages?.guiaTallas || {}),
+      },
+      devoluciones: {
+        ...DEFAULT_HOME_CONTENT.footerPages.devoluciones,
+        ...(content?.footerPages?.devoluciones || {}),
+      },
+      contacto: {
+        ...DEFAULT_HOME_CONTENT.footerPages.contacto,
+        ...(content?.footerPages?.contacto || {}),
+      },
+      nosotros: {
+        ...DEFAULT_HOME_CONTENT.footerPages.nosotros,
+        ...(content?.footerPages?.nosotros || {}),
+      },
+      terminos: {
+        ...DEFAULT_HOME_CONTENT.footerPages.terminos,
+        ...(content?.footerPages?.terminos || {}),
+      },
+      privacidad: {
+        ...DEFAULT_HOME_CONTENT.footerPages.privacidad,
+        ...(content?.footerPages?.privacidad || {}),
+      },
+    },
   };
 }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Plus, GripVertical, Eye, EyeOff, Trash2, Search, Package } from 'lucide-react';
+import { Plus, GripVertical, Eye, EyeOff, Trash2, Search, Package, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
@@ -44,6 +44,7 @@ export default function HeroCarouselPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   const supabase = createClient();
 
   // Load featured products
@@ -101,6 +102,24 @@ export default function HeroCarouselPage() {
     }
   };
 
+  const saveFeaturedProducts = async (items = featuredProducts) => {
+    setIsSaving(true);
+    setMessage(null);
+
+    for (const item of items) {
+      await supabase
+        .from('featured_products')
+        .update({
+          display_order: item.display_order,
+          is_active: item.is_active,
+        })
+        .eq('id', item.id);
+    }
+
+    setIsSaving(false);
+    setMessage('Cambios del HeroCarousel guardados.');
+  };
+
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
 
@@ -115,16 +134,7 @@ export default function HeroCarouselPage() {
     }));
 
     setFeaturedProducts(updatedItems);
-
-    // Save to database
-    setIsSaving(true);
-    for (const item of updatedItems) {
-      await supabase
-        .from('featured_products')
-        .update({ display_order: item.display_order })
-        .eq('id', item.id);
-    }
-    setIsSaving(false);
+    await saveFeaturedProducts(updatedItems);
   };
 
   const addProduct = async (productId: string) => {
@@ -162,6 +172,7 @@ export default function HeroCarouselPage() {
 
     if (!error && data) {
       setFeaturedProducts([...featuredProducts, data as any]);
+      setMessage('Producto agregado al HeroCarousel.');
     }
   };
 
@@ -171,7 +182,12 @@ export default function HeroCarouselPage() {
       .delete()
       .eq('id', featuredProductId);
 
-    setFeaturedProducts(featuredProducts.filter(fp => fp.id !== featuredProductId));
+    const remainingProducts = featuredProducts
+      .filter(fp => fp.id !== featuredProductId)
+      .map((item, index) => ({ ...item, display_order: index }));
+
+    setFeaturedProducts(remainingProducts);
+    await saveFeaturedProducts(remainingProducts);
   };
 
   const toggleActive = async (featuredProductId: string, currentActive: boolean) => {
@@ -185,6 +201,7 @@ export default function HeroCarouselPage() {
         fp.id === featuredProductId ? { ...fp, is_active: !currentActive } : fp
       )
     );
+    setMessage('Estado del producto actualizado.');
   };
 
   const filteredAvailableProducts = availableProducts.filter(
@@ -205,12 +222,29 @@ export default function HeroCarouselPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-brand-black">Hero Carousel</h1>
-        <p className="text-gray-600 mt-1">
-          Gestiona los productos destacados del carrusel principal. Arrastra para reordenar.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-black">Hero Carousel</h1>
+          <p className="text-gray-600 mt-1">
+            Gestiona los productos destacados del carrusel principal. Arrastra para reordenar.
+          </p>
+        </div>
+        <Button
+          type="button"
+          onClick={() => saveFeaturedProducts()}
+          disabled={isSaving}
+          className="bg-brand-blue hover:bg-brand-blue/90"
+        >
+          <Save className="mr-2 h-4 w-4" />
+          {isSaving ? 'Guardando...' : 'Guardar cambios'}
+        </Button>
       </div>
+
+      {message && (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          {message}
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Featured Products (Drag & Drop) */}

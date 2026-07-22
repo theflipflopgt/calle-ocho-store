@@ -1,12 +1,14 @@
 import Image from 'next/image';
 import { CreditCard, FileText, PackageCheck, RotateCcw } from 'lucide-react';
+import { getHomeContent } from '@/lib/home-content';
 
 export const metadata = {
   title: 'Términos de uso | Calle Ocho Store',
   description: 'Términos de uso de Calle Ocho Store.',
 };
 
-export default function TerminosPage() {
+export default async function TerminosPage() {
+  const homeContent = await getHomeContent();
   const sections = [
     ['Información de productos', 'Trabajamos para mantener precios, tallas, imágenes y disponibilidad actualizados. Si detectamos un error, te contactaremos antes de procesar el pedido.', PackageCheck],
     ['Pedidos', 'Todo pedido está sujeto a confirmación de inventario, datos de entrega y método de pago.', FileText],
@@ -18,8 +20,8 @@ export default function TerminosPage() {
     <main>
       <section className="relative min-h-[320px] overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1521093470119-a3acdc43374a?q=80&w=1800&auto=format&fit=crop"
-          alt="Términos de Calle Ocho Store"
+          src={homeContent.footerPages.terminos.image}
+          alt={homeContent.footerPages.terminos.alt}
           fill
           className="object-cover"
           priority
