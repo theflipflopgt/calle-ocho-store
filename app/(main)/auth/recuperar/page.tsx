@@ -23,7 +23,7 @@ export default function RecoverPage() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/nueva-contrasena`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/auth/nueva-contrasena`,
       });
 
       if (error) {
@@ -49,6 +49,7 @@ export default function RecoverPage() {
           <h1 className="text-3xl font-bold text-brand-black mb-4">Revisa tu correo</h1>
           <p className="text-gray-600 mb-8">
             Si existe una cuenta con este correo, recibirás un enlace para restablecer tu contraseña.
+            Si no lo ves en unos minutos, revisa spam, promociones o correo no deseado.
           </p>
           <Link href="/auth/login">
             <Button variant="outline" className="gap-2">
@@ -74,7 +75,12 @@ export default function RecoverPage() {
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-brand-black">Recuperar Contraseña</h1>
-          <p className="text-gray-600 mt-2">Te enviaremos un enlace para restablecer tu contraseña</p>
+          <p className="text-gray-600 mt-2">
+            Te enviaremos un enlace para restablecer tu contraseña.
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            Si no aparece en tu bandeja de entrada, revisa spam, promociones o correo no deseado.
+          </p>
         </div>
 
         <form onSubmit={handleRecover} className="space-y-6">
