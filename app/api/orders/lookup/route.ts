@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
         subtotal,
         shipping_cost,
         total,
+        coupon_code,
         shipping_recipient_name,
         shipping_phone,
         shipping_street_address,

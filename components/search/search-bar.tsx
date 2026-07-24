@@ -6,6 +6,7 @@ import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { trackSearch } from '@/lib/analytics';
 
 interface SearchBarProps {
   defaultValue?: string;
@@ -33,6 +34,7 @@ export function SearchBar({
     // Preserve other search params
     const params = new URLSearchParams(searchParams.toString());
     params.set('q', query.trim());
+    trackSearch(query.trim());
 
     router.push(`/buscar?${params.toString()}`);
   }, [query, router, searchParams]);
@@ -101,6 +103,7 @@ export function HeaderSearch() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
+    trackSearch(query.trim());
     router.push(`/buscar?q=${encodeURIComponent(query.trim())}`);
     setIsOpen(false);
     setQuery('');

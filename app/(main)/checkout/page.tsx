@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { CouponInput } from '@/components/checkout/coupon-input';
 import { type CouponValidationResult } from '@/lib/coupons';
+import { trackBeginCheckout } from '@/lib/analytics';
 import type { CheckoutPaymentMethod, OrderCreateInput, OrderCreateResult } from '@/types/order-workflow';
 import {
   FREE_SHIPPING_THRESHOLD_GTQ,
@@ -219,6 +220,18 @@ export default function CheckoutPage() {
 
   const handleContinueToReview = () => {
     if (validateShipping()) {
+      trackBeginCheckout(
+        total,
+        items.map((item) => ({
+          item_id: item.variant_id,
+          item_name: item.variant.product_color.product.name,
+          item_brand: item.variant.product_color.product.brand.name,
+          item_variant: `${item.variant.product_color.color_name} / US ${item.variant.size_us}`,
+          price: Number(item.price_at_add),
+          quantity: item.quantity,
+        })),
+        appliedCoupon?.coupon?.code
+      );
       setStep('review');
       window.scrollTo(0, 0);
     }

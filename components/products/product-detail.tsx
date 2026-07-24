@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, ShoppingBag, Minus, Plus, ChevronLeft, ChevronRight, Check, Truck, RotateCcw, Shield, Loader2, X } from 'lucide-react';
@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { useCart } from '@/contexts/cart-context';
 import { useWishlistContext } from '@/contexts/wishlist-context';
 import type { ProductWithDetails } from '@/types/product';
+import { trackAddToCart, trackViewItem } from '@/lib/analytics';
 
 interface ProductDetailProps {
   product: ProductWithDetails;
@@ -43,6 +44,17 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
   const maxQuantity = selectedVariant?.stock_quantity || 1;
 
+  useEffect(() => {
+    trackViewItem({
+      item_id: product.id,
+      item_name: product.name,
+      item_brand: product.brand.name,
+      item_category: product.category.name,
+      price: Number(product.lowestPrice || product.base_price),
+      quantity: 1,
+    });
+  }, [product]);
+
   // Reset image and variant when color changes
   const handleColorChange = (index: number) => {
     setSelectedColorIndex(index);
@@ -63,8 +75,22 @@ export function ProductDetail({ product }: ProductDetailProps) {
     if (!selectedVariantId || isAddingToCart) return;
     setIsAddingToCart(true);
     try {
+      let added = true;
       for (let i = 0; i < quantity; i++) {
-        await addItem(selectedVariantId, 1);
+        const result = await addItem(selectedVariantId, 1);
+        added = added && result;
+      }
+
+      if (added && selectedVariant) {
+        trackAddToCart({
+          item_id: selectedVariant.id,
+          item_name: product.name,
+          item_brand: product.brand.name,
+          item_category: product.category.name,
+          item_variant: `${selectedColor?.color_name || ''} / US ${selectedVariant.size_us}`,
+          price: Number(selectedVariant.price_override || product.base_price),
+          quantity,
+        });
       }
     } finally {
       setIsAddingToCart(false);

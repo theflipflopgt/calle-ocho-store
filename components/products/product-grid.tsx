@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect } from 'react';
 import { ProductCard } from './product-card';
 import { useCart } from '@/contexts/cart-context';
 import { useWishlistContext } from '@/contexts/wishlist-context';
 import type { ProductWithDetails } from '@/types/product';
+import { trackViewItemList } from '@/lib/analytics';
 
 interface ProductGridProps {
   products: ProductWithDetails[];
@@ -13,6 +15,20 @@ interface ProductGridProps {
 export function ProductGrid({ products, emptyMessage = 'No se encontraron productos' }: ProductGridProps) {
   const { addItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlistContext();
+
+  useEffect(() => {
+    trackViewItemList(
+      products.map((product, index) => ({
+        item_id: product.id,
+        item_name: product.name,
+        item_brand: product.brand.name,
+        item_category: product.category.name,
+        price: Number(product.lowestPrice || product.base_price),
+        index,
+      })),
+      'Catálogo de productos'
+    );
+  }, [products]);
 
   const handleQuickAdd = async (variantId: string) => {
     await addItem(variantId, 1);

@@ -5,6 +5,7 @@ import { CartProvider } from '@/contexts/cart-context';
 import { WishlistProvider } from '@/contexts/wishlist-context';
 import { createClient } from '@/lib/supabase/server';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
+import { GoogleTagManager } from '@/components/analytics/google-tag-manager';
 import './globals.css';
 
 const defaultUrl = 'https://calleochostore.com';
@@ -15,7 +16,27 @@ export const metadata: Metadata = {
     default: 'Calle Ocho Store | Tienda de Tenis en Guatemala',
     template: '%s | Calle Ocho Store',
   },
-  description: 'Tienda de tenis y sneakers en Guatemala. Las mejores marcas de moda urbana: Nike, Adidas, New Balance, Puma y más. Envío gratis en compras mayores a Q1,000.',
+  description: 'Compra tenis, sneakers, ropa y accesorios originales en Guatemala. Encuentra Nike, Adidas, New Balance, Puma y más en Calle Ocho Store.',
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    locale: 'es_GT',
+    url: '/',
+    siteName: 'Calle Ocho Store',
+    title: 'Calle Ocho Store | Tenis y sneakers en Guatemala',
+    description: 'Compra tenis, sneakers, ropa y accesorios originales en Guatemala.',
+    images: [{ url: '/opengraph-image.png', width: 1200, height: 630, alt: 'Calle Ocho Store' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Calle Ocho Store | Tenis y sneakers en Guatemala',
+    description: 'Compra tenis, sneakers, ropa y accesorios originales en Guatemala.',
+    images: ['/twitter-image.png'],
+  },
+  robots: { index: true, follow: true },
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -35,6 +56,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="es" suppressHydrationWarning>
       <body className="antialiased">
+        <GoogleTagManager />
         <GoogleAnalytics />
         <ThemeProvider
           attribute="class"

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
 import { BUSINESS_WHATSAPP_DISPLAY, BUSINESS_WHATSAPP_NUMBER } from '@/lib/constants/business';
+import { trackPurchase } from '@/lib/analytics';
 
 interface OrderData {
   id: string;
@@ -17,6 +18,7 @@ interface OrderData {
   subtotal: number;
   shipping_cost: number;
   total: number;
+  coupon_code?: string | null;
   shipping_recipient_name: string;
   shipping_phone: string;
   shipping_street_address: string;
@@ -84,6 +86,30 @@ function ConfirmacionContent() {
 
     fetchOrder();
   }, [orderNumber, accessToken]);
+
+  useEffect(() => {
+    if (!order) return;
+
+    const storageKey = `ga4_purchase_${order.order_number}`;
+    if (window.localStorage.getItem(storageKey)) return;
+
+    trackPurchase({
+      transactionId: order.order_number,
+      value: Number(order.total),
+      shipping: Number(order.shipping_cost),
+      coupon: order.coupon_code || undefined,
+      items: order.items.map((item) => ({
+        item_id: item.id,
+        item_name: item.product_name,
+        item_brand: item.brand_name,
+        item_variant: `${item.color_name} / US ${item.size_us}`,
+        price: Number(item.unit_price),
+        quantity: item.quantity,
+      })),
+    });
+
+    window.localStorage.setItem(storageKey, '1');
+  }, [order]);
 
   if (isLoading) {
     return (
