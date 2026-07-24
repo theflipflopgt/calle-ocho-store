@@ -7,15 +7,26 @@ import { mapOrderErrorMessage } from '@/lib/orders/errors';
 import { appLogger } from '@/lib/logger';
 import type { OrderCreateInput, OrderCreateResult } from '@/types/order-workflow';
 import { sendNewOrderNotification, sendOrderConfirmationEmail } from '@/lib/email';
+import { getDeliveryCoverage } from '@/lib/shipping';
 
 const CASH_ON_DELIVERY_ENABLED = process.env.CASH_ON_DELIVERY_ENABLED === 'true';
-const CAPITAL_CITY_NAMES = new Set([
-  'guatemala',
-  'ciudad de guatemala',
-  'guatemala city',
-  'capital',
-  'ciudad capital',
-]);
+
+function deliveryFor(input: OrderCreateInput) {
+  return getDeliveryCoverage(
+    input.shipping.department,
+    input.shipping.city,
+    0,
+    CASH_ON_DELIVERY_ENABLED
+  );
+}
+
+function supportsOwnDelivery(input: OrderCreateInput) {
+  return deliveryFor(input).isOwnDelivery;
+}
+
+function supportsCashOnDelivery(input: OrderCreateInput) {
+  return deliveryFor(input).cashOnDeliveryAllowed;
+}
 
 function rateLimitResponse(retryAfterSeconds: number) {
   return NextResponse.json(
@@ -37,25 +48,6 @@ function getOrderDate(value?: string | null) {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function normalizeText(value?: string | null) {
-  return (value || '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
-
-function supportsOwnDelivery(input: OrderCreateInput) {
-  const department = normalizeText(input.shipping.department);
-  const city = normalizeText(input.shipping.city);
-
-  return department === 'guatemala' && CAPITAL_CITY_NAMES.has(city);
-}
-
-function supportsCashOnDelivery(input: OrderCreateInput) {
-  return CASH_ON_DELIVERY_ENABLED && supportsOwnDelivery(input);
 }
 
 async function sendOrderEmails({
@@ -200,7 +192,8 @@ async function updateManualPaymentMethod({
         selected_method: isCashOnDelivery ? 'cash_on_delivery' : 'bank_transfer',
         contact_channel: 'whatsapp',
         requires_manual_confirmation: !isCashOnDelivery,
-        delivery_method: isOwnDelivery ? 'own_delivery' : 'guatex_or_manual_coordination',
+        delivery_method: isOwnDelivery ? 'own_delivery' : 'guatex_collect',
+        shipping_fee_collection: isOwnDelivery ? 'included_in_order' : 'paid_to_carrier_on_delivery',
       },
     })
     .eq('order_id', orderId)
@@ -258,7 +251,7 @@ export async function POST(request: NextRequest) {
 
   if (payload.paymentMethod === 'cash_on_delivery' && !supportsCashOnDelivery(payload)) {
     return NextResponse.json(
-      { error: 'El pago contra entrega solo está disponible cuando está habilitado y aplica mensajería propia en Ciudad Capital.' },
+      { error: 'El pago contra entrega solo está disponible cuando está habilitado y aplica mensajería propia en Ciudad de Guatemala, Mixco o Villa Nueva.' },
       { status: 400 }
     );
   }

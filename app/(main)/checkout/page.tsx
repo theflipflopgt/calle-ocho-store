@@ -18,31 +18,17 @@ import { CouponInput } from '@/components/checkout/coupon-input';
 import { type CouponValidationResult } from '@/lib/coupons';
 import { trackBeginCheckout } from '@/lib/analytics';
 import type { CheckoutPaymentMethod, OrderCreateInput, OrderCreateResult } from '@/types/order-workflow';
+import { MANUAL_PAYMENT_LABEL } from '@/lib/constants/business';
 import {
+  GUATEMALA_DEPARTMENTS,
+  GUATEMALA_MUNICIPALITIES,
   FREE_SHIPPING_THRESHOLD_GTQ,
-  SHIPPING_COST_GTQ,
-  MANUAL_PAYMENT_LABEL,
-} from '@/lib/constants/business';
+  getDeliveryCoverage as resolveDeliveryCoverage,
+} from '@/lib/shipping';
 
-// Departamentos de Guatemala
-const DEPARTMENTS = [
-  'Guatemala', 'Alta Verapaz', 'Baja Verapaz', 'Chimaltenango', 'Chiquimula',
-  'El Progreso', 'Escuintla', 'Huehuetenango', 'Izabal', 'Jalapa', 'Jutiapa',
-  'Petén', 'Quetzaltenango', 'Quiché', 'Retalhuleu', 'Sacatepéquez',
-  'San Marcos', 'Santa Rosa', 'Sololá', 'Suchitepéquez', 'Totonicapán', 'Zacapa'
-];
-
-// Costo de envío
-const SHIPPING_COST = SHIPPING_COST_GTQ;
+const DEPARTMENTS = [...GUATEMALA_DEPARTMENTS];
 const FREE_SHIPPING_THRESHOLD = FREE_SHIPPING_THRESHOLD_GTQ;
 const CASH_ON_DELIVERY_ENABLED = process.env.NEXT_PUBLIC_CASH_ON_DELIVERY_ENABLED === 'true';
-const CAPITAL_CITY_NAMES = new Set([
-  'guatemala',
-  'ciudad de guatemala',
-  'guatemala city',
-  'capital',
-  'ciudad capital',
-]);
 
 interface ShippingFormData {
   customerEmail: string;
@@ -60,38 +46,13 @@ interface ShippingFormData {
 
 type CheckoutStep = 'shipping' | 'review' | 'processing';
 
-function normalizeText(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
-
-function normalizeZone(value: string) {
-  const match = value.match(/\d+/);
-  return match?.[0] || '';
-}
-
-function getDeliveryCoverage(formData: ShippingFormData) {
-  const department = normalizeText(formData.department);
-  const city = normalizeText(formData.city);
-  const zone = normalizeZone(formData.zone);
-  const isCapitalCity = department === 'guatemala' && CAPITAL_CITY_NAMES.has(city);
-  const isOwnDelivery = isCapitalCity;
-
-  return {
-    zone,
-    isCapitalCity,
-    isOwnDelivery,
-    deliveryLabel: isOwnDelivery ? 'Mensajería propia en Ciudad Capital' : 'Guatex o coordinación por WhatsApp',
-    paymentHint: isOwnDelivery
-      ? CASH_ON_DELIVERY_ENABLED
-        ? 'Disponible transferencia bancaria o pago contra entrega con mensajería propia.'
-        : 'Disponible por transferencia bancaria. El pago contra entrega se mostrará únicamente cuando esté habilitado.'
-      : 'Para municipios y departamentos se requiere pago previo por depósito o transferencia. El envío se coordina por Guatex o WhatsApp.',
-    cashOnDeliveryEnabled: CASH_ON_DELIVERY_ENABLED,
-  };
+function getDeliveryCoverage(formData: ShippingFormData, subtotal = 0) {
+  return resolveDeliveryCoverage(
+    formData.department,
+    formData.city,
+    subtotal,
+    CASH_ON_DELIVERY_ENABLED
+  );
 }
 
 export default function CheckoutPage() {
@@ -121,11 +82,11 @@ export default function CheckoutPage() {
     customerNotes: '',
   });
 
-  // Calcular costos
-  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  // Calcular costos según municipio y tipo de entrega.
+  const deliveryCoverage = getDeliveryCoverage(formData, subtotal);
+  const shippingCost = deliveryCoverage.shippingCost;
   const discountAmount = appliedCoupon?.discount_amount || 0;
   const total = subtotal + shippingCost - discountAmount;
-  const deliveryCoverage = getDeliveryCoverage(formData);
 
   // Cargar dirección guardada del usuario
   useEffect(() => {
@@ -177,16 +138,20 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (
-      (!deliveryCoverage.isOwnDelivery || !deliveryCoverage.cashOnDeliveryEnabled) &&
+      (!deliveryCoverage.isOwnDelivery || !deliveryCoverage.cashOnDeliveryAllowed) &&
       paymentMethod === 'cash_on_delivery'
     ) {
       setPaymentMethod('bank_transfer');
     }
-  }, [deliveryCoverage.cashOnDeliveryEnabled, deliveryCoverage.isOwnDelivery, paymentMethod]);
+  }, [deliveryCoverage.cashOnDeliveryAllowed, deliveryCoverage.isOwnDelivery, paymentMethod]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === 'department' ? { city: '' } : {}),
+    }));
     setError(null);
   };
 
@@ -414,6 +379,7 @@ export default function CheckoutPage() {
             onApplyCoupon={setAppliedCoupon}
             onRemoveCoupon={() => setAppliedCoupon(null)}
             showCouponInput={step === 'review'}
+            deliveryCoverage={deliveryCoverage}
           />
         </div>
       </div>
@@ -579,14 +545,29 @@ function ShippingForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="city">Ciudad/Municipio *</Label>
-            <Input
-              id="city"
-              name="city"
-              value={formData.city}
-              onChange={onChange}
-              placeholder="Ciudad de Guatemala"
-              className="mt-1"
-            />
+            {formData.department === 'Guatemala' ? (
+              <select
+                id="city"
+                name="city"
+                value={formData.city}
+                onChange={onChange}
+                className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+              >
+                <option value="">Selecciona un municipio</option>
+                {GUATEMALA_MUNICIPALITIES.map((municipality) => (
+                  <option key={municipality} value={municipality}>{municipality}</option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                id="city"
+                name="city"
+                value={formData.city}
+                onChange={onChange}
+                placeholder="Escribe tu municipio"
+                className="mt-1"
+              />
+            )}
           </div>
           <div>
             <Label htmlFor="department">Departamento *</Label>
@@ -623,8 +604,8 @@ function ShippingForm({
           <p className="mt-1 text-gray-600">{deliveryCoverage.paymentHint}</p>
           <p className="mt-1 text-xs text-gray-500">
             {deliveryCoverage.isOwnDelivery
-              ? 'Aplica para Ciudad Capital sin importar la zona. El equipo puede confirmar horarios por WhatsApp.'
-              : 'Si tu municipio o departamento requiere cobertura especial, el equipo de ventas lo confirmará por WhatsApp.'}
+              ? deliveryCoverage.detail
+              : deliveryCoverage.detail}
           </p>
         </div>
 
@@ -793,11 +774,11 @@ function ReviewStep({
             checked={paymentMethod === 'bank_transfer'}
             onSelect={() => onPaymentMethodChange('bank_transfer')}
           />
-          {deliveryCoverage.isOwnDelivery && deliveryCoverage.cashOnDeliveryEnabled && (
+          {deliveryCoverage.isOwnDelivery && deliveryCoverage.cashOnDeliveryAllowed && (
             <PaymentOption
               id="cash_on_delivery"
               title="Pago contra entrega"
-              description="Disponible únicamente con mensajería propia en Ciudad Capital cuando la opción esté habilitada. El equipo confirmará la entrega por WhatsApp."
+              description="Disponible con mensajería propia en Ciudad de Guatemala, Mixco y Villa Nueva cuando la opción esté habilitada."
               checked={paymentMethod === 'cash_on_delivery'}
               onSelect={() => onPaymentMethodChange('cash_on_delivery')}
             />
@@ -916,6 +897,7 @@ function OrderSummary({
   onApplyCoupon,
   onRemoveCoupon,
   showCouponInput = false,
+  deliveryCoverage,
 }: {
   items: any[];
   subtotal: number;
@@ -927,6 +909,7 @@ function OrderSummary({
   onApplyCoupon?: (result: CouponValidationResult) => void;
   onRemoveCoupon?: () => void;
   showCouponInput?: boolean;
+  deliveryCoverage: ReturnType<typeof getDeliveryCoverage>;
 }) {
   return (
     <div className="bg-gray-50 rounded-xl p-4 sm:p-6 lg:sticky lg:top-24">
@@ -959,16 +942,21 @@ function OrderSummary({
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600">Envío</span>
-          {shippingCost === 0 ? (
+          {!deliveryCoverage.isOwnDelivery ? (
+            <span className="font-medium text-blue-700">Por cobrar (Guatex)</span>
+          ) : shippingCost === 0 ? (
             <span className="text-green-600 font-medium">Gratis</span>
           ) : (
             <span className="font-medium">{formatPrice(shippingCost)}</span>
           )}
         </div>
-        {shippingCost > 0 && subtotal < FREE_SHIPPING_THRESHOLD && (
+        {deliveryCoverage.isOwnDelivery && shippingCost > 0 && subtotal < FREE_SHIPPING_THRESHOLD && (
           <p className="text-xs text-gray-500">
             ¡Agrega {formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} más para envío gratis!
           </p>
+        )}
+        {!deliveryCoverage.isOwnDelivery && (
+          <p className="text-xs text-gray-500">La tarifa de Guatex se paga directamente al recibir el paquete y no está incluida en este total.</p>
         )}
         {discountAmount > 0 && (
           <div className="flex justify-between text-green-600">
