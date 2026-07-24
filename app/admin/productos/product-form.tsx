@@ -67,6 +67,8 @@ interface Product {
   status: string;
   gender: string;
   is_featured: boolean | null;
+  is_new_release: boolean | null;
+  new_release_until: string | null;
   meta_title: string | null;
   meta_description: string | null;
   product_colors: ProductColor[];
@@ -205,6 +207,14 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     status: product?.status || 'draft',
     gender: normalizeGender(product?.gender),
     is_featured: product?.is_featured || false,
+    is_new_release: product?.is_new_release ?? !product,
+    new_release_until: product?.new_release_until
+      ? product.new_release_until.slice(0, 10)
+      : (() => {
+          const date = new Date();
+          date.setDate(date.getDate() + 30);
+          return date.toISOString().slice(0, 10);
+        })(),
     meta_title: product?.meta_title || '',
     meta_description: product?.meta_description || '',
   });
@@ -423,6 +433,11 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
         status: formData.status,
         gender: toDatabaseGender(formData.gender),
         is_featured: formData.is_featured,
+        is_new_release: formData.is_new_release,
+        new_release_until:
+          formData.is_new_release && formData.new_release_until
+            ? new Date(`${formData.new_release_until}T23:59:59`).toISOString()
+            : null,
         meta_title: formData.meta_title || null,
         meta_description: formData.meta_description || null,
       };
@@ -828,8 +843,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                 >
                   <option value="draft">Borrador</option>
                   <option value="active">Activo</option>
-                  <option value="inactive">Inactivo</option>
-                  <option value="discontinued">Descontinuado</option>
+                  <option value="archived">Archivado</option>
                 </select>
               </div>
 
@@ -845,6 +859,41 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                     setFormData({ ...formData, is_featured: checked })
                   }
                 />
+              </div>
+
+              <div className="border-t border-gray-200 pt-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="is_new_release">Nuevo lanzamiento</Label>
+                    <p className="text-sm text-gray-600">
+                      Mostrar en la sección de nuevos lanzamientos
+                    </p>
+                  </div>
+                  <Switch
+                    id="is_new_release"
+                    checked={formData.is_new_release}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, is_new_release: checked })
+                    }
+                  />
+                </div>
+
+                {formData.is_new_release && (
+                  <div className="space-y-2">
+                    <Label htmlFor="new_release_until">Mostrar como nuevo hasta</Label>
+                    <Input
+                      id="new_release_until"
+                      type="date"
+                      value={formData.new_release_until}
+                      onChange={(e) =>
+                        setFormData({ ...formData, new_release_until: e.target.value })
+                      }
+                    />
+                    <p className="text-xs text-gray-500">
+                      Al terminar esta fecha, el producto saldrá automáticamente de “Nuevos lanzamientos”.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

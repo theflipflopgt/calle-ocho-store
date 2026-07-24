@@ -14,6 +14,11 @@ interface GetProductsOptions {
   sortBy?: 'newest' | 'price-asc' | 'price-desc' | 'name';
 }
 
+interface GetNewReleaseProductsOptions {
+  limit?: number;
+}
+
+
 export const getProducts = cache(async function getProducts(options: GetProductsOptions = {}): Promise<ProductWithDetails[]> {
   const supabase = await createClient();
 
@@ -152,6 +157,44 @@ function normalizeSearch(value: string): string {
     .trim();
 }
 
+
+export const getNewReleaseProducts = cache(async function getNewReleaseProducts(
+  options: GetNewReleaseProductsOptions = {}
+): Promise<ProductWithDetails[]> {
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+
+  let query = supabase
+    .from('products')
+    .select(`
+      *,
+      brand:brands!inner(*),
+      category:categories!inner(*),
+      colors:product_colors(
+        *,
+        images:product_color_images(*),
+        variants:product_variants(*)
+      )
+    `)
+    .eq('status', 'active')
+    .eq('is_new_release', true)
+    .or(`new_release_until.is.null,new_release_until.gte.${now}`)
+    .order('created_at', { ascending: false });
+
+  if (options.limit) {
+    query = query.limit(options.limit);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching new release products:', error);
+    return [];
+  }
+
+  return (data || []).map(transformProduct);
+});
+
 export const getProductBySlug = cache(async function getProductBySlug(slug: string): Promise<ProductWithDetails | null> {
   const supabase = await createClient();
 
@@ -217,33 +260,27 @@ export const getFeaturedProducts = cache(async function getFeaturedProducts(): P
   const supabase = await createClient();
 
   const { data, error } = await supabase
-    .from('featured_products')
+    .from('products')
     .select(`
-      product:products (
+      *,
+      brand:brands!inner(*),
+      category:categories!inner(*),
+      colors:product_colors(
         *,
-        brand:brands(*),
-        category:categories(*),
-        colors:product_colors(
-          *,
-          images:product_color_images(*),
-          variants:product_variants(*)
-        )
+        images:product_color_images(*),
+        variants:product_variants(*)
       )
     `)
-    .eq('is_active', true)
-    .order('display_order');
+    .eq('status', 'active')
+    .eq('is_featured', true)
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching featured products:', error);
     return [];
   }
 
-  // Extract products and transform them
-  const products = (data || [])
-    .map((item: any) => item.product)
-    .filter(Boolean);
-
-  return products.map(transformProduct);
+  return (data || []).map(transformProduct);
 });
 
 // Función auxiliar para transformar producto de BD a ProductWithDetails
@@ -270,11 +307,13 @@ function transformProduct(product: any): ProductWithDetails {
     ? Math.round((1 - product.base_price / product.compare_at_price) * 100)
     : null;
 
-  // Determinar si es nuevo (menos de 30 días)
-  const createdAt = new Date(product.created_at);
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const isNew = createdAt > thirtyDaysAgo;
+  // El distintivo de nuevo lanzamiento se controla desde administración.
+  const releaseEnd = product.new_release_until
+    ? new Date(product.new_release_until)
+    : null;
+  const isNew = Boolean(
+    product.is_new_release && (!releaseEnd || releaseEnd >= new Date())
+  );
 
   return {
     ...product,

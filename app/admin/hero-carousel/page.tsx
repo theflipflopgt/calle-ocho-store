@@ -45,6 +45,7 @@ export default function HeroCarouselPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
   const supabase = createClient();
 
   // Load featured products
@@ -74,7 +75,10 @@ export default function HeroCarouselPage() {
       `)
       .order('display_order');
 
-    if (!error && data) {
+    if (error) {
+      setMessageType('error');
+      setMessage(`No se pudieron cargar los productos destacados: ${error.message}`);
+    } else if (data) {
       setFeaturedProducts(data as any);
     }
     setIsLoading(false);
@@ -97,7 +101,10 @@ export default function HeroCarouselPage() {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (!error && data) {
+    if (error) {
+      setMessageType('error');
+      setMessage(`No se pudieron cargar los productos disponibles: ${error.message}`);
+    } else if (data) {
       setAvailableProducts(data as any);
     }
   };
@@ -107,17 +114,26 @@ export default function HeroCarouselPage() {
     setMessage(null);
 
     for (const item of items) {
-      await supabase
+      const { error } = await supabase
         .from('featured_products')
         .update({
           display_order: item.display_order,
           is_active: item.is_active,
         })
         .eq('id', item.id);
+
+      if (error) {
+        setIsSaving(false);
+        setMessageType('error');
+        setMessage(`No se pudieron guardar los cambios: ${error.message}`);
+        return false;
+      }
     }
 
     setIsSaving(false);
+    setMessageType('success');
     setMessage('Cambios del HeroCarousel guardados.');
+    return true;
   };
 
   const handleDragEnd = async (result: DropResult) => {
@@ -172,35 +188,57 @@ export default function HeroCarouselPage() {
 
     if (!error && data) {
       setFeaturedProducts([...featuredProducts, data as any]);
+      setMessageType('success');
       setMessage('Producto agregado al HeroCarousel.');
+    } else if (error) {
+      setMessageType('error');
+      setMessage(`No se pudo agregar el producto: ${error.message}`);
     }
   };
 
   const removeProduct = async (featuredProductId: string) => {
-    await supabase
+    setMessage(null);
+    const { error } = await supabase
       .from('featured_products')
       .delete()
       .eq('id', featuredProductId);
+
+    if (error) {
+      setMessageType('error');
+      setMessage(`No se pudo quitar el producto del carrusel: ${error.message}`);
+      return;
+    }
 
     const remainingProducts = featuredProducts
       .filter(fp => fp.id !== featuredProductId)
       .map((item, index) => ({ ...item, display_order: index }));
 
     setFeaturedProducts(remainingProducts);
-    await saveFeaturedProducts(remainingProducts);
+    const saved = await saveFeaturedProducts(remainingProducts);
+    if (saved) {
+      setMessageType('success');
+      setMessage('Producto eliminado del HeroCarousel.');
+    }
   };
 
   const toggleActive = async (featuredProductId: string, currentActive: boolean) => {
-    await supabase
+    const { error } = await supabase
       .from('featured_products')
       .update({ is_active: !currentActive })
       .eq('id', featuredProductId);
+
+    if (error) {
+      setMessageType('error');
+      setMessage(`No se pudo actualizar el producto: ${error.message}`);
+      return;
+    }
 
     setFeaturedProducts(
       featuredProducts.map(fp =>
         fp.id === featuredProductId ? { ...fp, is_active: !currentActive } : fp
       )
     );
+    setMessageType('success');
     setMessage('Estado del producto actualizado.');
   };
 
@@ -241,7 +279,12 @@ export default function HeroCarouselPage() {
       </div>
 
       {message && (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        <div className={cn(
+          'rounded-lg border px-4 py-3 text-sm',
+          messageType === 'error'
+            ? 'border-red-200 bg-red-50 text-red-700'
+            : 'border-green-200 bg-green-50 text-green-700'
+        )}>
           {message}
         </div>
       )}

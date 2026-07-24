@@ -5,7 +5,7 @@ import { BrandsGrid } from "@/components/home/brands-grid";
 import { HeroMedia } from "@/components/home/hero-media";
 import { HeroCarousel } from "@/components/home/hero-carousel";
 import { getHomeContent } from "@/lib/home-content";
-import { getFeaturedProducts, getProducts } from "@/lib/queries/products";
+import { getFeaturedProducts, getNewReleaseProducts } from "@/lib/queries/products";
 
 /**
  * Homepage Calle Ocho Store
@@ -13,10 +13,7 @@ import { getFeaturedProducts, getProducts } from "@/lib/queries/products";
  */
 export default async function Home() {
   const [newArrivals, featuredProducts, homeContent] = await Promise.all([
-    getProducts({
-      limit: 12,
-      sortBy: 'newest'
-    }),
+    getNewReleaseProducts({ limit: 12 }),
     getFeaturedProducts(),
     getHomeContent(),
   ]);

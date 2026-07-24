@@ -930,6 +930,8 @@ export type Database = {
           gender: string
           id: string
           is_featured: boolean | null
+          is_new_release: boolean | null
+          new_release_until: string | null
           meta_description: string | null
           meta_title: string | null
           name: string
@@ -949,6 +951,8 @@ export type Database = {
           gender?: string
           id?: string
           is_featured?: boolean | null
+          is_new_release?: boolean | null
+          new_release_until?: string | null
           meta_description?: string | null
           meta_title?: string | null
           name: string
@@ -968,6 +972,8 @@ export type Database = {
           gender?: string
           id?: string
           is_featured?: boolean | null
+          is_new_release?: boolean | null
+          new_release_until?: string | null
           meta_description?: string | null
           meta_title?: string | null
           name?: string

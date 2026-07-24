@@ -69,8 +69,7 @@ async function getBrandsAndCategories() {
 const statusLabels: Record<string, { label: string; class: string }> = {
   draft: { label: 'Borrador', class: 'bg-gray-100 text-gray-600' },
   active: { label: 'Activo', class: 'bg-green-100 text-green-800' },
-  inactive: { label: 'Inactivo', class: 'bg-yellow-100 text-yellow-800' },
-  discontinued: { label: 'Descontinuado', class: 'bg-red-100 text-red-800' },
+  archived: { label: 'Archivado', class: 'bg-red-100 text-red-800' },
 };
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
@@ -131,8 +130,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             <option value="">Todos los estados</option>
             <option value="active">Activos</option>
             <option value="draft">Borradores</option>
-            <option value="inactive">Inactivos</option>
-            <option value="discontinued">Descontinuados</option>
+            <option value="archived">Archivados</option>
           </select>
 
           {/* Brand Filter */}
