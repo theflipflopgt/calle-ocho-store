@@ -4,6 +4,7 @@ import { AuthProvider, type Profile } from '@/contexts/auth-context';
 import { CartProvider } from '@/contexts/cart-context';
 import { WishlistProvider } from '@/contexts/wishlist-context';
 import { createClient } from '@/lib/supabase/server';
+import { GoogleAnalytics } from '@/components/analytics/google-analytics';
 import './globals.css';
 
 const defaultUrl = 'https://calleochostore.com';
@@ -34,6 +35,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="es" suppressHydrationWarning>
       <body className="antialiased">
+        <GoogleAnalytics />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
