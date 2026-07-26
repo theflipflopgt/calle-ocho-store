@@ -296,7 +296,8 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
     const warnings: string[] = [];
 
     for (const column of REQUIRED_COLUMNS) {
-      if (!cleanText(raw[column])) errors.push(`Falta ${column}.`);
+      const value = raw[column as keyof typeof raw];
+      if (!cleanText(value)) errors.push(`Falta ${column}.`);
     }
 
     const name = cleanText(raw.nombre);
