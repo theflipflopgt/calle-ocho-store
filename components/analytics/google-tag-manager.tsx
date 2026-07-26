@@ -1,12 +1,14 @@
 import Script from 'next/script';
 
+const DEFAULT_GTM_ID = 'GTM-KPCXSK7R';
+
 export function GoogleTagManager() {
-  const containerId = process.env.NEXT_PUBLIC_GTM_ID?.trim();
+  const containerId = process.env.NEXT_PUBLIC_GTM_ID?.trim() || DEFAULT_GTM_ID;
   if (!containerId) return null;
 
   return (
     <>
-      <Script id="google-tag-manager" strategy="afterInteractive">
+      <Script id="google-tag-manager" strategy="beforeInteractive">
         {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=

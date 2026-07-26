@@ -4,6 +4,7 @@ import { Search, Filter, AlertTriangle, Package, CheckCircle } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { InventoryImportPanel } from './inventory-import-panel';
 
 interface InventoryPageProps {
   searchParams: Promise<{ stock?: string; q?: string }>;
@@ -54,6 +55,7 @@ async function getInventory(filters: { stock?: string; q?: string }) {
 
 export default async function InventoryPage({ searchParams }: InventoryPageProps) {
   const filters = await searchParams;
+  const auth = await requireAuthenticatedUser();
   const variants = await getInventory(filters);
 
   const stats = {
@@ -70,6 +72,8 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
         <h1 className="text-2xl font-bold text-brand-black">Inventario</h1>
         <p className="text-gray-600 mt-1">Control de stock por variante</p>
       </div>
+
+      {auth.canManageProducts && <InventoryImportPanel />}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

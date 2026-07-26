@@ -924,18 +924,23 @@ export type Database = {
           base_price: number
           brand_id: string
           category_id: string
+          calculated_sale_price: number | null
           compare_at_price: number | null
+          cost_price: number
           created_at: string | null
           description: string | null
           gender: string
           id: string
+          invoice_fee_percent: number
           is_featured: boolean | null
           is_new_release: boolean | null
+          neo_link_fee_percent: number
           new_release_until: string | null
           meta_description: string | null
           meta_title: string | null
           name: string
           published_at: string | null
+          sale_price_markup_percent: number
           sku: string
           slug: string
           status: string
@@ -945,18 +950,23 @@ export type Database = {
           base_price: number
           brand_id: string
           category_id: string
+          calculated_sale_price?: number | null
           compare_at_price?: number | null
+          cost_price?: number
           created_at?: string | null
           description?: string | null
           gender?: string
           id?: string
+          invoice_fee_percent?: number
           is_featured?: boolean | null
           is_new_release?: boolean | null
+          neo_link_fee_percent?: number
           new_release_until?: string | null
           meta_description?: string | null
           meta_title?: string | null
           name: string
           published_at?: string | null
+          sale_price_markup_percent?: number
           sku: string
           slug: string
           status?: string
@@ -966,18 +976,23 @@ export type Database = {
           base_price?: number
           brand_id?: string
           category_id?: string
+          calculated_sale_price?: number | null
           compare_at_price?: number | null
+          cost_price?: number
           created_at?: string | null
           description?: string | null
           gender?: string
           id?: string
+          invoice_fee_percent?: number
           is_featured?: boolean | null
           is_new_release?: boolean | null
+          neo_link_fee_percent?: number
           new_release_until?: string | null
           meta_description?: string | null
           meta_title?: string | null
           name?: string
           published_at?: string | null
+          sale_price_markup_percent?: number
           sku?: string
           slug?: string
           status?: string

@@ -64,6 +64,11 @@ interface Product {
   description: string | null;
   base_price: number;
   compare_at_price: number | null;
+  cost_price?: number | null;
+  invoice_fee_percent?: number | null;
+  neo_link_fee_percent?: number | null;
+  sale_price_markup_percent?: number | null;
+  calculated_sale_price?: number | null;
   status: string;
   gender: string;
   is_featured: boolean | null;
@@ -204,6 +209,11 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     description: product?.description || '',
     base_price: product?.base_price || 0,
     compare_at_price: product?.compare_at_price || '',
+    cost_price: product?.cost_price || 0,
+    invoice_fee_percent: product?.invoice_fee_percent || 0,
+    neo_link_fee_percent: product?.neo_link_fee_percent || 0,
+    sale_price_markup_percent: product?.sale_price_markup_percent || 0,
+    calculated_sale_price: product?.calculated_sale_price || 0,
     status: product?.status || 'draft',
     gender: normalizeGender(product?.gender),
     is_featured: product?.is_featured || false,
@@ -245,6 +255,16 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'colors' | 'seo'>('info');
   const availableSizes = getSizesForGender(formData.gender);
   const sizeGuideLabel = getSizeGuideLabel(formData.gender);
+  const suggestedSalePrice =
+    Math.round(
+      Number(formData.cost_price || 0) *
+        (1 +
+          (Number(formData.invoice_fee_percent || 0) +
+            Number(formData.neo_link_fee_percent || 0) +
+            Number(formData.sale_price_markup_percent || 0)) /
+            100) *
+        100
+    ) / 100;
 
   const handleNameChange = (name: string) => {
     setFormData((prev) => ({
@@ -430,6 +450,11 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
         description: formData.description || null,
         base_price: formData.base_price,
         compare_at_price: compareAtPrice,
+        cost_price: Number(formData.cost_price || 0),
+        invoice_fee_percent: Number(formData.invoice_fee_percent || 0),
+        neo_link_fee_percent: Number(formData.neo_link_fee_percent || 0),
+        sale_price_markup_percent: Number(formData.sale_price_markup_percent || 0),
+        calculated_sale_price: Number(formData.calculated_sale_price || suggestedSalePrice || 0),
         status: formData.status,
         gender: toDatabaseGender(formData.gender),
         is_featured: formData.is_featured,
@@ -765,6 +790,104 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                     placeholder="Precio original para mostrar descuento"
                   />
                 </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-brand-black">Calculo comercial</h4>
+                    <p className="text-xs text-gray-600">
+                      Usa estos campos para estimar el precio final con factura, Neo Link y margen.
+                    </p>
+                  </div>
+                  <div className="text-sm font-semibold text-brand-black">
+                    Sugerido: Q {suggestedSalePrice.toFixed(2)}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="cost_price">Costo (Q)</Label>
+                    <Input
+                      id="cost_price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.cost_price}
+                      onChange={(e) =>
+                        setFormData({ ...formData, cost_price: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="invoice_fee_percent">% factura</Label>
+                    <Input
+                      id="invoice_fee_percent"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.invoice_fee_percent}
+                      onChange={(e) =>
+                        setFormData({ ...formData, invoice_fee_percent: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="neo_link_fee_percent">% Neo Link</Label>
+                    <Input
+                      id="neo_link_fee_percent"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.neo_link_fee_percent}
+                      onChange={(e) =>
+                        setFormData({ ...formData, neo_link_fee_percent: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sale_price_markup_percent">% margen</Label>
+                    <Input
+                      id="sale_price_markup_percent"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.sale_price_markup_percent}
+                      onChange={(e) =>
+                        setFormData({ ...formData, sale_price_markup_percent: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="calculated_sale_price">Precio sugerido (Q)</Label>
+                    <Input
+                      id="calculated_sale_price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.calculated_sale_price || suggestedSalePrice}
+                      onChange={(e) =>
+                        setFormData({ ...formData, calculated_sale_price: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      base_price: suggestedSalePrice,
+                      calculated_sale_price: suggestedSalePrice,
+                    })
+                  }
+                >
+                  Usar sugerido como precio base
+                </Button>
               </div>
             </div>
           </div>
