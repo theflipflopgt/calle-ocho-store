@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Settings, ShieldCheck, Mail, Globe, ExternalLink } from 'lucide-react';
+import { PaymentMethodsPanel } from './payment-methods-panel';
 
 const settings = [
   {
@@ -59,7 +60,9 @@ export default function AdminConfiguracionPage() {
         </div>
       </div>
 
-      <div id="enlaces" className="rounded-xl border border-gray-200 bg-white p-6">
+      <PaymentMethodsPanel />
+
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
         <div className="mb-5 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
             <ExternalLink className="h-5 w-5 text-brand-black" />

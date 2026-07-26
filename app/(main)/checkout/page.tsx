@@ -30,6 +30,17 @@ const DEPARTMENTS = [...GUATEMALA_DEPARTMENTS];
 const FREE_SHIPPING_THRESHOLD = FREE_SHIPPING_THRESHOLD_GTQ;
 const CASH_ON_DELIVERY_ENABLED = process.env.NEXT_PUBLIC_CASH_ON_DELIVERY_ENABLED === 'true';
 
+interface PaymentMethodOption {
+  code: CheckoutPaymentMethod;
+  label: string;
+  description: string;
+  provider: string;
+  is_enabled: boolean;
+  display_order: number;
+  requires_payment_link: boolean;
+  supports_installments: boolean;
+}
+
 interface ShippingFormData {
   customerEmail: string;
   recipientName: string;
@@ -67,6 +78,7 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResult | null>(null);
   const [orderCreated, setOrderCreated] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('bank_transfer');
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([]);
 
   const [formData, setFormData] = useState<ShippingFormData>({
     customerEmail: '',
@@ -135,6 +147,34 @@ export default function CheckoutPage() {
       }));
     }
   }, [user]);
+
+  useEffect(() => {
+    async function loadPaymentMethods() {
+      const response = await fetch('/api/payment-methods', { cache: 'no-store' });
+      if (!response.ok) return;
+
+      const data = await response.json();
+      setPaymentMethods(data.methods || []);
+    }
+
+    void loadPaymentMethods();
+  }, []);
+
+  useEffect(() => {
+    const visibleMethods = paymentMethods.filter((method) => {
+      if (method.code !== 'cash_on_delivery') return true;
+      return deliveryCoverage.isOwnDelivery && deliveryCoverage.cashOnDeliveryAllowed;
+    });
+
+    if (visibleMethods.length > 0 && !visibleMethods.some((method) => method.code === paymentMethod)) {
+      setPaymentMethod(visibleMethods[0].code);
+    }
+  }, [
+    deliveryCoverage.cashOnDeliveryAllowed,
+    deliveryCoverage.isOwnDelivery,
+    paymentMethod,
+    paymentMethods,
+  ]);
 
   useEffect(() => {
     if (
@@ -349,6 +389,7 @@ export default function CheckoutPage() {
               error={error}
               paymentMethod={paymentMethod}
               onPaymentMethodChange={setPaymentMethod}
+              paymentMethods={paymentMethods}
               deliveryCoverage={deliveryCoverage}
             />
           )}
@@ -658,6 +699,7 @@ function ReviewStep({
   error,
   paymentMethod,
   onPaymentMethodChange,
+  paymentMethods,
   deliveryCoverage,
 }: {
   items: any[];
@@ -668,8 +710,14 @@ function ReviewStep({
   error: string | null;
   paymentMethod: CheckoutPaymentMethod;
   onPaymentMethodChange: (method: CheckoutPaymentMethod) => void;
+  paymentMethods: PaymentMethodOption[];
   deliveryCoverage: ReturnType<typeof getDeliveryCoverage>;
 }) {
+  const visiblePaymentMethods = paymentMethods.filter((method) => {
+    if (method.code !== 'cash_on_delivery') return true;
+    return deliveryCoverage.isOwnDelivery && deliveryCoverage.cashOnDeliveryAllowed;
+  });
+
   return (
     <div className="space-y-6">
       {error && (
@@ -767,40 +815,33 @@ function ReviewStep({
           <p className="mt-1 text-gray-600">{deliveryCoverage.paymentHint}</p>
         </div>
         <div className="space-y-3">
-          <PaymentOption
-            id="bank_transfer"
-            title={MANUAL_PAYMENT_LABEL}
-            description="Pago previo. Enviaremos tu pedido al equipo de ventas y te contactaremos por WhatsApp para validar disponibilidad, datos de transferencia y comprobante."
-            checked={paymentMethod === 'bank_transfer'}
-            onSelect={() => onPaymentMethodChange('bank_transfer')}
-          />
-          {deliveryCoverage.isOwnDelivery && deliveryCoverage.cashOnDeliveryAllowed && (
+          {visiblePaymentMethods.length > 0 ? (
+            visiblePaymentMethods.map((method) => (
+              <PaymentOption
+                key={method.code}
+                id={method.code}
+                title={method.label || (method.code === 'bank_transfer' ? MANUAL_PAYMENT_LABEL : method.code)}
+                description={method.description}
+                checked={paymentMethod === method.code}
+                onSelect={() => onPaymentMethodChange(method.code)}
+                badge={
+                  method.requires_payment_link
+                    ? method.supports_installments
+                      ? 'Link de pago en cuotas'
+                      : 'Link de pago'
+                    : undefined
+                }
+              />
+            ))
+          ) : (
             <PaymentOption
-              id="cash_on_delivery"
-              title="Pago contra entrega"
-              description="Disponible con mensajería propia en Ciudad de Guatemala, Mixco y Villa Nueva cuando la opción esté habilitada."
-              checked={paymentMethod === 'cash_on_delivery'}
-              onSelect={() => onPaymentMethodChange('cash_on_delivery')}
+              id="bank_transfer"
+              title={MANUAL_PAYMENT_LABEL}
+              description="Pago previo. Enviaremos tu pedido al equipo de ventas y te contactaremos por WhatsApp para validar disponibilidad, datos de pago y entrega."
+              checked={paymentMethod === 'bank_transfer'}
+              onSelect={() => onPaymentMethodChange('bank_transfer')}
             />
           )}
-          <PaymentOption
-            id="card"
-            title="Tarjeta de crédito o débito"
-            description="Visa y Mastercard mediante NeoPay de NeoNet Guatemala."
-            checked={paymentMethod === 'card'}
-            onSelect={() => onPaymentMethodChange('card')}
-            disabled
-            badge="Pendiente de activar NeoPay"
-          />
-          <PaymentOption
-            id="neocuotas"
-            title="NeoCuotas"
-            description="Programa de compras en cuotas de NeoPay, sujeto a aprobación y condiciones de NeoNet."
-            checked={paymentMethod === 'neocuotas'}
-            onSelect={() => onPaymentMethodChange('neocuotas')}
-            disabled
-            badge="Pendiente de activar NeoPay"
-          />
         </div>
       </div>
 

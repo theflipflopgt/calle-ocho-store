@@ -182,22 +182,27 @@ async function updateManualPaymentMethod({
 }) {
   const writeDb = createAdminClient() || db;
   const isCashOnDelivery = paymentMethod === 'cash_on_delivery';
+  const isNeoLink = paymentMethod === 'neo_link_direct' || paymentMethod === 'neo_link_installments';
+  const normalizedPaymentMethod = isCashOnDelivery ? 'cash_on_delivery' : paymentMethod;
 
   const { error } = await writeDb
     .from('payments')
     .update({
-      payment_method: isCashOnDelivery ? 'cash_on_delivery' : 'bank_transfer',
+      payment_method: normalizedPaymentMethod,
+      provider: isNeoLink ? 'neo_link' : 'manual',
       payment_details: {
-        mode: 'manual',
-        selected_method: isCashOnDelivery ? 'cash_on_delivery' : 'bank_transfer',
+        mode: isNeoLink ? 'payment_link' : 'manual',
+        selected_method: normalizedPaymentMethod,
         contact_channel: 'whatsapp',
         requires_manual_confirmation: !isCashOnDelivery,
+        requires_payment_link: isNeoLink,
+        supports_installments: paymentMethod === 'neo_link_installments',
         delivery_method: isOwnDelivery ? 'own_delivery' : 'guatex_collect',
         shipping_fee_collection: isOwnDelivery ? 'included_in_order' : 'paid_to_carrier_on_delivery',
       },
     })
     .eq('order_id', orderId)
-    .in('payment_method', ['cash_on_delivery', 'bank_transfer'])
+    .in('payment_method', ['cash_on_delivery', 'bank_transfer', 'neo_link_direct', 'neo_link_installments'])
     .eq('status', 'pending');
 
   if (error) {
@@ -206,6 +211,41 @@ async function updateManualPaymentMethod({
       error: error.message,
     });
   }
+}
+
+async function getActivePaymentMethod(db: any, paymentMethod: string) {
+  const { data, error } = await db
+    .from('payment_methods')
+    .select('code:id, provider, is_enabled')
+    .eq('id', paymentMethod)
+    .eq('is_enabled', true)
+    .maybeSingle();
+
+  if (error) {
+    appLogger.warn('orders.create.payment_method_lookup_failed', {
+      paymentMethod,
+      error: error.message,
+    });
+  }
+
+  return data;
+}
+
+async function assignOrderToSeller(db: any, orderId: string, requestId: string) {
+  const writeDb = createAdminClient() || db;
+  const { data, error } = await writeDb.rpc('assign_order_to_next_seller', {
+    p_order_id: orderId,
+  });
+
+  if (error) {
+    appLogger.warn('orders.create.seller_assignment_failed', {
+      requestId,
+      orderId,
+      error: error.message,
+    });
+  }
+
+  return data as string | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -256,13 +296,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!['bank_transfer', 'cash_on_delivery'].includes(payload.paymentMethod)) {
-    return NextResponse.json(
-      { error: 'NeoPay todavía no está habilitado. Selecciona transferencia bancaria mientras se completa la certificación.' },
-      { status: 503 }
-    );
-  }
-
   const db = auth.user ? (auth.supabase as any) : createAdminClient();
 
   if (!db) {
@@ -270,6 +303,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: 'El checkout invitado requiere SUPABASE_SERVICE_ROLE_KEY en el servidor.' },
       { status: 500 }
+    );
+  }
+
+  const activePaymentMethod = await getActivePaymentMethod(db, payload.paymentMethod);
+
+  if (!activePaymentMethod) {
+    return NextResponse.json(
+      { error: 'El método de pago seleccionado no está disponible en este momento.' },
+      { status: 400 }
+    );
+  }
+
+  if (activePaymentMethod.provider === 'neopay') {
+    return NextResponse.json(
+      { error: 'NeoPay directo todavía no está habilitado. Usa Neo Link para tarjeta de contado o cuotas.' },
+      { status: 503 }
     );
   }
 
@@ -315,6 +364,8 @@ export async function POST(request: NextRequest) {
     isOwnDelivery: supportsOwnDelivery(payload),
   });
 
+  const sellerId = await assignOrderToSeller(db, orderResult.orderId, requestId);
+
   if (customerEmail) {
     await sendOrderEmails({
       db,
@@ -331,6 +382,7 @@ export async function POST(request: NextRequest) {
     orderId: orderResult.orderId,
     orderNumber: orderResult.orderNumber,
     total: orderResult.total,
+    sellerId,
   });
 
   return NextResponse.json({

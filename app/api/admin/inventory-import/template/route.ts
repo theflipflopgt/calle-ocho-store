@@ -14,13 +14,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Permisos insuficientes' }, { status: 403 });
   }
 
-  const template = createInventoryTemplate();
-  const body = template.buffer.slice(
-    template.byteOffset,
-    template.byteOffset + template.byteLength
-  ) as ArrayBuffer;
-
-  return new NextResponse(body, {
+  return new NextResponse(createInventoryTemplate(), {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="plantilla-inventario-calle-ocho-${exportDateStamp()}.xlsx"`,

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { OrderStatusUpdater } from './status-updater';
 import { AdminNotesEditor } from './admin-notes-editor';
 import { OrderAdjustmentsEditor } from './order-adjustments-editor';
-import { SellerAssignmentForm } from './seller-assignment-form';
+import { PaymentLinkManager } from './payment-link-manager';
 import type { OrderStatus } from '@/types/order-workflow';
 
 interface OrderDetailPageProps {
@@ -42,11 +42,14 @@ async function getOrder(id: string) {
       payments (
         id,
         payment_method,
+        provider,
         amount,
         status,
         transaction_id,
+        payment_details,
         created_at
-      )
+      ),
+      seller:seller_id (id, full_name, email)
     `)
     .eq('id', id)
     .single();
@@ -73,6 +76,10 @@ const paymentMethodLabels: Record<string, string> = {
   debit_card: 'Tarjeta de débito',
   bank_transfer: 'Transferencia bancaria',
   cash_on_delivery: 'Pago contra entrega',
+  neo_link_direct: 'Neo Link pago directo',
+  neo_link_installments: 'Neo Link con cuotas',
+  card: 'Tarjeta NeoPay',
+  neocuotas: 'NeoCuotas',
 };
 
 const paymentStatusLabels: Record<string, { label: string; className: string }> = {
@@ -93,6 +100,8 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 
   const { order, auth } = result;
   const status = statusConfig[order.status] || statusConfig.pending;
+  const primaryPayment = order.payments?.[0];
+  const requiresNeoLink = ['neo_link_direct', 'neo_link_installments'].includes(primaryPayment?.payment_method);
 
   return (
     <div className="space-y-6">
@@ -236,22 +245,39 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           <OrderStatusUpdater orderId={order.id} currentStatus={order.status as OrderStatus} />
 
           {auth.isAdmin && (
-            <>
-              <SellerAssignmentForm
-                orderId={order.id}
-                currentSellerId={order.seller_id}
-                commissionRate={Number(order.seller_commission_rate || 0)}
-                commissionAmount={Number(order.seller_commission_amount || 0)}
-              />
-              <OrderAdjustmentsEditor
-                orderId={order.id}
-                subtotal={Number(order.subtotal)}
-                shippingCost={Number(order.shipping_cost)}
-                discountAmount={Number(order.discount_amount || 0)}
-                status={order.status}
-              />
-            </>
+            <OrderAdjustmentsEditor
+              orderId={order.id}
+              subtotal={Number(order.subtotal)}
+              shippingCost={Number(order.shipping_cost)}
+              discountAmount={Number(order.discount_amount || 0)}
+              status={order.status}
+            />
           )}
+
+          {requiresNeoLink && (
+            <PaymentLinkManager
+              orderId={order.id}
+              orderNumber={order.order_number}
+              customerPhone={order.shipping_phone}
+              initialPaymentLinkUrl={order.payment_link_url}
+              paymentLinkSentAt={order.payment_link_sent_at}
+              paymentMethod={primaryPayment.payment_method}
+            />
+          )}
+
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="font-semibold text-brand-black mb-4">Vendedor asignado</h2>
+            <div className="text-sm">
+              {order.seller ? (
+                <>
+                  <p className="font-medium text-brand-black">{order.seller.full_name || order.seller.email}</p>
+                  {order.seller.email && <p className="text-gray-600">{order.seller.email}</p>}
+                </>
+              ) : (
+                <p className="text-gray-600">Sin vendedor asignado</p>
+              )}
+            </div>
+          </div>
 
           {/* Customer Info */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">

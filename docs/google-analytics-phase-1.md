@@ -1,6 +1,6 @@
 # Google Analytics 4 - Fase 1
 
-La tienda carga Google Analytics 4 con el ID de medicion `G-LG4JR6C1BF`.
+La tienda carga Google Analytics 4 con el ID de medicion `G-PFV1T22GQT`.
 
 ## Implementacion
 

@@ -19,7 +19,13 @@ export interface ShippingInput {
   additionalReferences?: string;
 }
 
-export type CheckoutPaymentMethod = 'bank_transfer' | 'cash_on_delivery' | 'card' | 'neocuotas';
+export type CheckoutPaymentMethod =
+  | 'bank_transfer'
+  | 'cash_on_delivery'
+  | 'neo_link_direct'
+  | 'neo_link_installments'
+  | 'card'
+  | 'neocuotas';
 
 export interface OrderCreateInput {
   customerEmail?: string;
