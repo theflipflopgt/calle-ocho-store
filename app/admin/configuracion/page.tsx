@@ -59,7 +59,7 @@ export default function AdminConfiguracionPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
+      <div id="enlaces" className="rounded-xl border border-gray-200 bg-white p-6">
         <div className="mb-5 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
             <ExternalLink className="h-5 w-5 text-brand-black" />

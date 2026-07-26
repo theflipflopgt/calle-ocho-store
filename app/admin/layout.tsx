@@ -15,6 +15,8 @@ import {
   Tag,
   Ticket,
   Settings,
+  BadgeDollarSign,
+  ExternalLink,
   LogOut,
   Menu,
   X,
@@ -37,11 +39,13 @@ const navigation = [
     ],
   },
   { name: 'Órdenes', href: '/admin/ordenes', icon: ShoppingCart },
+  { name: 'Vendedores', href: '/admin/vendedores', icon: BadgeDollarSign },
   { name: 'Usuarios', href: '/admin/clientes', icon: Users },
   { name: 'Marcas', href: '/admin/marcas', icon: Layers },
   { name: 'Categorías', href: '/admin/categorias', icon: Tag },
   { name: 'Cupones', href: '/admin/cupones', icon: Ticket },
   { name: 'Media', href: '/admin/media', icon: ImageIcon },
+  { name: 'Enlaces', href: '/admin/configuracion#enlaces', icon: ExternalLink },
   { name: 'Configuración', href: '/admin/configuracion', icon: Settings },
 ];
 

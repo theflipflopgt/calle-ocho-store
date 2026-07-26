@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { OrderStatusUpdater } from './status-updater';
 import { AdminNotesEditor } from './admin-notes-editor';
 import { OrderAdjustmentsEditor } from './order-adjustments-editor';
+import { SellerAssignmentForm } from './seller-assignment-form';
 import type { OrderStatus } from '@/types/order-workflow';
 
 interface OrderDetailPageProps {
@@ -235,13 +236,21 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           <OrderStatusUpdater orderId={order.id} currentStatus={order.status as OrderStatus} />
 
           {auth.isAdmin && (
-            <OrderAdjustmentsEditor
-              orderId={order.id}
-              subtotal={Number(order.subtotal)}
-              shippingCost={Number(order.shipping_cost)}
-              discountAmount={Number(order.discount_amount || 0)}
-              status={order.status}
-            />
+            <>
+              <SellerAssignmentForm
+                orderId={order.id}
+                currentSellerId={order.seller_id}
+                commissionRate={Number(order.seller_commission_rate || 0)}
+                commissionAmount={Number(order.seller_commission_amount || 0)}
+              />
+              <OrderAdjustmentsEditor
+                orderId={order.id}
+                subtotal={Number(order.subtotal)}
+                shippingCost={Number(order.shipping_cost)}
+                discountAmount={Number(order.discount_amount || 0)}
+                status={order.status}
+              />
+            </>
           )}
 
           {/* Customer Info */}
