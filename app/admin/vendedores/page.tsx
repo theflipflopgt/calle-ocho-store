@@ -72,10 +72,10 @@ async function getSellerSummaries() {
     console.error('Error fetching seller orders:', ordersError);
   }
 
-  const ruleMap = new Map(
+  const ruleMap = new Map<string, number>(
     (rules || [])
       .filter((rule: any) => rule.is_active !== false)
-      .map((rule: any) => [rule.seller_id, Number(rule.commission_percent || 0)])
+      .map((rule: any) => [String(rule.seller_id), Number(rule.commission_percent || 0)])
   );
 
   const summaries = new Map<string, SellerSummary>();
