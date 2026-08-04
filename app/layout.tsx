@@ -35,9 +35,14 @@ export const metadata: Metadata = {
     images: ['/twitter-image.png'],
   },
   robots: { index: true, follow: true },
-  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
-    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
-    : undefined,
+  verification: {
+    ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+      ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+      : {}),
+    other: {
+      'facebook-domain-verification': '2d9vbdbdg302hes1n02ul4shwr51xn',
+    },
+  },
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
