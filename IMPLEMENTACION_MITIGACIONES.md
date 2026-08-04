@@ -18,6 +18,7 @@
 - Pruebas adicionales y smoke E2E sin dependencias nuevas.
 - Recuperación de roles sin recursión RLS y lectura de identidad no cacheable.
 - Instalación npm reproducible aun con el árbol de peer dependencies heredado.
+- Base segura de WhatsApp Cloud API con webhook firmado, cliente de plantillas y bitácora idempotente.
 
 ## Aplicación de base de datos
 
@@ -52,6 +53,12 @@ Públicas:
 - `NEXT_PUBLIC_INSTAGRAM_URL`
 
 Nunca use prefijo `NEXT_PUBLIC_` para service role, secretos de Cloudinary, Resend, cron o NeoPay.
+
+## WhatsApp Cloud API
+
+Se agregaron `/api/webhooks/whatsapp` para verificación y recepción firmada, `/api/whatsapp/readiness` para comprobar configuración y un cliente de servidor para plantillas aprobadas. La migración `20260804020000_whatsapp_cloud_api.sql` crea `whatsapp_message_logs` y evita duplicados por evento, destinatario e identificador de Meta.
+
+La integración permanece apagada con `WHATSAPP_CLOUD_API_ENABLED=false` hasta configurar las variables privadas en Vercel, registrar el webhook, sustituir el token temporal por uno permanente y aprobar las plantillas transaccionales. Nunca guarde tokens ni `WHATSAPP_APP_SECRET` en el repositorio.
 
 ## Cron de pedidos pendientes
 
