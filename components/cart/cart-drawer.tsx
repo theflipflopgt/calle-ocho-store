@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { X, Minus, Plus, ShoppingBag, Trash2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { useCart } from '@/contexts/cart-context';
+import { useCart, type CartItem } from '@/contexts/cart-context';
 import { formatPrice } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
 
@@ -149,26 +149,7 @@ export function CartDrawer() {
 }
 
 interface CartItemRowProps {
-  item: {
-    id: string;
-    quantity: number;
-    variant: {
-      id: string;
-      size_us: number;
-      stock_quantity: number;
-      product_color: {
-        color_name: string;
-        images: { image_url: string }[];
-        product: {
-          name: string;
-          slug: string;
-          base_price: number;
-          compare_at_price: number | null;
-          brand: { name: string };
-        };
-      };
-    };
-  };
+  item: CartItem;
   onUpdateQuantity: (itemId: string, quantity: number) => Promise<void>;
   onRemove: (itemId: string) => Promise<void>;
 }

@@ -16,6 +16,8 @@
 - Rate limiting persistente en PostgreSQL.
 - Health check, CSP, estados globales de carga/error y CI.
 - Pruebas adicionales y smoke E2E sin dependencias nuevas.
+- Recuperación de roles sin recursión RLS y lectura de identidad no cacheable.
+- Instalación npm reproducible aun con el árbol de peer dependencies heredado.
 
 ## Aplicación de base de datos
 
@@ -70,7 +72,7 @@ No cambie `NEOPAY_ENABLED=true` hasta implementar y certificar ese contrato. Neo
 
 ## Estado de verificación de esta entrega
 
-Se verificaron los JSON del proyecto, la alineación entre `package.json` y `package-lock.json`, los delimitadores de todas las migraciones y la sintaxis de los 75 archivos `.ts` mediante el analizador nativo de Node.js. El entorno de preparación no permitió descargar paquetes desde npm y no tenía Supabase CLI/PostgreSQL, por lo que el build, ESLint, Vitest y `supabase db reset` quedan como compuertas obligatorias de CI/Preview antes de producción.
+Se verificaron los JSON del proyecto, la alineación entre `package.json` y `package-lock.json`, los delimitadores de todas las migraciones y la sintaxis de los 84 archivos `.ts` mediante el analizador nativo de Node.js. También pasaron comprobaciones funcionales directas de validación de pedidos, idempotencia, envío, estados, rate limiting y baja del boletín. El entorno de preparación no permitió descargar paquetes desde npm y no tenía Supabase CLI/PostgreSQL, por lo que el build, ESLint, Vitest y `supabase db reset` continúan como compuertas obligatorias de CI/Preview antes de producción.
 
 ## Reversión
 
