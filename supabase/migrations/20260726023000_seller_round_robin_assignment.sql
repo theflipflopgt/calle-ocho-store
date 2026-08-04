@@ -94,7 +94,7 @@ BEGIN
     RETURN NULL;
   END IF;
 
-  SELECT commission_percent
+  SELECT commission_rate
   INTO v_commission_rate
   FROM public.seller_commission_rules
   WHERE seller_id = v_next_seller_id
