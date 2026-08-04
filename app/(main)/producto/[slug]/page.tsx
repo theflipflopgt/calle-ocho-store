@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getProductBySlug, getProducts } from '@/lib/queries/products';
 import { ProductDetail } from '@/components/products/product-detail';
@@ -118,9 +119,9 @@ export default async function ProductPage({ params }: PageProps) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <nav aria-label="Migas de pan" className="mb-4 text-sm text-gray-500">
-        <a href="/" className="hover:text-brand-black">Inicio</a>
+        <Link href="/" className="hover:text-brand-black">Inicio</Link>
         <span className="mx-2">/</span>
-        <a href={`/marcas/${product.brand.slug}`} className="hover:text-brand-black">{product.brand.name}</a>
+        <Link href={`/marcas/${product.brand.slug}`} className="hover:text-brand-black">{product.brand.name}</Link>
         <span className="mx-2">/</span>
         <span className="text-brand-black">{product.name}</span>
       </nav>
