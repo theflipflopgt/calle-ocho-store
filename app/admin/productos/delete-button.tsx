@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2, Loader2 } from 'lucide-react';
+import { Archive, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/auth-context';
@@ -38,58 +38,13 @@ export function DeleteProductButton({ productId, productName }: DeleteProductBut
 
     const supabase = createClient();
 
-    // Delete in order: images -> colors -> variants -> tags -> product
-    // Due to foreign key constraints
-
-    // First, get all color IDs
-    const { data: colors } = await supabase
-      .from('product_colors')
-      .select('id')
-      .eq('product_id', productId);
-
-    if (colors && colors.length > 0) {
-      const colorIds = colors.map((c) => c.id);
-
-      // Delete images
-      await supabase
-        .from('product_color_images')
-        .delete()
-        .in('product_color_id', colorIds);
-
-      // Delete variants
-      await supabase
-        .from('product_variants')
-        .delete()
-        .in('product_color_id', colorIds);
-
-      // Delete colors
-      await supabase
-        .from('product_colors')
-        .delete()
-        .eq('product_id', productId);
-    }
-
-    // Delete product tags
-    await supabase
-      .from('product_tags')
-      .delete()
-      .eq('product_id', productId);
-
-    // Delete wishlists
-    await supabase
-      .from('wishlists')
-      .delete()
-      .eq('product_id', productId);
-
-    // Finally, delete the product
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', productId);
+    const { error } = await (supabase as any).rpc('admin_archive_product', {
+      p_product_id: productId,
+    });
 
     if (error) {
       console.error('Error deleting product:', error);
-      alert('Error al eliminar el producto. Puede que tenga órdenes asociadas.');
+      alert('No se pudo archivar el producto.');
       setIsDeleting(false);
       return;
     }
@@ -102,16 +57,16 @@ export function DeleteProductButton({ productId, productName }: DeleteProductBut
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
         <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
-          <Trash2 className="h-4 w-4" />
+          <Archive className="h-4 w-4" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>¿Eliminar producto?</AlertDialogTitle>
+          <AlertDialogTitle>¿Archivar producto?</AlertDialogTitle>
           <AlertDialogDescription>
-            Estás a punto de eliminar <strong>{productName}</strong> y todos sus colores, variantes e imágenes asociadas.
+            <strong>{productName}</strong> dejará de mostrarse y sus variantes quedarán sin disponibilidad.
             {'\n\n'}
-            Esta acción no se puede deshacer.
+            El historial de pedidos y la información del producto se conservarán.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -124,10 +79,10 @@ export function DeleteProductButton({ productId, productName }: DeleteProductBut
             {isDeleting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Eliminando...
+                Archivando...
               </>
             ) : (
-              'Eliminar'
+              'Archivar'
             )}
           </AlertDialogAction>
         </AlertDialogFooter>

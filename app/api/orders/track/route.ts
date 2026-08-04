@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
     max: 12,
     windowMs: 60_000,
     db: admin,
+    failClosed: true,
   });
 
   if (!limit.allowed) {

@@ -64,6 +64,11 @@ interface Product {
   description: string | null;
   base_price: number;
   compare_at_price: number | null;
+  cost_price?: number | null;
+  invoice_fee_percent?: number | null;
+  neo_link_fee_percent?: number | null;
+  sale_price_markup_percent?: number | null;
+  calculated_sale_price?: number | null;
   status: string;
   gender: string;
   is_featured: boolean | null;
@@ -204,6 +209,11 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     description: product?.description || '',
     base_price: product?.base_price || 0,
     compare_at_price: product?.compare_at_price || '',
+    cost_price: product?.cost_price || 0,
+    invoice_fee_percent: product?.invoice_fee_percent || 0,
+    neo_link_fee_percent: product?.neo_link_fee_percent || 0,
+    sale_price_markup_percent: product?.sale_price_markup_percent || 0,
+    calculated_sale_price: product?.calculated_sale_price || 0,
     status: product?.status || 'draft',
     gender: normalizeGender(product?.gender),
     is_featured: product?.is_featured || false,
@@ -245,6 +255,16 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'colors' | 'seo'>('info');
   const availableSizes = getSizesForGender(formData.gender);
   const sizeGuideLabel = getSizeGuideLabel(formData.gender);
+  const suggestedSalePrice =
+    Math.round(
+      Number(formData.cost_price || 0) *
+        (1 +
+          (Number(formData.invoice_fee_percent || 0) +
+            Number(formData.neo_link_fee_percent || 0) +
+            Number(formData.sale_price_markup_percent || 0)) /
+            100) *
+        100
+    ) / 100;
 
   const handleNameChange = (name: string) => {
     setFormData((prev) => ({
@@ -269,6 +289,19 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
   };
 
   const removeColor = (index: number) => {
+    const color = colors[index];
+    const persistedVariants = color.product_variants.filter((variant) => variant.id);
+    if (persistedVariants.length > 0) {
+      setRemovedVariants((current) => {
+        const knownIds = new Set(current.map((item) => item.variant.id));
+        return [
+          ...current,
+          ...persistedVariants
+            .filter((variant) => !knownIds.has(variant.id))
+            .map((variant) => ({ colorId: color.id, variant })),
+        ];
+      });
+    }
     setColors(colors.filter((_, i) => i !== index));
   };
 
@@ -430,6 +463,11 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
         description: formData.description || null,
         base_price: formData.base_price,
         compare_at_price: compareAtPrice,
+        cost_price: Number(formData.cost_price || 0),
+        invoice_fee_percent: Number(formData.invoice_fee_percent || 0),
+        neo_link_fee_percent: Number(formData.neo_link_fee_percent || 0),
+        sale_price_markup_percent: Number(formData.sale_price_markup_percent || 0),
+        calculated_sale_price: Number(formData.calculated_sale_price || suggestedSalePrice || 0),
         status: formData.status,
         gender: toDatabaseGender(formData.gender),
         is_featured: formData.is_featured,
@@ -442,177 +480,16 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
         meta_description: formData.meta_description || null,
       };
 
-      let productId: string;
+      const { error: saveError } = await (supabase as any).rpc('admin_save_product', {
+        p_product_id: isEditing && product ? product.id : null,
+        p_product: productData,
+        p_colors: colors,
+        p_removed_variant_ids: removedVariants
+          .map((item) => item.variant.id)
+          .filter(Boolean),
+      });
 
-      if (isEditing && product) {
-        const { error } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('id', product.id);
-
-        if (error) throw error;
-        productId = product.id;
-      } else {
-        const { data, error } = await supabase
-          .from('products')
-          .insert(productData)
-          .select('id')
-          .single();
-
-        if (error) throw error;
-        productId = data.id;
-      }
-
-      if (removedVariants.length > 0) {
-        const removedVariantUpdateResults = await Promise.all(
-          removedVariants
-            .filter((item) => item.variant.id)
-            .map((item) =>
-              supabase
-                .from('product_variants')
-                .update({
-                  stock_quantity: 0,
-                  is_available: false,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', item.variant.id!)
-            )
-        );
-        const removedVariantUpdateError = removedVariantUpdateResults.find(
-          (result) => result.error
-        )?.error;
-
-        if (removedVariantUpdateError) throw removedVariantUpdateError;
-      }
-
-      // Handle colors, images, and variants
-      for (const color of colors) {
-        let colorId: string;
-
-        const colorData = {
-          product_id: productId,
-          color_name: color.color_name,
-          color_code: color.color_code,
-          sku_suffix: color.sku_suffix,
-          is_available: color.is_available ?? true,
-          display_order: color.display_order ?? 0,
-        };
-
-        if (color.id) {
-          // Update existing color
-          const { error } = await supabase
-            .from('product_colors')
-            .update(colorData)
-            .eq('id', color.id);
-
-          if (error) throw error;
-          colorId = color.id;
-        } else {
-          // Create new color
-          const { data, error } = await supabase
-            .from('product_colors')
-            .insert(colorData)
-            .select('id')
-            .single();
-
-          if (error) throw error;
-          colorId = data.id;
-        }
-
-        const imageRows = color.product_color_images
-          .filter((image) => image.image_url)
-          .map((image) => ({
-            id: image.id,
-            product_color_id: colorId,
-            image_url: image.image_url,
-            alt_text: image.alt_text || null,
-            display_order: image.display_order ?? 0,
-            image_type: image.image_type || 'front',
-          }));
-
-        const existingImages = imageRows.filter((image) => image.id);
-        const newImages = imageRows
-          .filter((image) => !image.id)
-          .map((image) => ({
-            product_color_id: image.product_color_id,
-            image_url: image.image_url,
-            alt_text: image.alt_text,
-            display_order: image.display_order,
-            image_type: image.image_type,
-          }));
-
-        const imageUpdateResults = await Promise.all(
-          existingImages.map((image) => {
-            const { id, ...imageData } = image;
-            return supabase
-              .from('product_color_images')
-              .update(imageData)
-              .eq('id', id!);
-          })
-        );
-        const imageUpdateError = imageUpdateResults.find((result) => result.error)?.error;
-        if (imageUpdateError) throw imageUpdateError;
-
-        if (newImages.length > 0) {
-          const { error: insertImagesError } = await supabase
-            .from('product_color_images')
-            .insert(newImages);
-
-          if (insertImagesError) throw insertImagesError;
-        }
-
-        const variantRows = color.product_variants.map((variant) => ({
-          id: variant.id,
-          product_id: productId,
-          product_color_id: colorId,
-          size_us: variant.size_us,
-          size_eu: variant.size_eu,
-          size_uk: variant.size_uk,
-          size_cm: variant.size_cm,
-          sku: variant.sku,
-          stock_quantity: variant.stock_quantity,
-          low_stock_threshold: variant.low_stock_threshold ?? 5,
-          price_override: variant.price_override || null,
-          is_available: variant.is_available ?? true,
-        }));
-
-        const existingVariants = variantRows.filter((variant) => variant.id);
-        const newVariants = variantRows
-          .filter((variant) => !variant.id)
-          .map((variant) => ({
-            product_id: variant.product_id,
-            product_color_id: variant.product_color_id,
-            size_us: variant.size_us,
-            size_eu: variant.size_eu,
-            size_uk: variant.size_uk,
-            size_cm: variant.size_cm,
-            sku: variant.sku,
-            stock_quantity: variant.stock_quantity,
-            low_stock_threshold: variant.low_stock_threshold,
-            price_override: variant.price_override,
-            is_available: variant.is_available,
-          }));
-
-        const variantUpdateResults = await Promise.all(
-          existingVariants.map((variant) => {
-            const { id, ...variantData } = variant;
-            return supabase
-              .from('product_variants')
-              .update(variantData)
-              .eq('id', id!);
-          })
-        );
-        const variantUpdateError = variantUpdateResults.find((result) => result.error)?.error;
-        if (variantUpdateError) throw variantUpdateError;
-
-        if (newVariants.length > 0) {
-          const { error: insertVariantsError } = await supabase
-            .from('product_variants')
-            .insert(newVariants);
-
-          if (insertVariantsError) throw insertVariantsError;
-        }
-      }
+      if (saveError) throw saveError;
 
       router.push('/admin/productos');
       router.refresh();
@@ -765,6 +642,104 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                     placeholder="Precio original para mostrar descuento"
                   />
                 </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-brand-black">Calculo comercial</h4>
+                    <p className="text-xs text-gray-600">
+                      Usa estos campos para estimar el precio final con factura, Neo Link y margen.
+                    </p>
+                  </div>
+                  <div className="text-sm font-semibold text-brand-black">
+                    Sugerido: Q {suggestedSalePrice.toFixed(2)}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="cost_price">Costo (Q)</Label>
+                    <Input
+                      id="cost_price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.cost_price}
+                      onChange={(e) =>
+                        setFormData({ ...formData, cost_price: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="invoice_fee_percent">% factura</Label>
+                    <Input
+                      id="invoice_fee_percent"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.invoice_fee_percent}
+                      onChange={(e) =>
+                        setFormData({ ...formData, invoice_fee_percent: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="neo_link_fee_percent">% Neo Link</Label>
+                    <Input
+                      id="neo_link_fee_percent"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.neo_link_fee_percent}
+                      onChange={(e) =>
+                        setFormData({ ...formData, neo_link_fee_percent: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sale_price_markup_percent">% margen</Label>
+                    <Input
+                      id="sale_price_markup_percent"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.sale_price_markup_percent}
+                      onChange={(e) =>
+                        setFormData({ ...formData, sale_price_markup_percent: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="calculated_sale_price">Precio sugerido (Q)</Label>
+                    <Input
+                      id="calculated_sale_price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.calculated_sale_price || suggestedSalePrice}
+                      onChange={(e) =>
+                        setFormData({ ...formData, calculated_sale_price: parseFloat(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      base_price: suggestedSalePrice,
+                      calculated_sale_price: suggestedSalePrice,
+                    })
+                  }
+                >
+                  Usar sugerido como precio base
+                </Button>
               </div>
             </div>
           </div>

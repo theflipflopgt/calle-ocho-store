@@ -555,6 +555,8 @@ export type Database = {
       orders: {
         Row: {
           admin_notes: string | null
+          admin_notes_updated_at: string | null
+          admin_notes_updated_by: string | null
           cancelled_at: string | null
           coupon_code: string | null
           coupon_discount: number | null
@@ -566,6 +568,13 @@ export type Database = {
           id: string
           order_number: string
           paid_at: string | null
+          payment_link_sent_at: string | null
+          payment_link_sent_by: string | null
+          payment_link_url: string | null
+          payment_link_whatsapp_message_id: string | null
+          seller_commission_amount: number
+          seller_commission_rate: number
+          seller_id: string | null
           shipped_at: string | null
           shipping_additional_references: string | null
           shipping_address_id: string | null
@@ -590,6 +599,8 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          admin_notes_updated_at?: string | null
+          admin_notes_updated_by?: string | null
           cancelled_at?: string | null
           coupon_code?: string | null
           coupon_discount?: number | null
@@ -601,6 +612,13 @@ export type Database = {
           id?: string
           order_number: string
           paid_at?: string | null
+          payment_link_sent_at?: string | null
+          payment_link_sent_by?: string | null
+          payment_link_url?: string | null
+          payment_link_whatsapp_message_id?: string | null
+          seller_commission_amount?: number
+          seller_commission_rate?: number
+          seller_id?: string | null
           shipped_at?: string | null
           shipping_additional_references?: string | null
           shipping_address_id?: string | null
@@ -625,6 +643,8 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          admin_notes_updated_at?: string | null
+          admin_notes_updated_by?: string | null
           cancelled_at?: string | null
           coupon_code?: string | null
           coupon_discount?: number | null
@@ -636,6 +656,13 @@ export type Database = {
           id?: string
           order_number?: string
           paid_at?: string | null
+          payment_link_sent_at?: string | null
+          payment_link_sent_by?: string | null
+          payment_link_url?: string | null
+          payment_link_whatsapp_message_id?: string | null
+          seller_commission_amount?: number
+          seller_commission_rate?: number
+          seller_id?: string | null
           shipped_at?: string | null
           shipping_additional_references?: string | null
           shipping_address_id?: string | null
@@ -660,6 +687,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "orders_admin_notes_updated_by_fkey"
+            columns: ["admin_notes_updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_coupon_id_fkey"
             columns: ["coupon_id"]
             isOneToOne: false
@@ -674,6 +708,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "orders_payment_link_sent_by_fkey"
+            columns: ["payment_link_sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -682,51 +730,126 @@ export type Database = {
           },
         ]
       }
+      payment_methods: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_enabled: boolean
+          is_public: boolean
+          label: string
+          provider: string | null
+          requires_payment_link: boolean
+          supports_installments: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id: string
+          is_enabled?: boolean
+          is_public?: boolean
+          label: string
+          provider?: string | null
+          requires_payment_link?: boolean
+          supports_installments?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_enabled?: boolean
+          is_public?: boolean
+          label?: string
+          provider?: string | null
+          requires_payment_link?: boolean
+          supports_installments?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
+          authorized_at: string | null
+          card_brand: string | null
+          card_last4: string | null
           completed_at: string | null
           created_at: string | null
           failed_at: string | null
+          failure_reason: string | null
           gateway_response: Json | null
           id: string
+          idempotency_key: string | null
+          installments: number | null
           order_id: string
           payment_details: Json | null
           payment_method: string
           processed_at: string | null
+          provider: string | null
+          provider_authorization_code: string | null
+          provider_reference: string | null
+          provider_status: string | null
           refunded_at: string | null
           status: string
           transaction_id: string | null
+          updated_at: string
         }
         Insert: {
           amount: number
+          authorized_at?: string | null
+          card_brand?: string | null
+          card_last4?: string | null
           completed_at?: string | null
           created_at?: string | null
           failed_at?: string | null
+          failure_reason?: string | null
           gateway_response?: Json | null
           id?: string
+          idempotency_key?: string | null
+          installments?: number | null
           order_id: string
           payment_details?: Json | null
           payment_method: string
           processed_at?: string | null
+          provider?: string | null
+          provider_authorization_code?: string | null
+          provider_reference?: string | null
+          provider_status?: string | null
           refunded_at?: string | null
           status?: string
           transaction_id?: string | null
+          updated_at?: string
         }
         Update: {
           amount?: number
+          authorized_at?: string | null
+          card_brand?: string | null
+          card_last4?: string | null
           completed_at?: string | null
           created_at?: string | null
           failed_at?: string | null
+          failure_reason?: string | null
           gateway_response?: Json | null
           id?: string
+          idempotency_key?: string | null
+          installments?: number | null
           order_id?: string
           payment_details?: Json | null
           payment_method?: string
           processed_at?: string | null
+          provider?: string | null
+          provider_authorization_code?: string | null
+          provider_reference?: string | null
+          provider_status?: string | null
           refunded_at?: string | null
           status?: string
           transaction_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -924,18 +1047,23 @@ export type Database = {
           base_price: number
           brand_id: string
           category_id: string
+          calculated_sale_price: number | null
           compare_at_price: number | null
+          cost_price: number
           created_at: string | null
           description: string | null
           gender: string
           id: string
+          invoice_fee_percent: number
           is_featured: boolean | null
           is_new_release: boolean | null
+          neo_link_fee_percent: number
           new_release_until: string | null
           meta_description: string | null
           meta_title: string | null
           name: string
           published_at: string | null
+          sale_price_markup_percent: number
           sku: string
           slug: string
           status: string
@@ -945,18 +1073,23 @@ export type Database = {
           base_price: number
           brand_id: string
           category_id: string
+          calculated_sale_price?: number | null
           compare_at_price?: number | null
+          cost_price?: number
           created_at?: string | null
           description?: string | null
           gender?: string
           id?: string
+          invoice_fee_percent?: number
           is_featured?: boolean | null
           is_new_release?: boolean | null
+          neo_link_fee_percent?: number
           new_release_until?: string | null
           meta_description?: string | null
           meta_title?: string | null
           name: string
           published_at?: string | null
+          sale_price_markup_percent?: number
           sku: string
           slug: string
           status?: string
@@ -966,18 +1099,23 @@ export type Database = {
           base_price?: number
           brand_id?: string
           category_id?: string
+          calculated_sale_price?: number | null
           compare_at_price?: number | null
+          cost_price?: number
           created_at?: string | null
           description?: string | null
           gender?: string
           id?: string
+          invoice_fee_percent?: number
           is_featured?: boolean | null
           is_new_release?: boolean | null
+          neo_link_fee_percent?: number
           new_release_until?: string | null
           meta_description?: string | null
           meta_title?: string | null
           name?: string
           published_at?: string | null
+          sale_price_markup_percent?: number
           sku?: string
           slug?: string
           status?: string

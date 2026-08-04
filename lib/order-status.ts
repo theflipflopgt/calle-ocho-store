@@ -1,7 +1,7 @@
 import type { OrderStatus } from '@/types/order-workflow';
 
 export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  pending: ['paid', 'processing', 'cancelled'],
+  pending: ['paid', 'cancelled'],
   paid: ['processing', 'cancelled', 'refunded'],
   processing: ['shipped', 'cancelled', 'refunded'],
   shipped: ['delivered', 'refunded'],

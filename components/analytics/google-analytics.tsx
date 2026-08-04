@@ -4,7 +4,7 @@ import Script from 'next/script';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 
-const DEFAULT_MEASUREMENT_ID = 'G-LG4JR6C1BF';
+const DEFAULT_MEASUREMENT_ID = 'G-PFV1T22GQT';
 
 function PageViewTracker({ measurementId }: { measurementId: string }) {
   const pathname = usePathname();

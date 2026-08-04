@@ -3,6 +3,8 @@ import { Facebook, Instagram, Mail } from 'lucide-react';
 import { NewsletterForm } from './newsletter-form';
 
 export function Footer() {
+  const facebookUrl = process.env.NEXT_PUBLIC_FACEBOOK_URL?.trim();
+  const instagramUrl = process.env.NEXT_PUBLIC_INSTAGRAM_URL?.trim();
   return (
     <footer className="bg-brand-black text-white mt-12 sm:mt-16 md:mt-20">
       {/* Main Footer */}
@@ -110,20 +112,8 @@ export function Footer() {
         <div className="container mx-auto px-4 py-4 sm:py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-5 sm:gap-6">
-              <Link
-                href="https://facebook.com"
-                target="_blank"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <Facebook className="h-5 w-5" />
-              </Link>
-              <Link
-                href="https://instagram.com"
-                target="_blank"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <Instagram className="h-5 w-5" />
-              </Link>
+              {facebookUrl && <Link href={facebookUrl} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-gray-400 hover:text-white transition-colors"><Facebook className="h-5 w-5" /></Link>}
+              {instagramUrl && <Link href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-gray-400 hover:text-white transition-colors"><Instagram className="h-5 w-5" /></Link>}
               <Link
                 href="mailto:info@calleochostore.com"
                 className="text-gray-400 hover:text-white transition-colors"
@@ -132,7 +122,7 @@ export function Footer() {
               </Link>
             </div>
             <div className="text-xs sm:text-sm text-gray-400 text-center md:text-right">
-              <p>&copy; 2025 Calle Ocho Store. Guatemala.</p>
+              <p>&copy; {new Date().getFullYear()} Calle Ocho Store. Guatemala.</p>
               <p className="text-[10px] sm:text-xs mt-1">
                 Desarrollada por{' '}
                 <Link

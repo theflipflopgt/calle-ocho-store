@@ -2,7 +2,7 @@
 
 ## Implementado
 
-- Google Analytics 4 con `G-LG4JR6C1BF`.
+- Google Analytics 4 con `G-PFV1T22GQT`.
 - Medición de navegación SPA.
 - Eventos GA4 ecommerce: `view_item_list`, `view_item`, `search`, `add_to_cart`, `begin_checkout` y `purchase`.
 - Protección contra duplicar `purchase` al recargar la confirmación.

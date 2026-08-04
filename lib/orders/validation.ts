@@ -8,6 +8,10 @@ export interface ValidationResult {
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+export function isValidIdempotencyKey(value: string | null | undefined): value is string {
+  return Boolean(value && /^[A-Za-z0-9_-]{16,100}$/.test(value));
+}
+
 function hasMinLength(value: string | undefined, min: number): boolean {
   if (!value) {
     return false;
@@ -65,7 +69,17 @@ export function validateOrderCreateInput(input: Partial<OrderCreateInput>): Vali
     return { valid: false, error: 'Las notas exceden el máximo permitido.' };
   }
 
-  if (!input.paymentMethod || !['bank_transfer', 'cash_on_delivery', 'card', 'neocuotas'].includes(input.paymentMethod)) {
+  if (
+    !input.paymentMethod ||
+    ![
+      'bank_transfer',
+      'cash_on_delivery',
+      'neo_link_direct',
+      'neo_link_installments',
+      'card',
+      'neocuotas',
+    ].includes(input.paymentMethod)
+  ) {
     return { valid: false, error: 'Selecciona un método de pago válido.' };
   }
 

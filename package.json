@@ -1,12 +1,18 @@
 {
   "private": true,
+  "engines": {
+    "node": ">=22 <23"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "test:e2e": "node --test tests/e2e/*.test.mjs",
+    "db:types": "supabase gen types typescript --local > types/database.types.ts"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { consumeRateLimit, getClientIpFromHeaders } from '@/lib/rate-limit';
-import { validateGuestOrderCreateInput, validateOrderCreateInput } from '@/lib/orders/validation';
+import { consumePersistentRateLimit, getClientIpFromHeaders } from '@/lib/rate-limit';
+import { isValidIdempotencyKey, validateGuestOrderCreateInput, validateOrderCreateInput } from '@/lib/orders/validation';
 import { mapOrderErrorMessage } from '@/lib/orders/errors';
 import { appLogger } from '@/lib/logger';
 import type { OrderCreateInput, OrderCreateResult } from '@/types/order-workflow';
@@ -169,43 +169,23 @@ async function sendOrderEmails({
   }
 }
 
-async function updateManualPaymentMethod({
-  db,
-  orderId,
-  paymentMethod,
-  isOwnDelivery,
-}: {
-  db: any;
-  orderId: string;
-  paymentMethod: OrderCreateInput['paymentMethod'];
-  isOwnDelivery: boolean;
-}) {
-  const writeDb = createAdminClient() || db;
-  const isCashOnDelivery = paymentMethod === 'cash_on_delivery';
-
-  const { error } = await writeDb
-    .from('payments')
-    .update({
-      payment_method: isCashOnDelivery ? 'cash_on_delivery' : 'bank_transfer',
-      payment_details: {
-        mode: 'manual',
-        selected_method: isCashOnDelivery ? 'cash_on_delivery' : 'bank_transfer',
-        contact_channel: 'whatsapp',
-        requires_manual_confirmation: !isCashOnDelivery,
-        delivery_method: isOwnDelivery ? 'own_delivery' : 'guatex_collect',
-        shipping_fee_collection: isOwnDelivery ? 'included_in_order' : 'paid_to_carrier_on_delivery',
-      },
-    })
-    .eq('order_id', orderId)
-    .in('payment_method', ['cash_on_delivery', 'bank_transfer'])
-    .eq('status', 'pending');
+async function getActivePaymentMethod(db: any, paymentMethod: string) {
+  const { data, error } = await db
+    .from('payment_methods')
+    .select('code:id, provider, is_enabled')
+    .eq('id', paymentMethod)
+    .eq('is_enabled', true)
+    .eq('is_public', true)
+    .maybeSingle();
 
   if (error) {
-    appLogger.warn('orders.create.payment_method_update_failed', {
-      orderId,
+    appLogger.warn('orders.create.payment_method_lookup_failed', {
+      paymentMethod,
       error: error.message,
     });
   }
+
+  return data;
 }
 
 export async function POST(request: NextRequest) {
@@ -214,11 +194,14 @@ export async function POST(request: NextRequest) {
   const auth = await requireAuthenticatedUser();
   const rateLimitKey = auth.user ? `${auth.user.id}:${ip}` : `guest:${ip}`;
 
-  const limit = consumeRateLimit({
+  const admin = createAdminClient();
+  const limit = await consumePersistentRateLimit({
     bucket: 'orders-create',
     key: rateLimitKey,
     max: auth.user ? 6 : 4,
     windowMs: 60_000,
+    db: admin,
+    failClosed: true,
   });
 
   if (!limit.allowed) {
@@ -232,6 +215,14 @@ export async function POST(request: NextRequest) {
   }
 
   let body: Partial<OrderCreateInput>;
+
+  const idempotencyKey = request.headers.get('idempotency-key')?.trim();
+  if (!isValidIdempotencyKey(idempotencyKey)) {
+    return NextResponse.json(
+      { error: 'Falta una llave idempotente válida para confirmar el pedido.' },
+      { status: 400 }
+    );
+  }
 
   try {
     body = await request.json();
@@ -256,13 +247,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!['bank_transfer', 'cash_on_delivery'].includes(payload.paymentMethod)) {
-    return NextResponse.json(
-      { error: 'NeoPay todavía no está habilitado. Selecciona transferencia bancaria mientras se completa la certificación.' },
-      { status: 503 }
-    );
-  }
-
   const db = auth.user ? (auth.supabase as any) : createAdminClient();
 
   if (!db) {
@@ -273,12 +257,31 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const rpcName = auth.user ? 'create_manual_order' : 'create_guest_manual_order';
+  const activePaymentMethod = await getActivePaymentMethod(db, payload.paymentMethod);
+
+  if (!activePaymentMethod) {
+    return NextResponse.json(
+      { error: 'El método de pago seleccionado no está disponible en este momento.' },
+      { status: 400 }
+    );
+  }
+
+  if (activePaymentMethod.provider === 'neopay') {
+    return NextResponse.json(
+      { error: 'NeoPay directo todavía no está habilitado. Usa Neo Link para tarjeta de contado o cuotas.' },
+      { status: 503 }
+    );
+  }
+
+  const rpcName = auth.user ? 'create_manual_order_v2' : 'create_guest_manual_order_v2';
   const rpcParams = auth.user
     ? {
         p_shipping: payload.shipping,
         p_customer_notes: payload.customerNotes || null,
         p_coupon_code: payload.couponCode?.trim() || null,
+        p_payment_method: payload.paymentMethod,
+        p_idempotency_key: idempotencyKey,
+        p_is_own_delivery: supportsOwnDelivery(payload),
       }
     : {
         p_customer_email: payload.customerEmail?.trim().toLowerCase(),
@@ -286,6 +289,9 @@ export async function POST(request: NextRequest) {
         p_items: payload.items,
         p_customer_notes: payload.customerNotes || null,
         p_coupon_code: payload.couponCode?.trim() || null,
+        p_payment_method: payload.paymentMethod,
+        p_idempotency_key: idempotencyKey,
+        p_is_own_delivery: supportsOwnDelivery(payload),
       };
 
   const { data, error } = await db.rpc(rpcName, rpcParams);
@@ -308,14 +314,7 @@ export async function POST(request: NextRequest) {
   const orderResult = data as OrderCreateResult;
   const customerEmail = auth.user?.email || payload.customerEmail?.trim().toLowerCase();
 
-  await updateManualPaymentMethod({
-    db,
-    orderId: orderResult.orderId,
-    paymentMethod: payload.paymentMethod,
-    isOwnDelivery: supportsOwnDelivery(payload),
-  });
-
-  if (customerEmail) {
+  if (customerEmail && !orderResult.replayed) {
     await sendOrderEmails({
       db,
       orderId: orderResult.orderId,
@@ -331,6 +330,8 @@ export async function POST(request: NextRequest) {
     orderId: orderResult.orderId,
     orderNumber: orderResult.orderNumber,
     total: orderResult.total,
+    sellerId: orderResult.sellerId || null,
+    replayed: Boolean(orderResult.replayed),
   });
 
   return NextResponse.json({

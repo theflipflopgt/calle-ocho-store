@@ -10,6 +10,7 @@ interface CartItemVariant {
   size_eu: number;
   sku: string;
   stock_quantity: number;
+  price_override: number | null;
   product_color: {
     id: string;
     color_name: string;
@@ -90,6 +91,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             size_eu,
             sku,
             stock_quantity,
+            price_override,
             product_color:product_colors!inner(
               id,
               color_name,
@@ -153,12 +155,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         .from('product_variants')
         .select(`
           id,
+          price_override,
           product:products(base_price)
         `)
         .in('id', variantIds);
 
       const priceMap = new Map(
-        (variants || []).map((v: any) => [v.id, v.product?.base_price || 0])
+        (variants || []).map((v: any) => [
+          v.id,
+          v.price_override ?? v.product?.base_price ?? 0,
+        ])
       );
 
       // Add each guest item to database
@@ -238,6 +244,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           size_eu,
           sku,
           stock_quantity,
+          price_override,
           product_color:product_colors!inner(
             id,
             color_name,
@@ -265,7 +272,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             id: `guest-${item.variantId}`,
             variant_id: item.variantId,
             quantity: item.quantity,
-            price_at_add: variant.product_color.product.base_price,
+            price_at_add:
+              variant.price_override ?? variant.product_color.product.base_price,
             variant: {
               ...variant,
               product_color: {
@@ -305,6 +313,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         .select(`
           id,
           stock_quantity,
+          price_override,
           product:products(base_price)
         `)
         .eq('id', variantId)
@@ -321,7 +330,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
 
-      const price = (variant as any).product?.base_price || 0;
+      const price = (variant as any).price_override ?? (variant as any).product?.base_price ?? 0;
 
       if (user) {
         // Authenticated user - save to database
@@ -454,7 +463,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const subtotal = useMemo(() =>
     items.reduce((sum, item) => {
-      const price = item.variant.product_color.product.base_price;
+      const price = item.variant.price_override ?? item.variant.product_color.product.base_price;
       return sum + (price * item.quantity);
     }, 0),
     [items]

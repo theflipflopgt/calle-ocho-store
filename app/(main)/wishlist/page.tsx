@@ -22,7 +22,7 @@ interface WishlistProduct {
     color_name: string;
     color_code: string;
     images: { image_url: string }[];
-    variants: { id: string; size_us: number; stock_quantity: number; is_available: boolean }[];
+    variants: { id: string; size_us: number; stock_quantity: number; is_available: boolean; price_override: number | null }[];
   }[];
 }
 
@@ -65,7 +65,7 @@ export default function WishlistPage() {
               color_name,
               color_code,
               images:product_color_images(image_url),
-              variants:product_variants(id, size_us, stock_quantity, is_available)
+              variants:product_variants(id, size_us, stock_quantity, is_available, price_override)
             )
           `)
           .in('id', productIds);
@@ -100,10 +100,9 @@ export default function WishlistPage() {
 
   const handleQuickAdd = async (product: WishlistProduct) => {
     // Find first available variant
-    const firstColor = product.colors[0];
-    const firstAvailableVariant = firstColor?.variants?.find(
-      v => v.is_available && v.stock_quantity > 0
-    );
+    const firstAvailableVariant = product.colors
+      .flatMap((color) => color.variants || [])
+      .find((variant) => variant.is_available && variant.stock_quantity > 0);
 
     if (!firstAvailableVariant) return;
 
@@ -212,8 +211,14 @@ interface WishlistCardProps {
 function WishlistCard({ product, onRemove, onQuickAdd, isAddingToCart }: WishlistCardProps) {
   const firstColor = product.colors?.[0];
   const image = firstColor?.images[0]?.image_url;
-  const hasStock = firstColor?.variants?.some(v => v.is_available && v.stock_quantity > 0);
-  const hasDiscount = product.compare_at_price && product.compare_at_price > product.base_price;
+  const availableVariants = product.colors
+    .flatMap((color) => color.variants || [])
+    .filter((variant) => variant.is_available && variant.stock_quantity > 0);
+  const hasStock = availableVariants.length > 0;
+  const displayPrice = availableVariants.length > 0
+    ? Math.min(...availableVariants.map((variant) => Number(variant.price_override ?? product.base_price)))
+    : product.base_price;
+  const hasDiscount = Boolean(product.compare_at_price && product.compare_at_price > displayPrice);
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden group">
@@ -246,7 +251,7 @@ function WishlistCard({ product, onRemove, onQuickAdd, isAddingToCart }: Wishlis
         {/* Discount Badge */}
         {hasDiscount && (
           <div className="absolute top-3 left-3 bg-brand-red text-white text-xs font-semibold px-2 py-1 rounded">
-            -{Math.round((1 - product.base_price / product.compare_at_price!) * 100)}%
+            -{Math.round((1 - displayPrice / product.compare_at_price!) * 100)}%
           </div>
         )}
 
@@ -274,7 +279,7 @@ function WishlistCard({ product, onRemove, onQuickAdd, isAddingToCart }: Wishlis
         {/* Price */}
         <div className="flex items-center gap-2 mb-4">
           <span className="font-bold text-brand-black">
-            {formatPrice(product.base_price)}
+            {formatPrice(displayPrice)}
           </span>
           {hasDiscount && (
             <span className="text-sm text-gray-400 line-through">

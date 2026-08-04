@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     max: 30,
     windowMs: 60_000,
     db: admin,
+    failClosed: true,
   });
 
   if (!limit.allowed) {

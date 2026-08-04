@@ -155,6 +155,7 @@ interface CartItemCardProps {
       size_us: number;
       size_eu: number;
       stock_quantity: number;
+      price_override: number | null;
       product_color: {
         color_name: string;
         images: { image_url: string }[];
@@ -255,12 +256,12 @@ function CartItemCard({ item, onUpdateQuantity, onRemove }: CartItemCardProps) {
           {/* Price */}
           <div className="text-right">
             <p className="text-lg sm:text-xl font-bold text-brand-black">
-              {formatPrice(product.base_price * item.quantity)}
+              {formatPrice((item.variant.price_override ?? product.base_price) * item.quantity)}
             </p>
             {(item.quantity > 1 || hasDiscount) && (
               <div className="flex items-center justify-end gap-2 mt-0.5">
                 <span className="text-sm text-gray-500">
-                  {formatPrice(product.base_price)} c/u
+                  {formatPrice(item.variant.price_override ?? product.base_price)} c/u
                 </span>
                 {hasDiscount && (
                   <span className="text-sm text-gray-400 line-through">

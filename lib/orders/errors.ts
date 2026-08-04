@@ -17,6 +17,9 @@ export const ORDER_ERROR_MESSAGES: Record<string, string> = {
   ADMIN_ONLY: 'Esta acción requiere permisos de administrador.',
   INVALID_PAYMENT_METHOD: 'Selecciona un método de pago válido.',
   PAYMENT_GATEWAY_NOT_CONFIGURED: 'El pago con tarjeta todavía no está habilitado.',
+  INVALID_IDEMPOTENCY_KEY: 'No se pudo identificar de forma segura este intento de compra.',
+  CART_CONTAINS_UNAVAILABLE_ITEM: 'Retira del carrito los productos agotados o no disponibles.',
+  ORDER_NOT_ASSIGNED: 'Este pedido está asignado a otro vendedor.',
 };
 
 export function mapOrderErrorMessage(raw: string | null | undefined): string {

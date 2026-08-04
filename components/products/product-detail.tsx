@@ -43,6 +43,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
   );
 
   const maxQuantity = selectedVariant?.stock_quantity || 1;
+  const displayPrice = Number(selectedVariant?.price_override ?? product.lowestPrice);
+  const hasDisplayDiscount = Boolean(
+    product.compare_at_price && product.compare_at_price > displayPrice
+  );
 
   useEffect(() => {
     trackViewItem({
@@ -88,7 +92,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
           item_brand: product.brand.name,
           item_category: product.category.name,
           item_variant: `${selectedColor?.color_name || ''} / US ${selectedVariant.size_us}`,
-          price: Number(selectedVariant.price_override || product.base_price),
+          price: Number(selectedVariant.price_override ?? product.base_price),
           quantity,
         });
       }
@@ -235,15 +239,15 @@ export function ProductDetail({ product }: ProductDetailProps) {
         {/* Price */}
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-2xl sm:text-3xl font-bold text-brand-black">
-            {formatPrice(product.lowestPrice)}
+            {formatPrice(displayPrice)}
           </span>
-          {product.hasDiscount && product.compare_at_price && (
+          {hasDisplayDiscount && product.compare_at_price && (
             <>
               <span className="text-lg sm:text-xl text-gray-400 line-through">
                 {formatPrice(product.compare_at_price)}
               </span>
               <Badge className="bg-brand-red text-white text-xs sm:text-sm">
-                Ahorras {formatPrice(product.compare_at_price - product.lowestPrice)}
+                Ahorras {formatPrice(product.compare_at_price - displayPrice)}
               </Badge>
             </>
           )}

@@ -289,22 +289,29 @@ function transformProduct(product: any): ProductWithDetails {
 
   // Calcular stock total
   let totalStock = 0;
-  const lowestPrice = product.base_price;
+  const availablePrices: number[] = [];
   let isLowStock = false;
 
   colors.forEach((color: any) => {
     (color.variants || []).forEach((variant: any) => {
       totalStock += variant.stock_quantity || 0;
+      if (variant.is_available && variant.stock_quantity > 0) {
+        availablePrices.push(Number(variant.price_override ?? product.base_price));
+      }
       if (variant.stock_quantity > 0 && variant.stock_quantity <= (variant.low_stock_threshold || 3)) {
         isLowStock = true;
       }
     });
   });
 
+  const lowestPrice = availablePrices.length > 0
+    ? Math.min(...availablePrices)
+    : Number(product.base_price);
+
   // Calcular descuento
-  const hasDiscount = !!product.compare_at_price && product.compare_at_price > product.base_price;
+  const hasDiscount = !!product.compare_at_price && product.compare_at_price > lowestPrice;
   const discountPercentage = hasDiscount
-    ? Math.round((1 - product.base_price / product.compare_at_price) * 100)
+    ? Math.round((1 - lowestPrice / product.compare_at_price) * 100)
     : null;
 
   // El distintivo de nuevo lanzamiento se controla desde administración.

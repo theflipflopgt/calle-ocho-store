@@ -4,13 +4,13 @@ Tienda online de tenis con integraciones de IA.
 
 ## Tech Stack
 
-- **Frontend:** Next.js 15 (App Router), React 19, TypeScript
+- **Frontend:** Next.js 16 (App Router), React 19, TypeScript
 - **Styling:** Tailwind CSS, shadcn/ui
 - **Backend:** Supabase (Auth, Database, Storage)
 - **Images:** Cloudinary
 - **Emails:** Resend + React Email
 - **Animations:** Framer Motion
-- **AI:** Groq (chatbot)
+- **AI:** Base de datos preparada; asistente aún no habilitado
 - **Deploy:** Vercel
 
 ## Desarrollo Local
@@ -78,6 +78,10 @@ Tienda online de tenis con integraciones de IA.
 | `npm run build` | Build de producción |
 | `npm run start` | Servidor de producción |
 | `npm run lint` | Ejecutar ESLint |
+| `npm run typecheck` | Validar TypeScript sin generar archivos |
+| `npm run test:run` | Ejecutar pruebas unitarias e integración |
+| `npm run test:e2e` | Ejecutar smoke tests contra el servidor iniciado |
+| `npm run db:types` | Regenerar tipos desde Supabase local |
 
 ## Migraciones de Base de Datos
 
@@ -86,3 +90,5 @@ npx supabase login
 npx supabase link --project-ref <project-ref>
 npx supabase db push
 ```
+
+Antes de producción, siga `IMPLEMENTACION_MITIGACIONES.md` y complete `docs/uat-checklist.md` en un ambiente Preview.

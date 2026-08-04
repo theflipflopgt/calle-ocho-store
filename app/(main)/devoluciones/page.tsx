@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { CheckCircle2, RotateCcw, ShoppingBag, MessageCircle } from 'lucide-react';
 import { getHomeContent } from '@/lib/home-content';
+import { ReturnRequestForm } from './return-request-form';
 
 export const metadata = {
   title: 'Cambios y devoluciones | Calle Ocho Store',
@@ -39,6 +40,9 @@ export default async function DevolucionesPage() {
       </section>
 
       <section className="container mx-auto px-4 py-12">
+        <div className="mb-8">
+          <ReturnRequestForm />
+        </div>
         <div className="grid gap-5 md:grid-cols-2">
           {items.map(([title, text, Icon]) => (
             <div key={title} className="rounded-lg border border-gray-200 bg-white p-5">

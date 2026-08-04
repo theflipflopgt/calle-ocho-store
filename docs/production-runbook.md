@@ -6,6 +6,8 @@
 2. Contact customer to confirm manual payment method.
 3. Update status flow: `pending -> paid -> processing -> shipped -> delivered`.
 4. Add internal notes for each handoff in the order detail.
+5. Review `/admin/envios` and `/admin/devoluciones` for pending operational work.
+6. Confirm the hourly order-expiration cron is succeeding in Vercel.
 
 ## Incident Handling
 
@@ -38,7 +40,10 @@
 
 ## Release Gate
 
+- `supabase db reset` passes from an empty local database.
 - `npm run build` passes.
 - `npm run lint` passes.
+- `npm run typecheck` passes.
 - `npm run test:run` passes.
+- `npm run test:e2e` passes against the production build.
 - UAT checklist completed.

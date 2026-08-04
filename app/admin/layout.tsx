@@ -21,6 +21,9 @@ import {
   ChevronDown,
   Layers,
   ImageIcon,
+  Truck,
+  RotateCcw,
+  BadgeDollarSign,
 } from 'lucide-react';
 
 const navigation = [
@@ -37,6 +40,9 @@ const navigation = [
     ],
   },
   { name: 'Órdenes', href: '/admin/ordenes', icon: ShoppingCart },
+  { name: 'Envíos', href: '/admin/envios', icon: Truck },
+  { name: 'Devoluciones', href: '/admin/devoluciones', icon: RotateCcw },
+  { name: 'Vendedores', href: '/admin/vendedores', icon: BadgeDollarSign },
   { name: 'Usuarios', href: '/admin/clientes', icon: Users },
   { name: 'Marcas', href: '/admin/marcas', icon: Layers },
   { name: 'Categorías', href: '/admin/categorias', icon: Tag },

@@ -3,6 +3,8 @@ import { render } from '@react-email/components';
 import OrderConfirmationEmail from '@/emails/order-confirmation';
 import NewOrderNotificationEmail from '@/emails/new-order-notification';
 import OrderShippedEmail from '@/emails/order-shipped';
+import { claimEmailDelivery, completeEmailDelivery } from '@/lib/email-delivery';
+import { createNewsletterUnsubscribeToken } from '@/lib/newsletter-unsubscribe';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const defaultEmailFrom = 'Calle Ocho Store <onboarding@resend.dev>';
@@ -17,6 +19,51 @@ function getResendClient() {
   }
 
   return new Resend(process.env.RESEND_API_KEY);
+}
+
+async function deliverEmailOnce({
+  resend,
+  eventKey,
+  recipient,
+  template,
+  message,
+}: {
+  resend: Resend;
+  eventKey: string;
+  recipient: string;
+  template: string;
+  message: Parameters<Resend['emails']['send']>[0];
+}) {
+  const claim = await claimEmailDelivery({ eventKey, recipient, template });
+  if (claim.skip) {
+    return { data: null, error: null, skipped: true };
+  }
+
+  try {
+    const result = await resend.emails.send(message);
+    if (result.error) {
+      await completeEmailDelivery({
+        logId: claim.logId,
+        status: 'failed',
+        error: JSON.stringify(result.error),
+      });
+      return result;
+    }
+
+    await completeEmailDelivery({
+      logId: claim.logId,
+      status: 'sent',
+      providerMessageId: result.data?.id,
+    });
+    return result;
+  } catch (error) {
+    await completeEmailDelivery({
+      logId: claim.logId,
+      status: 'failed',
+      error: error instanceof Error ? error.message : 'unknown_email_error',
+    });
+    throw error;
+  }
 }
 
 function isValidEmail(email: string) {
@@ -146,11 +193,17 @@ export async function sendOrderConfirmationEmail(params: SendOrderConfirmationPa
       })
     );
 
-    const { data, error } = await resend.emails.send({
-      from: getEmailFrom(),
-      to: params.to,
-      subject: `Confirmación de Pedido ${params.orderNumber} - Calle Ocho Store`,
-      html: emailHtml,
+    const { data, error } = await deliverEmailOnce({
+      resend,
+      eventKey: `order-confirmation:${params.orderNumber}`,
+      recipient: params.to,
+      template: 'order-confirmation',
+      message: {
+        from: getEmailFrom(),
+        to: params.to,
+        subject: `Confirmación de Pedido ${params.orderNumber} - Calle Ocho Store`,
+        html: emailHtml,
+      },
     });
 
     if (error) {
@@ -203,11 +256,17 @@ export async function sendNewOrderNotification(params: SendNewOrderNotificationP
       })
     );
 
-    const { data, error } = await resend.emails.send({
-      from: getEmailFrom(),
-      to: businessEmail,
-      subject: `🎉 Nuevo Pedido ${params.orderNumber}`,
-      html: emailHtml,
+    const { data, error } = await deliverEmailOnce({
+      resend,
+      eventKey: `new-order:${params.orderNumber}`,
+      recipient: businessEmail,
+      template: 'new-order-notification',
+      message: {
+        from: getEmailFrom(),
+        to: businessEmail,
+        subject: `Nuevo Pedido ${params.orderNumber}`,
+        html: emailHtml,
+      },
     });
 
     if (error) {
@@ -251,11 +310,17 @@ export async function sendOrderShippedEmail(params: SendOrderShippedParams) {
       })
     );
 
-    const { data, error } = await resend.emails.send({
-      from: getEmailFrom(),
-      to: params.to,
-      subject: `📦 Tu pedido ${params.orderNumber} ha sido enviado - Calle Ocho Store`,
-      html: emailHtml,
+    const { data, error } = await deliverEmailOnce({
+      resend,
+      eventKey: `order-shipped:${params.orderNumber}`,
+      recipient: params.to,
+      template: 'order-shipped',
+      message: {
+        from: getEmailFrom(),
+        to: params.to,
+        subject: `Tu pedido ${params.orderNumber} ha sido enviado - Calle Ocho Store`,
+        html: emailHtml,
+      },
     });
 
     if (error) {
@@ -347,11 +412,17 @@ export async function sendOrderStatusUpdateEmail(params: SendOrderStatusUpdatePa
       </div>
     `;
 
-    const { data, error } = await resend.emails.send({
-      from: getEmailFrom(),
-      to: params.to,
-      subject: `${headline}: ${params.orderNumber} - Calle Ocho Store`,
-      html,
+    const { data, error } = await deliverEmailOnce({
+      resend,
+      eventKey: `order-status:${params.orderNumber}:${params.status}`,
+      recipient: params.to,
+      template: `order-status-${params.status}`,
+      message: {
+        from: getEmailFrom(),
+        to: params.to,
+        subject: `${headline}: ${params.orderNumber} - Calle Ocho Store`,
+        html,
+      },
     });
 
     if (error) {
@@ -382,6 +453,10 @@ export async function sendNewsletterWelcomeEmail(params: SendNewsletterWelcomeEm
     }
 
     const siteUrl = getSiteUrl();
+    const unsubscribeToken = createNewsletterUnsubscribeToken(params.to);
+    const unsubscribeUrl = unsubscribeToken
+      ? `${siteUrl}/api/newsletter/unsubscribe?email=${encodeURIComponent(params.to.toLowerCase())}&token=${unsubscribeToken}`
+      : null;
     const html = `
       <div style="background:#f4f6f8; padding:24px 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
         <div style="max-width:620px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; color:#111827;">
@@ -406,16 +481,23 @@ export async function sendNewsletterWelcomeEmail(params: SendNewsletterWelcomeEm
           </div>
           <div style="background:#111111; padding:22px 40px; text-align:center;">
             <p style="color:#9ca3af; font-size:12px; margin:0;">Calle Ocho Store, Guatemala.</p>
+            ${unsubscribeUrl ? `<p style="font-size:12px; margin:10px 0 0;"><a href="${escapeHtml(unsubscribeUrl)}" style="color:#d1d5db;">Dejar de recibir correos promocionales</a></p>` : ''}
           </div>
         </div>
       </div>
     `;
 
-    const { data, error } = await resend.emails.send({
-      from: getEmailFrom(),
-      to: params.to,
-      subject: 'Bienvenido al boletín de Calle Ocho Store',
-      html,
+    const { data, error } = await deliverEmailOnce({
+      resend,
+      eventKey: `newsletter-welcome:${params.to.toLowerCase()}`,
+      recipient: params.to,
+      template: 'newsletter-welcome',
+      message: {
+        from: getEmailFrom(),
+        to: params.to,
+        subject: 'Bienvenido al boletín de Calle Ocho Store',
+        html,
+      },
     });
 
     if (error) {
@@ -464,11 +546,17 @@ export async function sendNewsletterAdminNotification(params: SendNewsletterAdmi
       </div>
     `;
 
-    const { data, error } = await resend.emails.send({
-      from: getEmailFrom(),
-      to: businessEmail,
-      subject: 'Nueva suscripción al boletín - Calle Ocho Store',
-      html,
+    const { data, error } = await deliverEmailOnce({
+      resend,
+      eventKey: `newsletter-admin:${params.subscriberEmail.toLowerCase()}`,
+      recipient: businessEmail,
+      template: 'newsletter-admin-notification',
+      message: {
+        from: getEmailFrom(),
+        to: businessEmail,
+        subject: 'Nueva suscripción al boletín - Calle Ocho Store',
+        html,
+      },
     });
 
     if (error) {

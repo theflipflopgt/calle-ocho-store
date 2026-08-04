@@ -4,6 +4,7 @@ import { Search, Filter, AlertTriangle, Package, CheckCircle } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { InventoryImportPanel } from './inventory-import-panel';
 
 interface InventoryPageProps {
   searchParams: Promise<{ stock?: string; q?: string }>;
@@ -52,9 +53,31 @@ async function getInventory(filters: { stock?: string; q?: string }) {
   return variants;
 }
 
+async function getRecentMovements(auth: Awaited<ReturnType<typeof requireAuthenticatedUser>>) {
+  if (!auth.isAdmin && !auth.isWarehouse) return [];
+  const db = (createAdminClient() || auth.supabase) as any;
+  const { data, error } = await db
+    .from('inventory_movements')
+    .select(`
+      id, movement_type, quantity_delta, balance_after, reason, created_at,
+      variant:variant_id(sku, size_us, products:product_id(name)),
+      order:order_id(order_number)
+    `)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error('Error fetching inventory movements:', error);
+    return [];
+  }
+  return data || [];
+}
+
 export default async function InventoryPage({ searchParams }: InventoryPageProps) {
   const filters = await searchParams;
+  const auth = await requireAuthenticatedUser();
   const variants = await getInventory(filters);
+  const movements = await getRecentMovements(auth);
 
   const stats = {
     total: variants.length,
@@ -70,6 +93,8 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
         <h1 className="text-2xl font-bold text-brand-black">Inventario</h1>
         <p className="text-gray-600 mt-1">Control de stock por variante</p>
       </div>
+
+      {auth.canManageProducts && <InventoryImportPanel />}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -261,6 +286,50 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
           </table>
         </div>
       </div>
+
+      {(auth.isAdmin || auth.isWarehouse) && (
+        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+          <div className="border-b border-gray-200 px-5 py-4">
+            <h2 className="font-semibold text-brand-black">Movimientos recientes</h2>
+            <p className="text-sm text-gray-600">Últimos 50 cambios de existencias registrados por el servidor.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left">Fecha</th>
+                  <th className="px-4 py-3 text-left">Producto</th>
+                  <th className="px-4 py-3 text-left">Tipo</th>
+                  <th className="px-4 py-3 text-right">Cambio</th>
+                  <th className="px-4 py-3 text-right">Saldo</th>
+                  <th className="px-4 py-3 text-left">Referencia</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {movements.length === 0 ? (
+                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Aún no hay movimientos registrados.</td></tr>
+                ) : movements.map((movement: any) => (
+                  <tr key={movement.id}>
+                    <td className="whitespace-nowrap px-4 py-3">{new Date(movement.created_at).toLocaleString('es-GT')}</td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium">{movement.variant?.products?.name || 'Producto'}</p>
+                      <p className="text-xs text-gray-500">{movement.variant?.sku} · US {movement.variant?.size_us}</p>
+                    </td>
+                    <td className="px-4 py-3">{movement.movement_type}</td>
+                    <td className={`px-4 py-3 text-right font-semibold ${movement.quantity_delta > 0 ? 'text-green-700' : 'text-red-600'}`}>
+                      {movement.quantity_delta > 0 ? '+' : ''}{movement.quantity_delta}
+                    </td>
+                    <td className="px-4 py-3 text-right">{movement.balance_after}</td>
+                    <td className="px-4 py-3">
+                      {movement.order?.order_number || movement.reason || 'Sin referencia'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

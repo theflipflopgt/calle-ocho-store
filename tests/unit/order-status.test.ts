@@ -6,6 +6,10 @@ describe('order status transitions', () => {
     expect(canTransitionOrderStatus('pending', 'paid')).toBe(true);
   });
 
+  it('does not allow an unpaid pending order to start processing', () => {
+    expect(canTransitionOrderStatus('pending', 'processing')).toBe(false);
+  });
+
   it('blocks invalid transition delivered -> processing', () => {
     expect(canTransitionOrderStatus('delivered', 'processing')).toBe(false);
   });

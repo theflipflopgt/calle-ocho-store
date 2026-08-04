@@ -1,0 +1,54 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-key
+      NEXT_PUBLIC_CASH_ON_DELIVERY_ENABLED: "false"
+      CASH_ON_DELIVERY_ENABLED: "false"
+      NEOPAY_ENABLED: "false"
+      NEXT_PUBLIC_NEOPAY_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:run
+      - run: npm run build
+      - name: Start production server
+        run: |
+          npm run start > /tmp/calle-ocho-next.log 2>&1 &
+          echo $! > /tmp/calle-ocho-next.pid
+          for attempt in $(seq 1 30); do
+            curl --fail --silent http://127.0.0.1:3000/robots.txt >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/calle-ocho-next.log
+          exit 1
+      - run: npm run test:e2e
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start
+      - run: supabase db reset
+      - run: supabase gen types typescript --local > /tmp/database.types.ts
+      - run: test -s /tmp/database.types.ts

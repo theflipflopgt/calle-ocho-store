@@ -24,6 +24,12 @@ export function ProductCard({
   const mainImage = selectedColor?.images?.[0]?.image_url;
   const hoverImage = selectedColor?.images?.[1]?.image_url;
   const availableVariants = selectedColor?.variants?.filter(v => v.is_available && v.stock_quantity > 0) || [];
+  const selectedColorPrice = availableVariants.length > 0
+    ? Math.min(...availableVariants.map((variant) => Number(variant.price_override ?? product.base_price)))
+    : product.lowestPrice;
+  const selectedColorHasDiscount = Boolean(
+    product.compare_at_price && product.compare_at_price > selectedColorPrice
+  );
 
   const handleQuickAdd = useCallback((variantId: string) => {
     onQuickAdd?.(variantId);
@@ -243,9 +249,9 @@ export function ProductCard({
         {/* Price */}
         <div className="mt-auto flex items-center gap-2 flex-wrap">
           <span className="font-bold text-sm sm:text-base text-brand-black">
-            {formatPrice(product.lowestPrice)}
+            {formatPrice(selectedColorPrice)}
           </span>
-          {product.hasDiscount && product.compare_at_price && (
+          {selectedColorHasDiscount && product.compare_at_price && (
             <span className="text-xs sm:text-sm text-gray-400 line-through">
               {formatPrice(product.compare_at_price)}
             </span>

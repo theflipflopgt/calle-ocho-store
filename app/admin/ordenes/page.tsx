@@ -14,7 +14,7 @@ async function getOrders(filters: { status?: string; q?: string; from?: string; 
   const auth = await requireAuthenticatedUser();
   if (!auth.canManageOrders) return [];
 
-  const admin = createAdminClient();
+  const admin = auth.isAdmin ? createAdminClient() : null;
   const supabase = (admin || auth.supabase) as any;
 
   let query = supabase

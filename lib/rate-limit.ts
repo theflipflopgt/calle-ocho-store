@@ -18,6 +18,7 @@ interface RateLimitResult {
 
 interface PersistentRateLimitOptions extends RateLimitOptions {
   db?: any;
+  failClosed?: boolean;
 }
 
 const buckets = new Map<string, Map<string, BucketEntry>>();
@@ -80,6 +81,7 @@ export async function consumePersistentRateLimit({
   max,
   windowMs,
   db,
+  failClosed = false,
 }: PersistentRateLimitOptions): Promise<RateLimitResult> {
   const fallback = consumeRateLimit({ bucket, key, max, windowMs });
 
@@ -96,7 +98,9 @@ export async function consumePersistentRateLimit({
     });
 
     if (error || !data) {
-      return fallback;
+      return failClosed
+        ? { allowed: false, remaining: 0, retryAfterSeconds: 30 }
+        : fallback;
     }
 
     return {
@@ -105,7 +109,9 @@ export async function consumePersistentRateLimit({
       retryAfterSeconds: Number(data.retryAfterSeconds ?? 0),
     };
   } catch {
-    return fallback;
+    return failClosed
+      ? { allowed: false, remaining: 0, retryAfterSeconds: 30 }
+      : fallback;
   }
 }
 

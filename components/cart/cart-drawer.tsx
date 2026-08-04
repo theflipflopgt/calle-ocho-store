@@ -255,11 +255,11 @@ function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
           {/* Price */}
           <div className="text-right">
             <p className="text-sm sm:text-base font-semibold text-brand-black">
-              {formatPrice(product.base_price * item.quantity)}
+              {formatPrice((item.variant.price_override ?? product.base_price) * item.quantity)}
             </p>
             {item.quantity > 1 && (
               <p className="text-xs text-gray-500">
-                {formatPrice(product.base_price)} c/u
+                {formatPrice(item.variant.price_override ?? product.base_price)} c/u
               </p>
             )}
           </div>
