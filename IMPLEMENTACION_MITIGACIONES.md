@@ -55,7 +55,7 @@ Nunca use prefijo `NEXT_PUBLIC_` para service role, secretos de Cloudinary, Rese
 
 ## Cron de pedidos pendientes
 
-`vercel.json` ejecuta `/api/internal/orders/expire` cada hora. Vercel debe tener `CRON_SECRET` y `SUPABASE_SERVICE_ROLE_KEY`. Cada pedido pendiente recibe `expires_at` a 24 horas; el cron cancela y restaura inventario una sola vez.
+`vercel.json` ejecuta `/api/internal/orders/expire` diariamente a las 08:00 UTC (02:00 en Guatemala), frecuencia compatible con Vercel Hobby. Vercel debe tener `CRON_SECRET` y `SUPABASE_SERVICE_ROLE_KEY`. Cada pedido pendiente recibe `expires_at` a 24 horas; el cron cancela y restaura inventario una sola vez. Con la frecuencia diaria, la liberacion efectiva puede ocurrir entre 24 y 48 horas despues de crear el pedido. En Vercel Pro puede restaurarse la ejecucion horaria con `0 * * * *`.
 
 ## NeoPay
 
