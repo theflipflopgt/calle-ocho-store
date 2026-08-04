@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { OrderStatusUpdater } from './status-updater';
 import { AdminNotesEditor } from './admin-notes-editor';
 import { OrderAdjustmentsEditor } from './order-adjustments-editor';
+import { PaymentLinkManager } from './payment-link-manager';
+import { ShipmentManager } from './shipment-manager';
 import type { OrderStatus } from '@/types/order-workflow';
 
 interface OrderDetailPageProps {
@@ -47,6 +49,10 @@ async function getOrder(id: string) {
         transaction_id,
         payment_details,
         created_at
+      ),
+      seller:seller_id (id, full_name, email),
+      shipments (
+        id, carrier, service, status, tracking_number, tracking_url, shipping_cost
       )
     `)
     .eq('id', id)

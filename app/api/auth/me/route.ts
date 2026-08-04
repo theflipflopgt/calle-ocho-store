@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET() {
   const auth = await requireAuthenticatedUser();
@@ -13,7 +14,8 @@ export async function GET() {
     });
   }
 
-  const { data: profile } = await auth.supabase
+  const profileDb = createAdminClient() || auth.supabase;
+  const { data: profile } = await profileDb
     .from('profiles')
     .select('id, full_name, email, phone, role, avatar_url')
     .eq('id', auth.user.id)

@@ -169,53 +169,13 @@ async function sendOrderEmails({
   }
 }
 
-async function updateManualPaymentMethod({
-  db,
-  orderId,
-  paymentMethod,
-  isOwnDelivery,
-}: {
-  db: any;
-  orderId: string;
-  paymentMethod: OrderCreateInput['paymentMethod'];
-  isOwnDelivery: boolean;
-}) {
-  const writeDb = createAdminClient() || db;
-  const isCashOnDelivery = paymentMethod === 'cash_on_delivery';
-
-  const { error } = await writeDb
-    .from('payments')
-    .update({
-      payment_method: isCashOnDelivery ? 'cash_on_delivery' : 'bank_transfer',
-      payment_details: {
-        mode: 'manual',
-        selected_method: isCashOnDelivery ? 'cash_on_delivery' : 'bank_transfer',
-        contact_channel: 'whatsapp',
-        requires_manual_confirmation: !isCashOnDelivery,
-        delivery_method: isOwnDelivery ? 'own_delivery' : 'guatex_collect',
-        shipping_fee_collection: isOwnDelivery ? 'included_in_order' : 'paid_to_carrier_on_delivery',
-      },
-    })
-    .eq('order_id', orderId)
-    .in('payment_method', ['cash_on_delivery', 'bank_transfer'])
-    .eq('status', 'pending');
-
-  if (error) {
-    appLogger.warn('orders.create.payment_method_lookup_failed', {
-      paymentMethod,
-      error: error.message,
-    });
-  }
-
-  return data;
-}
-
 async function getActivePaymentMethod(db: any, paymentMethod: string) {
   const { data, error } = await db
     .from('payment_methods')
     .select('code:id, provider, is_enabled')
     .eq('id', paymentMethod)
     .eq('is_enabled', true)
+    .eq('is_public', true)
     .maybeSingle();
 
   if (error) {
@@ -226,23 +186,6 @@ async function getActivePaymentMethod(db: any, paymentMethod: string) {
   }
 
   return data;
-}
-
-async function assignOrderToSeller(db: any, orderId: string, requestId: string) {
-  const writeDb = createAdminClient() || db;
-  const { data, error } = await writeDb.rpc('assign_order_to_next_seller', {
-    p_order_id: orderId,
-  });
-
-  if (error) {
-    appLogger.warn('orders.create.seller_assignment_failed', {
-      requestId,
-      orderId,
-      error: error.message,
-    });
-  }
-
-  return data as string | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -330,22 +273,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const activePaymentMethod = await getActivePaymentMethod(db, payload.paymentMethod);
-
-  if (!activePaymentMethod) {
-    return NextResponse.json(
-      { error: 'El método de pago seleccionado no está disponible en este momento.' },
-      { status: 400 }
-    );
-  }
-
-  if (activePaymentMethod.provider === 'neopay') {
-    return NextResponse.json(
-      { error: 'NeoPay directo todavía no está habilitado. Usa Neo Link para tarjeta de contado o cuotas.' },
-      { status: 503 }
-    );
-  }
-
   const rpcName = auth.user ? 'create_manual_order_v2' : 'create_guest_manual_order_v2';
   const rpcParams = auth.user
     ? {
@@ -387,14 +314,7 @@ export async function POST(request: NextRequest) {
   const orderResult = data as OrderCreateResult;
   const customerEmail = auth.user?.email || payload.customerEmail?.trim().toLowerCase();
 
-  await updateManualPaymentMethod({
-    db,
-    orderId: orderResult.orderId,
-    paymentMethod: payload.paymentMethod,
-    isOwnDelivery: supportsOwnDelivery(payload),
-  });
-
-  if (customerEmail) {
+  if (customerEmail && !orderResult.replayed) {
     await sendOrderEmails({
       db,
       orderId: orderResult.orderId,
@@ -410,6 +330,8 @@ export async function POST(request: NextRequest) {
     orderId: orderResult.orderId,
     orderNumber: orderResult.orderNumber,
     total: orderResult.total,
+    sellerId: orderResult.sellerId || null,
+    replayed: Boolean(orderResult.replayed),
   });
 
   return NextResponse.json({

@@ -78,6 +78,8 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResult | null>(null);
   const [orderCreated, setOrderCreated] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('bank_transfer');
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([]);
+  const checkoutAttemptKey = useRef<string | null>(null);
 
   const [formData, setFormData] = useState<ShippingFormData>({
     customerEmail: '',
