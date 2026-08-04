@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getServerProfile } from '@/lib/auth/server-profile';
 
 export async function requireAuthenticatedUser() {
   const supabase = await createClient();
@@ -23,12 +23,7 @@ export async function requireAuthenticatedUser() {
     };
   }
 
-  const profileDb = createAdminClient() || supabase;
-  const { data: profile } = await profileDb
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+  const profile = await getServerProfile(supabase, user.id);
 
   const role = profile?.role || null;
   const isAdmin = role === 'admin';

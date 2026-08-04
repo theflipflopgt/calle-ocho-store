@@ -4,7 +4,7 @@ import { AuthProvider, type Profile } from '@/contexts/auth-context';
 import { CartProvider } from '@/contexts/cart-context';
 import { WishlistProvider } from '@/contexts/wishlist-context';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getServerProfile } from '@/lib/auth/server-profile';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
 import { GoogleTagManager } from '@/components/analytics/google-tag-manager';
 import './globals.css';
@@ -46,13 +46,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
   let initialProfile: Profile | null = null;
   if (user) {
-    const profileDb = createAdminClient() || supabase;
-    const { data } = await profileDb
-      .from('profiles')
-      .select('id, full_name, email, phone, role, avatar_url')
-      .eq('id', user.id)
-      .maybeSingle();
-    initialProfile = (data as Profile | null) ?? null;
+    initialProfile = await getServerProfile(supabase, user.id);
   }
 
   return (

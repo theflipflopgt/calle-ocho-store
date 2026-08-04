@@ -1,12 +1,23 @@
 import { NextResponse } from 'next/server';
 import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getServerProfile } from '@/lib/auth/server-profile';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+function identityResponse(body: Record<string, unknown>) {
+  return NextResponse.json(body, {
+    headers: {
+      'Cache-Control': 'private, no-store, max-age=0',
+    },
+  });
+}
 
 export async function GET() {
   const auth = await requireAuthenticatedUser();
 
   if (!auth.user) {
-    return NextResponse.json({
+    return identityResponse({
       user: null,
       profile: null,
       isAdmin: false,
@@ -14,14 +25,9 @@ export async function GET() {
     });
   }
 
-  const profileDb = createAdminClient() || auth.supabase;
-  const { data: profile } = await profileDb
-    .from('profiles')
-    .select('id, full_name, email, phone, role, avatar_url')
-    .eq('id', auth.user.id)
-    .maybeSingle();
+  const profile = await getServerProfile(auth.supabase, auth.user.id);
 
-  return NextResponse.json({
+  return identityResponse({
     user: {
       id: auth.user.id,
       email: auth.user.email,
