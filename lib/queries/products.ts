@@ -259,7 +259,40 @@ export const getCategories = cache(async function getCategories() {
 export const getFeaturedProducts = cache(async function getFeaturedProducts(): Promise<ProductWithDetails[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const { data: carouselRows, error: carouselError } = await supabase
+    .from('featured_products')
+    .select(`
+      display_order,
+      product:products!inner(
+        *,
+        brand:brands!inner(*),
+        category:categories!inner(*),
+        colors:product_colors(
+          *,
+          images:product_color_images(*),
+          variants:product_variants(*)
+        )
+      )
+    `)
+    .eq('is_active', true)
+    .eq('product.status', 'active')
+    .order('display_order', { ascending: true })
+    .limit(5);
+
+  if (!carouselError && carouselRows && carouselRows.length > 0) {
+    return carouselRows
+      .map((row: any) => row.product)
+      .filter(Boolean)
+      .map(transformProduct);
+  }
+
+  if (carouselError) {
+    console.error('Error fetching managed hero carousel:', carouselError);
+  }
+
+  // Compatibilidad con productos marcados como destacados antes de existir
+  // el administrador ordenable del Hero Carousel.
+  const { data: legacyProducts, error: legacyError } = await supabase
     .from('products')
     .select(`
       *,
@@ -273,14 +306,15 @@ export const getFeaturedProducts = cache(async function getFeaturedProducts(): P
     `)
     .eq('status', 'active')
     .eq('is_featured', true)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(5);
 
-  if (error) {
-    console.error('Error fetching featured products:', error);
+  if (legacyError) {
+    console.error('Error fetching legacy featured products:', legacyError);
     return [];
   }
 
-  return (data || []).map(transformProduct);
+  return (legacyProducts || []).map(transformProduct);
 });
 
 // Función auxiliar para transformar producto de BD a ProductWithDetails
