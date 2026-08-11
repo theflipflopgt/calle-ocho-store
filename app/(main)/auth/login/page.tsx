@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
@@ -17,7 +17,6 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect');
 
@@ -67,8 +66,12 @@ function LoginForm() {
         return;
       }
 
-      router.push(redirect || '/');
-      router.refresh();
+      const destination = redirect?.startsWith('/') && !redirect.startsWith('//')
+        ? redirect
+        : '/';
+
+      // A full navigation ensures the newly issued Supabase cookies reach the proxy.
+      window.location.assign(destination);
     } catch {
       setError('Ocurrió un error. Intenta de nuevo.');
     } finally {
