@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { CreditCard, FileText, PackageCheck, RotateCcw } from 'lucide-react';
+import { Building2, CreditCard, FileText, PackageCheck, RotateCcw } from 'lucide-react';
 import { getHomeContent } from '@/lib/home-content';
 
 export const metadata = {
@@ -10,6 +10,7 @@ export const metadata = {
 export default async function TerminosPage() {
   const homeContent = await getHomeContent();
   const sections = [
+    ['Identificación del negocio', 'Calle Ocho Store es el nombre comercial de TheFlipFlop, responsable de la operación de esta tienda en Guatemala.', Building2],
     ['Información de productos', 'Trabajamos para mantener precios, tallas, imágenes y disponibilidad actualizados. Si detectamos un error, te contactaremos antes de procesar el pedido.', PackageCheck],
     ['Pedidos', 'Todo pedido está sujeto a confirmación de inventario, datos de entrega y método de pago.', FileText],
     ['Pagos', 'No almacenamos datos completos de tarjetas. Los pagos se coordinan o procesan únicamente por medios autorizados.', CreditCard],
