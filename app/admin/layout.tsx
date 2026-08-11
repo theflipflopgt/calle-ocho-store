@@ -261,7 +261,7 @@ function AdminLayoutContent({
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="flex min-h-screen flex-col lg:pl-64">
         {/* Top bar */}
         <header className="h-14 sm:h-16 bg-white border-b border-gray-200 flex items-center justify-between px-3 sm:px-4 lg:px-8">
           <button
@@ -289,7 +289,10 @@ function AdminLayoutContent({
         </header>
 
         {/* Page content */}
-        <main className="p-3 sm:p-4 lg:p-8">{children}</main>
+        <main className="flex-1 p-3 sm:p-4 lg:p-8">{children}</main>
+        <footer className="border-t border-gray-200 bg-white px-4 py-3 text-center text-[10px] text-gray-500 sm:text-xs">
+          Calle Ocho Store es el nombre comercial de TheFlipFlop.
+        </footer>
       </div>
     </div>
   );

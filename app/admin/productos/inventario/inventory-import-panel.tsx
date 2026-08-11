@@ -168,6 +168,13 @@ export function InventoryImportPanel() {
             </div>
           )}
 
+          {preview.errorRows === 0 && (
+            <div className="flex gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+              <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              Los productos con estado active y al menos una talla con stock mayor que cero quedaran publicados y disponibles para comprar.
+            </div>
+          )}
+
           <div className="overflow-hidden rounded-lg border border-gray-200">
             <div className="max-h-[420px] overflow-auto">
               <table className="w-full min-w-[980px] text-sm">
@@ -178,6 +185,7 @@ export function InventoryImportPanel() {
                     <th className="px-3 py-2 text-left">Producto</th>
                     <th className="px-3 py-2 text-left">Talla</th>
                     <th className="px-3 py-2 text-left">Stock</th>
+                    <th className="px-3 py-2 text-left">Estado</th>
                     <th className="px-3 py-2 text-left">Precio</th>
                     <th className="px-3 py-2 text-left">Imagen</th>
                     <th className="px-3 py-2 text-left">Revision</th>
@@ -194,6 +202,7 @@ export function InventoryImportPanel() {
                       </td>
                       <td className="px-3 py-2">US {row.normalized.talla_us}</td>
                       <td className="px-3 py-2">{row.normalized.stock}</td>
+                      <td className="px-3 py-2">{row.normalized.estado}</td>
                       <td className="px-3 py-2">Q {Number(row.normalized.precio_final_calculado || 0).toFixed(2)}</td>
                       <td className="max-w-[220px] truncate px-3 py-2 text-xs text-gray-500">
                         {row.normalized.link_imagen_cloudinary || '-'}

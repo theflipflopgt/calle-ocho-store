@@ -123,6 +123,9 @@ export function Footer() {
             </div>
             <div className="text-xs sm:text-sm text-gray-400 text-center md:text-right">
               <p>&copy; {new Date().getFullYear()} Calle Ocho Store. Guatemala.</p>
+              <p className="mt-1 text-[10px] sm:text-xs">
+                Calle Ocho Store es el nombre comercial de TheFlipFlop.
+              </p>
               <p className="text-[10px] sm:text-xs mt-1">
                 Desarrollada por{' '}
                 <Link

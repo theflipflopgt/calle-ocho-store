@@ -182,6 +182,11 @@ function toNumber(value: unknown, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function isNumericValue(value: unknown) {
+  const text = cleanText(value);
+  return text !== '' && Number.isFinite(Number(text.replace(',', '.')));
+}
+
 function toMoney(value: unknown) {
   return Math.round(toNumber(value) * 100) / 100;
 }
@@ -279,6 +284,8 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
 
   const headers = rows[0].map((header) => normalizeKey(header));
   const previews: InventoryImportPreviewRow[] = [];
+  const uploadedVariantSkus = new Map<string, number>();
+  const uploadedProductStates = new Map<string, { status: string; finalPrice: number; rowNumber: number }>();
 
   rows.slice(1).forEach((cells, index) => {
     const raw: Record<string, string | number | null> = {};
@@ -312,12 +319,50 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
     const imageUrl = cleanText(raw.link_imagen_cloudinary);
     const finalPrice = calculateFinalPrice(raw);
     const stock = Math.floor(toNumber(raw.stock));
+    const lowStockThreshold = Math.floor(toNumber(raw.stock_minimo, 5));
+    const compareAtPrice = toMoney(raw.precio_anterior);
+    const specialPrice = toMoney(raw.precio_especial_talla);
+    const normalizedVariantSku = variantSku.toUpperCase();
+    const normalizedProductSku = productSku.toUpperCase();
+    const currentRowNumber = index + 2;
 
     if (!VALID_SECTIONS.has(section)) errors.push('La seccion no coincide con las opciones permitidas.');
     if (!VALID_STATUSES.has(status)) errors.push('Estado invalido.');
+    if (!isNumericValue(raw.talla_us)) errors.push('La talla US debe ser numerica.');
+    if (!isNumericValue(raw.stock)) errors.push('El stock debe ser numerico.');
+    if (!isNumericValue(raw.precio_final_calculado)) errors.push('El precio final debe ser numerico.');
     if (toNumber(raw.talla_us) <= 0) errors.push('La talla US debe ser mayor a 0.');
     if (stock < 0) errors.push('El stock no puede ser negativo.');
+    if (lowStockThreshold < 0) errors.push('El stock minimo no puede ser negativo.');
     if (finalPrice <= 0) errors.push('El precio final debe ser mayor a 0.');
+    if (compareAtPrice < 0) errors.push('El precio anterior no puede ser negativo.');
+    if (compareAtPrice > 0 && compareAtPrice <= finalPrice) {
+      errors.push('El precio anterior debe ser mayor que el precio final.');
+    }
+    if (specialPrice < 0) errors.push('El precio especial por talla no puede ser negativo.');
+    if (toNumber(raw.costo) < 0) errors.push('El costo no puede ser negativo.');
+    if (toNumber(raw.porcentaje_factura) < 0) errors.push('El porcentaje de factura no puede ser negativo.');
+    if (toNumber(raw.porcentaje_neo_link) < 0) errors.push('El porcentaje de Neo Link no puede ser negativo.');
+    if (toNumber(raw.porcentaje_margen) < 0) errors.push('El porcentaje de margen no puede ser negativo.');
+
+    const previousVariantRow = uploadedVariantSkus.get(normalizedVariantSku);
+    if (previousVariantRow) {
+      errors.push(`El SKU de variante esta repetido en las filas ${previousVariantRow} y ${currentRowNumber}.`);
+    } else {
+      uploadedVariantSkus.set(normalizedVariantSku, currentRowNumber);
+    }
+
+    const previousProductState = uploadedProductStates.get(normalizedProductSku);
+    if (
+      previousProductState &&
+      (previousProductState.status !== status || previousProductState.finalPrice !== finalPrice)
+    ) {
+      errors.push(
+        `El estado y el precio final deben coincidir con la fila ${previousProductState.rowNumber} del mismo producto.`
+      );
+    } else if (!previousProductState) {
+      uploadedProductStates.set(normalizedProductSku, { status, finalPrice, rowNumber: currentRowNumber });
+    }
     if (imageUrl && !/^https:\/\/res\.cloudinary\.com\//.test(imageUrl)) {
       warnings.push('El link de imagen no parece ser de Cloudinary.');
     }
@@ -332,7 +377,7 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
     const variantExists = refs.variantsBySku.has(variantSku);
 
     previews.push({
-      rowNumber: index + 2,
+      rowNumber: currentRowNumber,
       raw,
       normalized: {
         codigo_producto: productSku,
@@ -354,10 +399,10 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
         porcentaje_margen: toNumber(raw.porcentaje_margen),
         precio_base: toMoney(raw.precio_base),
         precio_final_calculado: finalPrice,
-        precio_anterior: toMoney(raw.precio_anterior) || null,
-        precio_especial_talla: toMoney(raw.precio_especial_talla) || null,
+        precio_anterior: compareAtPrice || null,
+        precio_especial_talla: specialPrice || null,
         stock,
-        stock_minimo: Math.floor(toNumber(raw.stock_minimo, 5)),
+        stock_minimo: lowStockThreshold,
         warehouse: cleanText(raw.warehouse) || 'Principal',
         link_imagen_cloudinary: imageUrl,
         estado: status,
