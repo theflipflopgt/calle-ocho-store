@@ -10,26 +10,18 @@ interface OrdersPageProps {
   searchParams: Promise<{ status?: string; q?: string; from?: string; to?: string }>;
 }
 
-async function getOrders(filters: { status?: string; q?: string; from?: string; to?: string }) {
-  const auth = await requireAuthenticatedUser();
-  if (!auth.canManageOrders) return [];
+async function getOrders(
+  filters: { status?: string; q?: string; from?: string; to?: string },
+  auth: Awaited<ReturnType<typeof requireAuthenticatedUser>>
+) {
+  if (!auth.canManageOrders) return { orders: [], hasError: false };
 
   const admin = auth.isAdmin ? createAdminClient() : null;
   const supabase = (admin || auth.supabase) as any;
 
   let query = supabase
     .from('orders')
-    .select(`
-      *,
-      profiles:user_id (full_name, email, phone),
-      seller:seller_id (full_name, email),
-      order_items (
-        id,
-        product_name,
-        quantity,
-        unit_price
-      )
-    `)
+    .select('*')
     .order('created_at', { ascending: false });
 
   if (filters.status) {
@@ -52,10 +44,46 @@ async function getOrders(filters: { status?: string; q?: string; from?: string; 
 
   if (error) {
     console.error('Error fetching orders:', error);
-    return [];
+    return { orders: [], hasError: true };
   }
 
-  return orders;
+  const profileIds = Array.from(new Set(
+    (orders || [])
+      .flatMap((order: any) => [order.user_id, order.seller_id])
+      .filter(Boolean)
+  ));
+  const orderIds = (orders || []).map((order: any) => order.id);
+
+  const [{ data: profiles, error: profilesError }, { data: items, error: itemsError }] =
+    await Promise.all([
+      profileIds.length
+        ? supabase.from('profiles').select('id,full_name,email,phone').in('id', profileIds)
+        : Promise.resolve({ data: [], error: null }),
+      orderIds.length
+        ? supabase.from('order_items').select('id,order_id,product_name,quantity,unit_price').in('order_id', orderIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
+  if (profilesError) console.error('Error fetching order profiles:', profilesError);
+  if (itemsError) console.error('Error fetching order items:', itemsError);
+
+  const profilesById = new Map((profiles || []).map((profile: any) => [profile.id, profile]));
+  const itemsByOrder = new Map<string, any[]>();
+  for (const item of items || []) {
+    const current = itemsByOrder.get(item.order_id) || [];
+    current.push(item);
+    itemsByOrder.set(item.order_id, current);
+  }
+
+  return {
+    hasError: false,
+    orders: (orders || []).map((order: any) => ({
+      ...order,
+      profiles: profilesById.get(order.user_id) || null,
+      seller: profilesById.get(order.seller_id) || null,
+      order_items: itemsByOrder.get(order.id) || [],
+    })),
+  };
 }
 
 const statusConfig: Record<string, { label: string; class: string }> = {
@@ -71,7 +99,7 @@ const statusConfig: Record<string, { label: string; class: string }> = {
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const filters = await searchParams;
   const auth = await requireAuthenticatedUser();
-  const orders = await getOrders(filters);
+  const { orders, hasError } = await getOrders(filters, auth);
   // Calculate stats
   const stats = {
     total: orders.length,
@@ -89,6 +117,12 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
           <p className="text-gray-600 mt-1">Gestiona los pedidos de la tienda</p>
         </div>
       </div>
+
+      {hasError && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          No se pudieron consultar las órdenes en Supabase. Revisa los logs del despliegue y vuelve a intentar.
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -207,7 +241,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
       {/* Orders - Mobile Cards */}
       <div className="md:hidden space-y-4">
-        {orders.length === 0 ? (
+        {orders.length === 0 && !hasError ? (
           <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
             <Package className="h-8 w-8 mx-auto mb-2 text-gray-400" />
             <p>No hay órdenes {filters.status ? `con estado "${statusConfig[filters.status]?.label}"` : ''}</p>
@@ -307,11 +341,17 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {orders.length === 0 ? (
+              {orders.length === 0 && !hasError ? (
                 <tr>
                   <td colSpan={auth.isAdmin ? 8 : 7} className="px-6 py-12 text-center text-gray-500">
                     <Package className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                     <p>No hay órdenes {filters.status ? `con estado "${statusConfig[filters.status]?.label}"` : ''}</p>
+                  </td>
+                </tr>
+              ) : hasError ? (
+                <tr>
+                  <td colSpan={auth.isAdmin ? 8 : 7} className="px-6 py-12 text-center text-red-700">
+                    No fue posible cargar las órdenes. Intenta nuevamente.
                   </td>
                 </tr>
               ) : (
