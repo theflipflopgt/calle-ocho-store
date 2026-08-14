@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from './auth-context';
+import { roundMoney } from '@/lib/utils/currency';
 
 interface CartItemVariant {
   id: string;
@@ -462,10 +463,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const subtotal = useMemo(() =>
-    items.reduce((sum, item) => {
+    roundMoney(items.reduce((sum, item) => {
       const price = item.variant.price_override ?? item.variant.product_color.product.base_price;
-      return sum + (price * item.quantity);
-    }, 0),
+      return sum + roundMoney(price * item.quantity);
+    }, 0)),
     [items]
   );
 

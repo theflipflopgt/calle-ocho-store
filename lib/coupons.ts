@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { roundMoney } from '@/lib/utils/currency';
 
 export interface CouponValidationResult {
   valid: boolean;
@@ -77,14 +78,14 @@ export async function validateCoupon(
     let discountAmount = 0;
 
     if (coupon.discount_type === 'percentage') {
-      discountAmount = (subtotal * coupon.discount_value) / 100;
+      discountAmount = roundMoney((subtotal * coupon.discount_value) / 100);
       // Apply max discount if specified
       if (coupon.max_discount_amount && discountAmount > coupon.max_discount_amount) {
         discountAmount = coupon.max_discount_amount;
       }
     } else {
       // fixed_amount
-      discountAmount = Math.min(coupon.discount_value, subtotal);
+      discountAmount = roundMoney(Math.min(coupon.discount_value, subtotal));
     }
 
     return {

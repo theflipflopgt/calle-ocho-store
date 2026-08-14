@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createInventoryTemplate,
   INVENTORY_IMPORT_COLUMNS,
   normalizeInventoryRows,
+  parseInventoryWorkbook,
 } from '@/lib/admin/inventory-import';
 
 const emptyReferences = {
@@ -30,9 +32,9 @@ function inventoryRow(overrides: Record<string, string | number> = {}) {
     costo: 500,
     porcentaje_factura: 5,
     porcentaje_neo_link: 4,
-    porcentaje_margen: 25,
+    ganancia_deseada: 100,
     precio_base: 500,
-    precio_final_calculado: 670,
+    precio_final_calculado: '',
     precio_anterior: 700,
     precio_especial_talla: '',
     stock: 4,
@@ -47,6 +49,15 @@ function inventoryRow(overrides: Record<string, string | number> = {}) {
 }
 
 describe('inventory import validation', () => {
+  it('preserves empty cells in their original spreadsheet columns', () => {
+    const rows = parseInventoryWorkbook(createInventoryTemplate());
+    const finalPriceIndex = rows[0].indexOf('precio_final_calculado');
+    const stockIndex = rows[0].indexOf('stock');
+
+    expect(rows[1][finalPriceIndex]).toBe('');
+    expect(rows[1][stockIndex]).toBe('4');
+  });
+
   it('accepts a product ready for sale', () => {
     const [result] = normalizeInventoryRows(
       [[...INVENTORY_IMPORT_COLUMNS], inventoryRow()],
@@ -57,6 +68,60 @@ describe('inventory import validation', () => {
     expect(result.normalized.codigo_producto).toBe('co-0001');
     expect(result.normalized.sku_variante).toBe('co-0001-neg-9');
     expect(result.normalized.isAvailable).toBe(true);
+  });
+
+  it('calculates the final price from cost, desired profit and fees', () => {
+    const [result] = normalizeInventoryRows(
+      [
+        [...INVENTORY_IMPORT_COLUMNS],
+        inventoryRow({
+          precio_final_calculado: '',
+          costo: 325,
+          ganancia_deseada: 100,
+          porcentaje_factura: 5,
+          porcentaje_neo_link: 7,
+        }),
+      ],
+      emptyReferences
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.normalized.precio_final_calculado).toBe(482.95);
+    expect(result.normalized.ganancia_deseada).toBe(100);
+  });
+
+  it('rejects invoice and Neo Link fees totaling 100 percent', () => {
+    const [result] = normalizeInventoryRows(
+      [
+        [...INVENTORY_IMPORT_COLUMNS],
+        inventoryRow({
+          precio_final_calculado: '',
+          porcentaje_factura: 30,
+          porcentaje_neo_link: 70,
+        }),
+      ],
+      emptyReferences
+    );
+
+    expect(result.errors).toContain('La suma de factura y Neo Link debe ser menor al 100 %.');
+    expect(result.action).toBe('skip');
+  });
+
+  it('rejects a sixth distinct image for the same product color', () => {
+    const rows = Array.from({ length: 6 }, (_, index) =>
+      inventoryRow({
+        talla_us: 7 + index * 0.5,
+        sku_variante: `CO-0001-NEG-${index}`,
+        link_imagen_cloudinary: `https://res.cloudinary.com/demo/image/upload/producto-${index}.jpg`,
+      })
+    );
+    const results = normalizeInventoryRows(
+      [[...INVENTORY_IMPORT_COLUMNS], ...rows],
+      emptyReferences
+    );
+
+    expect(results[5].errors).toContain('Cada color puede tener un maximo de 5 imagenes diferentes.');
+    expect(results[5].action).toBe('skip');
   });
 
   it('rejects a previous price that would break the database constraint', () => {

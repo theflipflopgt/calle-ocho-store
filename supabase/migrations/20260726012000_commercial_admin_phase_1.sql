@@ -7,6 +7,7 @@ ALTER TABLE public.products
   ADD COLUMN IF NOT EXISTS invoice_fee_percent NUMERIC(6,2) DEFAULT 0 NOT NULL,
   ADD COLUMN IF NOT EXISTS neo_link_fee_percent NUMERIC(6,2) DEFAULT 0 NOT NULL,
   ADD COLUMN IF NOT EXISTS sale_price_markup_percent NUMERIC(6,2) DEFAULT 0 NOT NULL,
+  ADD COLUMN IF NOT EXISTS desired_profit_amount NUMERIC(12,2) DEFAULT 0 NOT NULL,
   ADD COLUMN IF NOT EXISTS calculated_sale_price NUMERIC(12,2);
 
 ALTER TABLE public.products
@@ -19,6 +20,8 @@ ALTER TABLE public.products
     AND invoice_fee_percent >= 0
     AND neo_link_fee_percent >= 0
     AND sale_price_markup_percent >= 0
+    AND desired_profit_amount >= 0
+    AND invoice_fee_percent + neo_link_fee_percent < 100
     AND (calculated_sale_price IS NULL OR calculated_sale_price >= 0)
   ) NOT VALID;
 
