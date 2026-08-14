@@ -86,6 +86,7 @@ export async function proxy(request: NextRequest) {
       '/admin/marcas',
       '/admin/categorias',
       '/admin/media',
+      '/admin/envios',
     ];
 
     if (role === 'seller' && !sellerAllowedPaths.some((path) => pathname.startsWith(path))) {

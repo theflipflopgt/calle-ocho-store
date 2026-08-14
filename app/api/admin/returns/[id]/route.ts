@@ -4,8 +4,6 @@ import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const auth = await requireAuthenticatedUser();
   if (!auth.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-  if (!auth.isAdmin) return NextResponse.json({ error: 'Solo administrador' }, { status: 403 });
-
   const { id } = await context.params;
   const body = await request.json().catch(() => null);
   const { error } = await (auth.supabase as any).rpc('admin_update_return_request', {

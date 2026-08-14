@@ -22,6 +22,13 @@ export async function getServerProfile(
     .eq('id', userId)
     .maybeSingle();
 
-  if (error || !data) return null;
-  return data as ServerProfile;
+  if (!error && data) return data as ServerProfile;
+
+  const sessionDb = sessionClient as any;
+  const { data: secureProfile, error: rpcError } = await sessionDb.rpc(
+    'current_authenticated_profile'
+  );
+
+  if (rpcError || !secureProfile || secureProfile.id !== userId) return null;
+  return secureProfile as ServerProfile;
 }

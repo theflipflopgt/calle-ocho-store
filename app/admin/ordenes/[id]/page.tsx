@@ -1,5 +1,4 @@
 import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { notFound } from 'next/navigation';
 import { formatPrice } from '@/lib/utils/currency';
 import { ArrowLeft, Package, MapPin, User, CreditCard, Truck } from 'lucide-react';
@@ -18,53 +17,11 @@ interface OrderDetailPageProps {
 
 async function getOrder(id: string) {
   const auth = await requireAuthenticatedUser();
-  if (!auth.canManageOrders) return null;
+  if (!auth.user) return null;
 
-  const admin = auth.isAdmin ? createAdminClient() : null;
-  const supabase = (admin || auth.supabase) as any;
-
-  const { data: order, error } = await supabase
-    .from('orders')
-    .select(`
-      *,
-      profiles:user_id (id, full_name, email, phone),
-      order_items (
-        id,
-        product_name,
-        product_sku,
-        brand_name,
-        color_name,
-        size_us,
-        unit_price,
-        quantity,
-        subtotal,
-        product_image_url
-      ),
-      payments (
-        id,
-        payment_method,
-        provider,
-        amount,
-        status,
-        transaction_id,
-        payment_details,
-        created_at
-      ),
-      seller:seller_id (id, full_name, email),
-      seller_assignments:order_seller_assignments (
-        id,
-        assignment_source,
-        assigned_at,
-        assigned_seller:profiles!order_seller_assignments_seller_id_fkey (id, full_name, email),
-        previous_seller:profiles!order_seller_assignments_previous_seller_id_fkey (id, full_name, email),
-        actor:profiles!order_seller_assignments_assigned_by_fkey (id, full_name, email)
-      ),
-      shipments (
-        id, carrier, service, status, tracking_number, tracking_url, shipping_cost
-      )
-    `)
-    .eq('id', id)
-    .single();
+  const { data: order, error } = await (auth.supabase as any).rpc('staff_get_order', {
+    p_order_id: id,
+  });
 
   if (error || !order) {
     return null;

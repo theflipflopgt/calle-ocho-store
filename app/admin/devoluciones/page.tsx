@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { AlertTriangle, Plus, Search } from 'lucide-react';
 import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { formatPrice } from '@/lib/utils/currency';
 import { Button } from '@/components/ui/button';
 import { ReturnStatusEditor } from './return-status-editor';
@@ -39,27 +38,17 @@ export default async function AdminReturnsPage({
   searchParams: Promise<{ q?: string; status?: string; createError?: string; created?: string; orderNumber?: string }>;
 }) {
   const auth = await requireAuthenticatedUser();
-  if (!auth.isAdmin) return null;
+  if (!auth.user) return null;
 
   const params = await searchParams;
   const query = String(params.q || '').trim().toLowerCase();
   const statusFilter = String(params.status || 'all');
-  const db = (createAdminClient() || auth.supabase) as any;
-  const { data, error } = await db
-    .from('return_requests')
-    .select(`
-      id, request_type, status, reason, resolution_notes, created_at, updated_at,
-      orders:order_id(
-        id, order_number, total, guest_email, shipping_recipient_name, shipping_phone,
-        customer:user_id(full_name, email, phone),
-        payments(id, payment_method, provider, provider_reference, transaction_id, amount, status, created_at)
-      )
-    `)
-    .order('created_at', { ascending: false });
+  const { data, error } = await (auth.supabase as any).rpc('admin_list_return_requests');
 
   if (error) console.error('Error fetching return requests:', error);
 
-  const filtered = (data || []).filter((item: any) => {
+  const requests = Array.isArray(data) ? data : [];
+  const filtered = requests.filter((item: any) => {
     if (statusFilter !== 'all' && item.status !== statusFilter) return false;
     if (!query) return true;
     const order = item.orders;
@@ -90,6 +79,11 @@ export default async function AdminReturnsPage({
       {params.createError && (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {createErrors[params.createError] || createErrors.save}
+        </div>
+      )}
+      {error && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          No se pudieron consultar las gestiones en Supabase. Confirma que la última migración esté ejecutada.
         </div>
       )}
 
@@ -141,7 +135,7 @@ export default async function AdminReturnsPage({
       </form>
 
       <div className="space-y-4">
-        {filtered.length === 0 ? (
+        {filtered.length === 0 && !error ? (
           <div className="rounded-lg border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-gray-500">
             No hay gestiones que coincidan con la búsqueda.
           </div>
