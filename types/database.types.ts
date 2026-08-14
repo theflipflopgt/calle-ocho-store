@@ -574,6 +574,7 @@ export type Database = {
           payment_link_whatsapp_message_id: string | null
           seller_commission_amount: number
           seller_commission_rate: number
+          seller_assigned_at: string | null
           seller_id: string | null
           shipped_at: string | null
           shipping_additional_references: string | null
@@ -618,6 +619,7 @@ export type Database = {
           payment_link_whatsapp_message_id?: string | null
           seller_commission_amount?: number
           seller_commission_rate?: number
+          seller_assigned_at?: string | null
           seller_id?: string | null
           shipped_at?: string | null
           shipping_additional_references?: string | null
@@ -662,6 +664,7 @@ export type Database = {
           payment_link_whatsapp_message_id?: string | null
           seller_commission_amount?: number
           seller_commission_rate?: number
+          seller_assigned_at?: string | null
           seller_id?: string | null
           shipped_at?: string | null
           shipping_additional_references?: string | null

@@ -22,6 +22,7 @@ async function getOrders(filters: { status?: string; q?: string; from?: string; 
     .select(`
       *,
       profiles:user_id (full_name, email, phone),
+      seller:seller_id (full_name, email),
       order_items (
         id,
         product_name,
@@ -241,6 +242,11 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                     <p className="text-xs text-gray-500 truncate">
                       {order.profiles?.email}
                     </p>
+                    {auth.isAdmin && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Vendedor: {order.seller?.full_name || order.seller?.email || 'Sin asignar'}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="font-bold text-brand-black">
@@ -290,6 +296,11 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Estado
                 </th>
+                {auth.isAdmin && (
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Vendedor
+                  </th>
+                )}
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Fecha
                 </th>
@@ -301,7 +312,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             <tbody className="divide-y divide-gray-100">
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={auth.isAdmin ? 8 : 7} className="px-6 py-12 text-center text-gray-500">
                     <Package className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                     <p>No hay órdenes {filters.status ? `con estado "${statusConfig[filters.status]?.label}"` : ''}</p>
                   </td>
@@ -346,6 +357,25 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                           {status.label}
                         </span>
                       </td>
+                      {auth.isAdmin && (
+                        <td className="px-6 py-4 text-sm text-gray-700">
+                          <p className="font-medium text-brand-black">
+                            {order.seller?.full_name || order.seller?.email || 'Sin asignar'}
+                          </p>
+                          {order.seller_id && (
+                            <p className="mt-1 text-xs text-gray-500">
+                              {order.seller_assigned_at
+                                ? `Asignado ${new Date(order.seller_assigned_at).toLocaleDateString('es-GT', {
+                                    timeZone: 'America/Guatemala',
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })}`
+                                : 'Fecha no registrada'}
+                            </p>
+                          )}
+                        </td>
+                      )}
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {new Date(order.created_at).toLocaleDateString('es-GT', {
                           day: '2-digit',

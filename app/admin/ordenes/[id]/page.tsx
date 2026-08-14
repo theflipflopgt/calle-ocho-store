@@ -51,6 +51,14 @@ async function getOrder(id: string) {
         created_at
       ),
       seller:seller_id (id, full_name, email),
+      seller_assignments:order_seller_assignments (
+        id,
+        assignment_source,
+        assigned_at,
+        assigned_seller:profiles!order_seller_assignments_seller_id_fkey (id, full_name, email),
+        previous_seller:profiles!order_seller_assignments_previous_seller_id_fkey (id, full_name, email),
+        actor:profiles!order_seller_assignments_assigned_by_fkey (id, full_name, email)
+      ),
       shipments (
         id, carrier, service, status, tracking_number, tracking_url, shipping_cost
       )
@@ -232,6 +240,45 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                 </p>
               )}
             </div>
+            {order.seller_assignments?.length > 0 && (
+              <div className="mt-4 border-t border-gray-100 pt-4">
+                <p className="text-xs font-medium uppercase text-gray-500">
+                  Historial de asignación
+                </p>
+                <div className="mt-2 space-y-3">
+                  {[...order.seller_assignments]
+                    .sort(
+                      (a: any, b: any) =>
+                        new Date(b.assigned_at).getTime() - new Date(a.assigned_at).getTime()
+                    )
+                    .map((assignment: any) => (
+                      <div key={assignment.id} className="text-xs text-gray-600">
+                        <p className="font-medium text-brand-black">
+                          {assignment.assigned_seller?.full_name ||
+                            assignment.assigned_seller?.email ||
+                            'Pedido sin vendedor'}
+                        </p>
+                        <p>
+                          {new Intl.DateTimeFormat('es-GT', {
+                            timeZone: 'America/Guatemala',
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          }).format(new Date(assignment.assigned_at))}
+                          {' · '}
+                          {assignment.assignment_source === 'manual'
+                            ? `Asignación manual por ${assignment.actor?.full_name || assignment.actor?.email || 'administración'}`
+                            : assignment.assignment_source === 'legacy'
+                              ? 'Asignación anterior al historial'
+                              : 'Asignación automática'}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Customer Notes */}
@@ -276,6 +323,19 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                 <>
                   <p className="font-medium text-brand-black">{order.seller.full_name || order.seller.email}</p>
                   {order.seller.email && <p className="text-gray-600">{order.seller.email}</p>}
+                  <p className="mt-2 text-xs text-gray-500">
+                    Asignado{' '}
+                    {order.seller_assigned_at
+                      ? new Intl.DateTimeFormat('es-GT', {
+                          timeZone: 'America/Guatemala',
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        }).format(new Date(order.seller_assigned_at))
+                      : 'sin fecha registrada'}
+                  </p>
                 </>
               ) : (
                 <p className="text-gray-600">Sin vendedor asignado</p>

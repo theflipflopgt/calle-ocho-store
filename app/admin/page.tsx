@@ -12,6 +12,8 @@ import {
 import { formatPrice } from '@/lib/utils/currency';
 import Link from 'next/link';
 import { CatalogExportButtons } from '@/components/admin/catalog-export-buttons';
+import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
+import { redirect } from 'next/navigation';
 
 async function getDashboardStats() {
   const supabase = await createClient();
@@ -127,6 +129,8 @@ const statusLabels: Record<string, string> = {
 };
 
 export default async function AdminDashboard() {
+  const auth = await requireAuthenticatedUser();
+  if (auth.isSeller) redirect('/admin/rendimiento');
   const stats = await getDashboardStats();
 
   const statCards = [

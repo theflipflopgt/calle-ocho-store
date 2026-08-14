@@ -6,6 +6,7 @@ import type { ComponentType } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { updateSellerCommissionRule } from './actions';
+import Link from 'next/link';
 
 type SellerSummary = {
   id: string;
@@ -18,6 +19,14 @@ type SellerSummary = {
   salesTotal: number;
   commissionAmount: number;
   products: Map<string, { name: string; quantity: number }>;
+  recentOrders: Array<{
+    id: string;
+    orderNumber: string;
+    status: string;
+    total: number;
+    createdAt: string | null;
+    assignedAt: string | null;
+  }>;
 };
 
 async function getSellerSummaries() {
@@ -45,9 +54,12 @@ async function getSellerSummaries() {
         .select(
           `
             id,
+            order_number,
             seller_id,
             status,
             total,
+            created_at,
+            seller_assigned_at,
             seller_commission_amount,
             order_items (
               product_name,
@@ -92,14 +104,24 @@ async function getSellerSummaries() {
       salesTotal: 0,
       commissionAmount: 0,
       products: new Map(),
+      recentOrders: [],
     });
   }
 
   for (const order of orders || []) {
     if (!order.seller_id || !summaries.has(order.seller_id)) continue;
+    const summary = summaries.get(order.seller_id)!;
+    summary.recentOrders.push({
+      id: order.id,
+      orderNumber: order.order_number,
+      status: order.status,
+      total: Number(order.total || 0),
+      createdAt: order.created_at,
+      assignedAt: order.seller_assigned_at,
+    });
+
     if (['cancelled', 'refunded'].includes(order.status)) continue;
 
-    const summary = summaries.get(order.seller_id)!;
     const total = Number(order.total || 0);
     const configuredCommission = (total * summary.commissionPercent) / 100;
     const storedCommission = Number(order.seller_commission_amount || 0);
@@ -223,6 +245,56 @@ export default async function SellersPage() {
                       <p className="mt-2 text-sm text-gray-500">Sin productos asignados todavia.</p>
                     )}
                   </div>
+
+                  <div className="mt-4 border-t border-gray-100 pt-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium uppercase text-gray-500">Pedidos recientes</p>
+                      <Link
+                        href="/admin/ordenes"
+                        className="text-xs font-medium text-brand-blue hover:underline"
+                      >
+                        Todas las órdenes
+                      </Link>
+                    </div>
+                    {seller.recentOrders.length > 0 ? (
+                      <div className="mt-2 divide-y divide-gray-100">
+                        {seller.recentOrders
+                          .sort(
+                            (a, b) =>
+                              new Date(b.assignedAt || b.createdAt || 0).getTime() -
+                              new Date(a.assignedAt || a.createdAt || 0).getTime()
+                          )
+                          .slice(0, 5)
+                          .map((order) => {
+                            const status = sellerOrderStatus[order.status] || sellerOrderStatus.pending;
+                            return (
+                              <Link
+                                key={order.id}
+                                href={`/admin/ordenes/${order.id}`}
+                                className="flex flex-col gap-2 py-3 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
+                              >
+                                <div>
+                                  <p className="font-medium text-brand-blue">#{order.orderNumber}</p>
+                                  <p className="text-xs text-gray-500">
+                                    Asignado {formatSellerDate(order.assignedAt || order.createdAt)}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-3 sm:justify-end">
+                                  <span className={`rounded-full px-2 py-1 text-xs font-medium ${status.className}`}>
+                                    {status.label}
+                                  </span>
+                                  <span className="font-medium text-brand-black">
+                                    {formatPrice(order.total)}
+                                  </span>
+                                </div>
+                              </Link>
+                            );
+                          })}
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm text-gray-500">Sin pedidos asignados todavía.</p>
+                    )}
+                  </div>
                 </div>
               );
             })
@@ -231,6 +303,28 @@ export default async function SellersPage() {
       </div>
     </div>
   );
+}
+
+const sellerOrderStatus: Record<string, { label: string; className: string }> = {
+  pending: { label: 'Pendiente', className: 'bg-yellow-100 text-yellow-800' },
+  paid: { label: 'Pagado', className: 'bg-blue-100 text-blue-800' },
+  processing: { label: 'Procesando', className: 'bg-purple-100 text-purple-800' },
+  shipped: { label: 'Enviado', className: 'bg-indigo-100 text-indigo-800' },
+  delivered: { label: 'Entregado', className: 'bg-green-100 text-green-800' },
+  cancelled: { label: 'Cancelado', className: 'bg-red-100 text-red-800' },
+  refunded: { label: 'Reembolsado', className: 'bg-gray-100 text-gray-700' },
+};
+
+function formatSellerDate(value?: string | null) {
+  if (!value) return 'sin fecha';
+  return new Intl.DateTimeFormat('es-GT', {
+    timeZone: 'America/Guatemala',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
 }
 
 function SummaryStat({
