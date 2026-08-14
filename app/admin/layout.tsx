@@ -52,6 +52,7 @@ const navigation = [
 ];
 
 const sellerNavigation = [
+  { name: 'Rendimiento', href: '/admin/rendimiento', icon: LayoutDashboard },
   { name: 'Órdenes', href: '/admin/ordenes', icon: ShoppingCart },
   { name: 'Inventario', href: '/admin/productos/inventario', icon: Package },
 ];
@@ -188,7 +189,7 @@ function AdminLayoutContent({
       >
         {/* Logo */}
         <div className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-4 border-b border-gray-200">
-          <Link href={isSeller ? '/admin/ordenes' : isWarehouse ? '/admin/productos' : '/admin'} className="flex items-center gap-2">
+          <Link href={isSeller ? '/admin/rendimiento' : isWarehouse ? '/admin/productos' : '/admin'} className="flex items-center gap-2">
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-brand-black rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xs sm:text-sm">TF</span>
             </div>

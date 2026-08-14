@@ -27,6 +27,7 @@ ALTER TABLE public.products
 
 ALTER TABLE public.orders
   ADD COLUMN IF NOT EXISTS seller_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS seller_assigned_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS seller_commission_rate NUMERIC(6,2) DEFAULT 0 NOT NULL,
   ADD COLUMN IF NOT EXISTS seller_commission_amount NUMERIC(12,2) DEFAULT 0 NOT NULL,
   ADD COLUMN IF NOT EXISTS payment_link_url TEXT,
