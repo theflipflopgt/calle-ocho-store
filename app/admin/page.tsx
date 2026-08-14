@@ -211,7 +211,7 @@ export default async function AdminDashboard() {
         <Link href="/api/admin/exports/sales">
           <div className="inline-flex h-10 w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-brand-black transition-colors hover:bg-gray-50 sm:w-auto">
             <Download className="mr-2 h-4 w-4" />
-            Ventas Excel
+            Ventas del mes Excel
           </div>
         </Link>
       </div>

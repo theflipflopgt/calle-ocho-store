@@ -41,11 +41,11 @@ async function getOrders(filters: { status?: string; q?: string; from?: string; 
   }
 
   if (filters.from) {
-    query = query.gte('created_at', `${filters.from}T00:00:00`);
+    query = query.gte('created_at', `${filters.from}T00:00:00-06:00`);
   }
 
   if (filters.to) {
-    query = query.lte('created_at', `${filters.to}T23:59:59`);
+    query = query.lte('created_at', `${filters.to}T23:59:59.999-06:00`);
   }
 
   const { data: orders, error } = await query;
@@ -72,12 +72,6 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const filters = await searchParams;
   const auth = await requireAuthenticatedUser();
   const orders = await getOrders(filters);
-  const exportParams = new URLSearchParams();
-  if (filters.status) exportParams.set('status', filters.status);
-  if (filters.from) exportParams.set('from', filters.from);
-  if (filters.to) exportParams.set('to', filters.to);
-  const exportHref = `/api/admin/exports/sales${exportParams.toString() ? `?${exportParams.toString()}` : ''}`;
-
   // Calculate stats
   const stats = {
     total: orders.length,
@@ -89,22 +83,11 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
         <div>
           <h1 className="text-2xl font-bold text-brand-black">Órdenes</h1>
           <p className="text-gray-600 mt-1">Gestiona los pedidos de la tienda</p>
         </div>
-        {auth.isAdmin && (
-          <Link
-            href={exportHref}
-            className="w-full sm:w-auto"
-          >
-            <Button variant="outline" className="w-full sm:w-auto">
-              <Download className="h-4 w-4 mr-2" />
-              Exportar ventas
-            </Button>
-          </Link>
-        )}
       </div>
 
       {/* Stats */}
@@ -205,7 +188,21 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             <Filter className="h-4 w-4 mr-2" />
             Filtrar
           </Button>
+          {auth.isAdmin && (
+            <Button
+              type="submit"
+              variant="outline"
+              formAction="/api/admin/exports/sales"
+              className="border-brand-blue text-brand-blue"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Excel del período
+            </Button>
+          )}
         </form>
+        <p className="mt-3 text-xs text-gray-500">
+          Si no eliges fechas, la exportación incluye automáticamente el mes actual.
+        </p>
       </div>
 
       {/* Orders - Mobile Cards */}
