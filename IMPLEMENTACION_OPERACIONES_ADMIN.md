@@ -17,6 +17,14 @@ Ejecutar en `SQL Editor` el contenido completo de:
 
 `supabase/migrations/20260814030000_staff_activity_audit.sql`
 
+Después ejecutar:
+
+`supabase/migrations/20260814040000_staff_order_return_access.sql`
+
+La segunda migración corrige la lectura de órdenes y la gestión de devoluciones
+validando el usuario autenticado directamente dentro de PostgreSQL. No expone la
+service role key y no desactiva RLS.
+
 La migración:
 
 1. Crea `admin_activity_logs` y sus índices.

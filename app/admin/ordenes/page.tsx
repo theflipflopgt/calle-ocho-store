@@ -1,5 +1,4 @@
 import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
-import { createAdminClient } from '@/lib/supabase/admin';
 import Link from 'next/link';
 import { Download, Eye, Search, Filter, Package, Clock, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,75 +13,23 @@ async function getOrders(
   filters: { status?: string; q?: string; from?: string; to?: string },
   auth: Awaited<ReturnType<typeof requireAuthenticatedUser>>
 ) {
-  if (!auth.canManageOrders) return { orders: [], hasError: false };
+  if (!auth.user) return { orders: [], hasError: true };
 
-  const admin = auth.isAdmin ? createAdminClient() : null;
-  const supabase = (admin || auth.supabase) as any;
-
-  let query = supabase
-    .from('orders')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (filters.status) {
-    query = query.eq('status', filters.status);
-  }
-
-  if (filters.q) {
-    query = query.or(`order_number.ilike.%${filters.q}%,shipping_recipient_name.ilike.%${filters.q}%`);
-  }
-
-  if (filters.from) {
-    query = query.gte('created_at', `${filters.from}T00:00:00-06:00`);
-  }
-
-  if (filters.to) {
-    query = query.lte('created_at', `${filters.to}T23:59:59.999-06:00`);
-  }
-
-  const { data: orders, error } = await query;
+  const { data: orders, error } = await (auth.supabase as any).rpc('staff_list_orders', {
+    p_status: filters.status || null,
+    p_query: filters.q?.trim() || null,
+    p_from: filters.from || null,
+    p_to: filters.to || null,
+  });
 
   if (error) {
     console.error('Error fetching orders:', error);
     return { orders: [], hasError: true };
   }
 
-  const profileIds = Array.from(new Set(
-    (orders || [])
-      .flatMap((order: any) => [order.user_id, order.seller_id])
-      .filter(Boolean)
-  ));
-  const orderIds = (orders || []).map((order: any) => order.id);
-
-  const [{ data: profiles, error: profilesError }, { data: items, error: itemsError }] =
-    await Promise.all([
-      profileIds.length
-        ? supabase.from('profiles').select('id,full_name,email,phone').in('id', profileIds)
-        : Promise.resolve({ data: [], error: null }),
-      orderIds.length
-        ? supabase.from('order_items').select('id,order_id,product_name,quantity,unit_price').in('order_id', orderIds)
-        : Promise.resolve({ data: [], error: null }),
-    ]);
-
-  if (profilesError) console.error('Error fetching order profiles:', profilesError);
-  if (itemsError) console.error('Error fetching order items:', itemsError);
-
-  const profilesById = new Map((profiles || []).map((profile: any) => [profile.id, profile]));
-  const itemsByOrder = new Map<string, any[]>();
-  for (const item of items || []) {
-    const current = itemsByOrder.get(item.order_id) || [];
-    current.push(item);
-    itemsByOrder.set(item.order_id, current);
-  }
-
   return {
     hasError: false,
-    orders: (orders || []).map((order: any) => ({
-      ...order,
-      profiles: profilesById.get(order.user_id) || null,
-      seller: profilesById.get(order.seller_id) || null,
-      order_items: itemsByOrder.get(order.id) || [],
-    })),
+    orders: Array.isArray(orders) ? orders : [],
   };
 }
 
