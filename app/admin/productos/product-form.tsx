@@ -9,7 +9,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { createClient } from '@/lib/supabase/client';
 import { generateSlug, generateBaseSKU } from '@/lib/utils/slug';
-import { Loader2, ArrowLeft, Plus, Trash2, ImageIcon } from 'lucide-react';
+import { calculateFinalPrice } from '@/lib/pricing/calculate-final-price';
+import {
+  hasValidProductImageCount,
+  MAX_PRODUCT_IMAGES_PER_COLOR,
+} from '@/lib/products/product-images';
+import { Loader2, ArrowLeft, ChevronLeft, ChevronRight, Plus, Trash2, ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 
 interface Brand {
@@ -67,6 +72,7 @@ interface Product {
   cost_price?: number | null;
   invoice_fee_percent?: number | null;
   neo_link_fee_percent?: number | null;
+  desired_profit_amount?: number | null;
   sale_price_markup_percent?: number | null;
   calculated_sale_price?: number | null;
   status: string;
@@ -96,6 +102,15 @@ type ShoeSize = {
   uk: number;
   cm: number;
 };
+
+function createEmptyProductImage(displayOrder = 0): ProductImage {
+  return {
+    image_url: '',
+    alt_text: '',
+    display_order: displayOrder,
+    image_type: displayOrder === 0 ? 'front' : 'detail',
+  };
+}
 
 const WOMEN_SIZES: ShoeSize[] = [
   { us: 5, eu: 34.5, uk: 2.5, cm: 22 },
@@ -189,6 +204,20 @@ const toDatabaseGender = (gender: string) => {
   return 'unisex';
 };
 
+const getProductSaveErrorMessage = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error || '');
+  if (message.includes('PRODUCT_COLOR_REQUIRES_1_TO_5_IMAGES')) {
+    return 'Cada color debe tener entre 1 y 5 imágenes.';
+  }
+  if (message.includes('COMMERCIAL_FEES_MUST_BE_BELOW_100')) {
+    return 'La suma del costo de facturación y Neo Link debe ser menor al 100 %.';
+  }
+  if (message.includes('INVALID_COMMERCIAL_AMOUNT')) {
+    return 'Los montos comerciales no pueden ser negativos.';
+  }
+  return message || 'Error al guardar el producto';
+};
+
 export function ProductForm({ product, brands, categories }: ProductFormProps) {
   const router = useRouter();
   const isEditing = !!product;
@@ -212,7 +241,8 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     cost_price: product?.cost_price || 0,
     invoice_fee_percent: product?.invoice_fee_percent || 0,
     neo_link_fee_percent: product?.neo_link_fee_percent || 0,
-    sale_price_markup_percent: product?.sale_price_markup_percent || 0,
+    desired_profit_amount:
+      product?.desired_profit_amount ?? product?.sale_price_markup_percent ?? 0,
     calculated_sale_price: product?.calculated_sale_price || 0,
     status: product?.status || 'draft',
     gender: normalizeGender(product?.gender),
@@ -233,6 +263,9 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     () =>
       product?.product_colors.map((color) => ({
         ...color,
+        product_color_images: [...color.product_color_images].sort(
+          (a, b) => Number(a.display_order || 0) - Number(b.display_order || 0)
+        ),
         product_variants: color.product_variants.filter(
           (variant) => variant.is_available !== false
         ),
@@ -255,16 +288,17 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'colors' | 'seo'>('info');
   const availableSizes = getSizesForGender(formData.gender);
   const sizeGuideLabel = getSizeGuideLabel(formData.gender);
-  const suggestedSalePrice =
-    Math.round(
-      Number(formData.cost_price || 0) *
-        (1 +
-          (Number(formData.invoice_fee_percent || 0) +
-            Number(formData.neo_link_fee_percent || 0) +
-            Number(formData.sale_price_markup_percent || 0)) /
-            100) *
-        100
-    ) / 100;
+  const calculatedSuggestedSalePrice = calculateFinalPrice(
+    Number(formData.cost_price || 0),
+    Number(formData.desired_profit_amount || 0),
+    Number(formData.neo_link_fee_percent || 0),
+    Number(formData.invoice_fee_percent || 0)
+  );
+  const suggestedSalePrice = calculatedSuggestedSalePrice ?? 0;
+  const hasInvalidFeeTotal =
+    Number(formData.neo_link_fee_percent || 0) +
+      Number(formData.invoice_fee_percent || 0) >=
+    100;
 
   const handleNameChange = (name: string) => {
     setFormData((prev) => ({
@@ -282,7 +316,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
       sku_suffix: '',
       is_available: true,
       display_order: colors.length,
-      product_color_images: [],
+      product_color_images: [createEmptyProductImage()],
       product_variants: [],
     };
     setColors([...colors, newColor]);
@@ -312,22 +346,36 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
   };
 
   const addImageToColor = (colorIndex: number) => {
-    const newImage: ProductImage = {
-      image_url: '',
-      alt_text: '',
-      display_order: colors[colorIndex].product_color_images.length,
-      image_type: 'front',
-    };
+    const imageCount = colors[colorIndex].product_color_images.length;
+    if (imageCount >= MAX_PRODUCT_IMAGES_PER_COLOR) return;
+
+    const newImage = createEmptyProductImage(imageCount);
     updateColor(colorIndex, {
       product_color_images: [...colors[colorIndex].product_color_images, newImage],
     });
   };
 
   const removeImageFromColor = (colorIndex: number, imageIndex: number) => {
+    if (colors[colorIndex].product_color_images.length <= 1) return;
+
     updateColor(colorIndex, {
-      product_color_images: colors[colorIndex].product_color_images.filter(
-        (_, i) => i !== imageIndex
-      ),
+      product_color_images: colors[colorIndex].product_color_images
+        .filter((_, i) => i !== imageIndex)
+        .map((image, index) => ({ ...image, display_order: index })),
+    });
+  };
+
+  const moveImage = (colorIndex: number, imageIndex: number, direction: -1 | 1) => {
+    const nextIndex = imageIndex + direction;
+    const images = [...colors[colorIndex].product_color_images];
+    if (nextIndex < 0 || nextIndex >= images.length) return;
+
+    [images[imageIndex], images[nextIndex]] = [images[nextIndex], images[imageIndex]];
+    updateColor(colorIndex, {
+      product_color_images: images.map((image, index) => ({
+        ...image,
+        display_order: index,
+      })),
     });
   };
 
@@ -443,6 +491,29 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (hasInvalidFeeTotal) {
+      setError('La suma de factura y Neo Link debe ser menor al 100 %.');
+      return;
+    }
+
+    if (colors.length === 0) {
+      setError('El producto debe tener al menos un color con una imagen.');
+      return;
+    }
+
+    const invalidImageColor = colors.find((color) => {
+      const images = color.product_color_images;
+      return !hasValidProductImageCount(images);
+    });
+
+    if (invalidImageColor) {
+      setError(
+        `El color ${invalidImageColor.color_name || 'sin nombre'} debe tener entre 1 y 5 imágenes con URL.`
+      );
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -453,6 +524,18 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
         formData.compare_at_price && Number(formData.compare_at_price) > Number(formData.base_price)
           ? Number(formData.compare_at_price)
           : null;
+
+      const normalizedColors = colors.map((color) => ({
+        ...color,
+        product_color_images: color.product_color_images.map((image, index) => ({
+          ...image,
+          image_url: image.image_url.trim(),
+          alt_text:
+            image.alt_text?.trim() ||
+            `${formData.name} - ${color.color_name} - ${image.image_type || `imagen ${index + 1}`}`,
+          display_order: index,
+        })),
+      }));
 
       const productData = {
         brand_id: formData.brand_id,
@@ -466,8 +549,10 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
         cost_price: Number(formData.cost_price || 0),
         invoice_fee_percent: Number(formData.invoice_fee_percent || 0),
         neo_link_fee_percent: Number(formData.neo_link_fee_percent || 0),
-        sale_price_markup_percent: Number(formData.sale_price_markup_percent || 0),
-        calculated_sale_price: Number(formData.calculated_sale_price || suggestedSalePrice || 0),
+        desired_profit_amount: Number(formData.desired_profit_amount || 0),
+        // Compatibilidad temporal con la funcion SQL anterior a la migracion.
+        sale_price_markup_percent: Number(formData.desired_profit_amount || 0),
+        calculated_sale_price: suggestedSalePrice,
         status: formData.status,
         gender: toDatabaseGender(formData.gender),
         is_featured: formData.is_featured,
@@ -483,7 +568,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
       const { error: saveError } = await (supabase as any).rpc('admin_save_product', {
         p_product_id: isEditing && product ? product.id : null,
         p_product: productData,
-        p_colors: colors,
+        p_colors: normalizedColors,
         p_removed_variant_ids: removedVariants
           .map((item) => item.variant.id)
           .filter(Boolean),
@@ -495,7 +580,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
       router.refresh();
     } catch (err: any) {
       console.error('Error saving product:', err);
-      setError(err.message || 'Error al guardar el producto');
+      setError(getProductSaveErrorMessage(err));
       setIsLoading(false);
     }
   };
@@ -647,9 +732,9 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h4 className="text-sm font-semibold text-brand-black">Calculo comercial</h4>
+                    <h4 className="text-sm font-semibold text-brand-black">Cálculo comercial</h4>
                     <p className="text-xs text-gray-600">
-                      Usa estos campos para estimar el precio final con factura, Neo Link y margen.
+                      Calcula el precio que conserva tu ganancia después de factura y Neo Link.
                     </p>
                   </div>
                   <div className="text-sm font-semibold text-brand-black">
@@ -672,7 +757,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="invoice_fee_percent">% factura</Label>
+                    <Label htmlFor="invoice_fee_percent">Costo factura/FEL (%)</Label>
                     <Input
                       id="invoice_fee_percent"
                       type="number"
@@ -685,7 +770,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="neo_link_fee_percent">% Neo Link</Label>
+                    <Label htmlFor="neo_link_fee_percent">Comisión Neo Link (%)</Label>
                     <Input
                       id="neo_link_fee_percent"
                       type="number"
@@ -698,15 +783,15 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="sale_price_markup_percent">% margen</Label>
+                    <Label htmlFor="desired_profit_amount">Ganancia deseada (Q)</Label>
                     <Input
-                      id="sale_price_markup_percent"
+                      id="desired_profit_amount"
                       type="number"
                       min="0"
                       step="0.01"
-                      value={formData.sale_price_markup_percent}
+                      value={formData.desired_profit_amount}
                       onChange={(e) =>
-                        setFormData({ ...formData, sale_price_markup_percent: parseFloat(e.target.value) || 0 })
+                        setFormData({ ...formData, desired_profit_amount: parseFloat(e.target.value) || 0 })
                       }
                     />
                   </div>
@@ -717,19 +802,28 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                       type="number"
                       min="0"
                       step="0.01"
-                      value={formData.calculated_sale_price || suggestedSalePrice}
-                      onChange={(e) =>
-                        setFormData({ ...formData, calculated_sale_price: parseFloat(e.target.value) || 0 })
-                      }
+                      value={suggestedSalePrice}
+                      readOnly
                     />
                   </div>
                 </div>
+
+                <p className="mt-3 text-xs text-gray-500">
+                  Estos porcentajes son costos comerciales. El impuesto de FEL se registra por separado.
+                </p>
+
+                {hasInvalidFeeTotal && (
+                  <p className="mt-3 text-sm text-red-600" role="alert">
+                    La suma de factura y Neo Link debe ser menor al 100 %.
+                  </p>
+                )}
 
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   className="mt-4"
+                  disabled={hasInvalidFeeTotal}
                   onClick={() =>
                     setFormData({
                       ...formData,
@@ -960,22 +1054,28 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
               {/* Images */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label>Imágenes</Label>
+                  <div>
+                    <Label>Imágenes</Label>
+                    <p className="text-xs text-gray-500">
+                      {color.product_color_images.length}/{MAX_PRODUCT_IMAGES_PER_COLOR} para este color
+                    </p>
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
+                    disabled={color.product_color_images.length >= MAX_PRODUCT_IMAGES_PER_COLOR}
                     onClick={() => addImageToColor(colorIndex)}
                   >
                     <Plus className="h-4 w-4 mr-1" />
-                    Agregar Imagen
+                    Agregar imagen
                   </Button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {color.product_color_images.map((image, imageIndex) => (
                     <div
-                      key={imageIndex}
+                      key={image.id || `new-image-${imageIndex}`}
                       className="border border-gray-200 rounded-lg p-4 space-y-3"
                     >
                       {image.image_url ? (
@@ -1018,9 +1118,38 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                         <Button
                           type="button"
                           variant="ghost"
-                          size="sm"
+                          size="icon"
+                          disabled={imageIndex === 0}
+                          onClick={() => moveImage(colorIndex, imageIndex, -1)}
+                          aria-label="Mover imagen a la izquierda"
+                          title="Mover a la izquierda"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          disabled={imageIndex === color.product_color_images.length - 1}
+                          onClick={() => moveImage(colorIndex, imageIndex, 1)}
+                          aria-label="Mover imagen a la derecha"
+                          title="Mover a la derecha"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          disabled={color.product_color_images.length <= 1}
                           onClick={() => removeImageFromColor(colorIndex, imageIndex)}
                           className="text-red-600"
+                          aria-label="Eliminar imagen"
+                          title={
+                            color.product_color_images.length <= 1
+                              ? 'Cada color necesita al menos una imagen'
+                              : 'Eliminar imagen'
+                          }
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

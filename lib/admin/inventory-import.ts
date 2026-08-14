@@ -1,5 +1,6 @@
 import { inflateRawSync } from 'zlib';
 import { createXlsx, type XlsxCell } from '@/lib/exports/xlsx';
+import { calculateFinalPrice as calculateCommercialPrice } from '@/lib/pricing/calculate-final-price';
 import { generateBaseSKU, generateSlug } from '@/lib/utils/slug';
 
 export const INVENTORY_IMPORT_COLUMNS = [
@@ -19,7 +20,7 @@ export const INVENTORY_IMPORT_COLUMNS = [
   'costo',
   'porcentaje_factura',
   'porcentaje_neo_link',
-  'porcentaje_margen',
+  'ganancia_deseada',
   'precio_base',
   'precio_final_calculado',
   'precio_anterior',
@@ -58,7 +59,7 @@ const REQUIRED_COLUMNS: InventoryImportColumn[] = [
   'talla_us',
   'color',
   'stock',
-  'precio_final_calculado',
+  'link_imagen_cloudinary',
 ];
 
 const VALID_SECTIONS = new Set(['calzado', 'hombre', 'mujer', 'ninos', 'unisex']);
@@ -142,9 +143,9 @@ function parseWorksheet(xml: string, sharedStrings: string[]) {
     const rowIndex = Number(rowMatch[1]) - 1;
     const cells: string[] = [];
 
-    for (const cellMatch of rowMatch[2].matchAll(/<c([^>]*)>([\s\S]*?)<\/c>/g)) {
+    for (const cellMatch of rowMatch[2].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
       const attrs = cellMatch[1];
-      const body = cellMatch[2];
+      const body = cellMatch[2] || '';
       const ref = attrs.match(/r="([^"]+)"/)?.[1] || '';
       const type = attrs.match(/t="([^"]+)"/)?.[1] || '';
       const index = columnIndex(ref);
@@ -208,15 +209,14 @@ function colorSuffix(value: string) {
 }
 
 function calculateFinalPrice(row: Record<string, string | number | null>) {
-  const explicitFinal = toMoney(row.precio_final_calculado);
-  if (explicitFinal > 0) return explicitFinal;
-
-  const base = toMoney(row.precio_base) || toMoney(row.costo);
-  const invoice = toNumber(row.porcentaje_factura);
-  const neo = toNumber(row.porcentaje_neo_link);
-  const margin = toNumber(row.porcentaje_margen);
-
-  return Math.round(base * (1 + (invoice + neo + margin) / 100) * 100) / 100;
+  return (
+    calculateCommercialPrice(
+      toMoney(row.costo),
+      toMoney(row.ganancia_deseada ?? row.porcentaje_margen),
+      toNumber(row.porcentaje_neo_link),
+      toNumber(row.porcentaje_factura)
+    ) ?? 0
+  );
 }
 
 export function createInventoryTemplate() {
@@ -239,9 +239,9 @@ export function createInventoryTemplate() {
       500,
       5,
       4,
-      25,
+      100,
       500,
-      670,
+      '',
       '',
       '',
       4,
@@ -286,6 +286,7 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
   const previews: InventoryImportPreviewRow[] = [];
   const uploadedVariantSkus = new Map<string, number>();
   const uploadedProductStates = new Map<string, { status: string; finalPrice: number; rowNumber: number }>();
+  const uploadedColorImages = new Map<string, Set<string>>();
 
   rows.slice(1).forEach((cells, index) => {
     const raw: Record<string, string | number | null> = {};
@@ -318,6 +319,8 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
       `${productSku}-${skuSuffix}-${cleanText(raw.talla_us)}`.toUpperCase();
     const imageUrl = cleanText(raw.link_imagen_cloudinary);
     const finalPrice = calculateFinalPrice(raw);
+    const providedFinalPrice = toMoney(raw.precio_final_calculado);
+    const desiredProfit = toMoney(raw.ganancia_deseada ?? raw.porcentaje_margen);
     const stock = Math.floor(toNumber(raw.stock));
     const lowStockThreshold = Math.floor(toNumber(raw.stock_minimo, 5));
     const compareAtPrice = toMoney(raw.precio_anterior);
@@ -330,7 +333,12 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
     if (!VALID_STATUSES.has(status)) errors.push('Estado invalido.');
     if (!isNumericValue(raw.talla_us)) errors.push('La talla US debe ser numerica.');
     if (!isNumericValue(raw.stock)) errors.push('El stock debe ser numerico.');
-    if (!isNumericValue(raw.precio_final_calculado)) errors.push('El precio final debe ser numerico.');
+    if (cleanText(raw.precio_final_calculado) && !isNumericValue(raw.precio_final_calculado)) {
+      errors.push('El precio final debe ser numerico.');
+    }
+    if (providedFinalPrice > 0 && Math.abs(providedFinalPrice - finalPrice) > 0.01) {
+      errors.push('El precio final no coincide con el calculo comercial.');
+    }
     if (toNumber(raw.talla_us) <= 0) errors.push('La talla US debe ser mayor a 0.');
     if (stock < 0) errors.push('El stock no puede ser negativo.');
     if (lowStockThreshold < 0) errors.push('El stock minimo no puede ser negativo.');
@@ -343,7 +351,18 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
     if (toNumber(raw.costo) < 0) errors.push('El costo no puede ser negativo.');
     if (toNumber(raw.porcentaje_factura) < 0) errors.push('El porcentaje de factura no puede ser negativo.');
     if (toNumber(raw.porcentaje_neo_link) < 0) errors.push('El porcentaje de Neo Link no puede ser negativo.');
-    if (toNumber(raw.porcentaje_margen) < 0) errors.push('El porcentaje de margen no puede ser negativo.');
+    if (desiredProfit < 0) errors.push('La ganancia deseada no puede ser negativa.');
+    if (toNumber(raw.porcentaje_factura) + toNumber(raw.porcentaje_neo_link) >= 100) {
+      errors.push('La suma de factura y Neo Link debe ser menor al 100 %.');
+    }
+
+    const colorImageKey = `${normalizedProductSku}:${normalizeKey(colorName)}`;
+    const colorImages = uploadedColorImages.get(colorImageKey) || new Set<string>();
+    if (imageUrl) colorImages.add(imageUrl);
+    uploadedColorImages.set(colorImageKey, colorImages);
+    if (colorImages.size > 5) {
+      errors.push('Cada color puede tener un maximo de 5 imagenes diferentes.');
+    }
 
     const previousVariantRow = uploadedVariantSkus.get(normalizedVariantSku);
     if (previousVariantRow) {
@@ -396,7 +415,9 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
         costo: toMoney(raw.costo),
         porcentaje_factura: toNumber(raw.porcentaje_factura),
         porcentaje_neo_link: toNumber(raw.porcentaje_neo_link),
-        porcentaje_margen: toNumber(raw.porcentaje_margen),
+        ganancia_deseada: desiredProfit,
+        // La funcion SQL actual conserva este nombre por compatibilidad.
+        porcentaje_margen: desiredProfit,
         precio_base: toMoney(raw.precio_base),
         precio_final_calculado: finalPrice,
         precio_anterior: compareAtPrice || null,

@@ -1052,6 +1052,7 @@ export type Database = {
           cost_price: number
           created_at: string | null
           description: string | null
+          desired_profit_amount: number
           gender: string
           id: string
           invoice_fee_percent: number
@@ -1078,6 +1079,7 @@ export type Database = {
           cost_price?: number
           created_at?: string | null
           description?: string | null
+          desired_profit_amount?: number
           gender?: string
           id?: string
           invoice_fee_percent?: number
@@ -1104,6 +1106,7 @@ export type Database = {
           cost_price?: number
           created_at?: string | null
           description?: string | null
+          desired_profit_amount?: number
           gender?: string
           id?: string
           invoice_fee_percent?: number

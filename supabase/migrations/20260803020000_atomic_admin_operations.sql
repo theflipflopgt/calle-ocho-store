@@ -369,7 +369,7 @@ BEGIN
     INSERT INTO public.products(
       brand_id, category_id, name, slug, sku, description, base_price,
       compare_at_price, cost_price, invoice_fee_percent, neo_link_fee_percent,
-      sale_price_markup_percent, calculated_sale_price, status, gender,
+      desired_profit_amount, calculated_sale_price, status, gender,
       is_featured, is_new_release, new_release_until, meta_title, meta_description
     ) VALUES (
       (p_product ->> 'brand_id')::UUID,
@@ -381,7 +381,11 @@ BEGIN
       COALESCE((p_product ->> 'cost_price')::NUMERIC, 0),
       COALESCE((p_product ->> 'invoice_fee_percent')::NUMERIC, 0),
       COALESCE((p_product ->> 'neo_link_fee_percent')::NUMERIC, 0),
-      COALESCE((p_product ->> 'sale_price_markup_percent')::NUMERIC, 0),
+      COALESCE(
+        (p_product ->> 'desired_profit_amount')::NUMERIC,
+        (p_product ->> 'sale_price_markup_percent')::NUMERIC,
+        0
+      ),
       NULLIF(p_product ->> 'calculated_sale_price', '')::NUMERIC,
       COALESCE(p_product ->> 'status', 'draft'), COALESCE(p_product ->> 'gender', 'unisex'),
       COALESCE((p_product ->> 'is_featured')::BOOLEAN, false),
@@ -401,7 +405,11 @@ BEGIN
       cost_price = COALESCE((p_product ->> 'cost_price')::NUMERIC, 0),
       invoice_fee_percent = COALESCE((p_product ->> 'invoice_fee_percent')::NUMERIC, 0),
       neo_link_fee_percent = COALESCE((p_product ->> 'neo_link_fee_percent')::NUMERIC, 0),
-      sale_price_markup_percent = COALESCE((p_product ->> 'sale_price_markup_percent')::NUMERIC, 0),
+      desired_profit_amount = COALESCE(
+        (p_product ->> 'desired_profit_amount')::NUMERIC,
+        (p_product ->> 'sale_price_markup_percent')::NUMERIC,
+        0
+      ),
       calculated_sale_price = NULLIF(p_product ->> 'calculated_sale_price', '')::NUMERIC,
       status = COALESCE(p_product ->> 'status', 'draft'),
       gender = COALESCE(p_product ->> 'gender', 'unisex'),
@@ -651,7 +659,7 @@ BEGIN
       INSERT INTO public.products(
         brand_id, category_id, name, slug, sku, description, base_price, compare_at_price,
         status, gender, cost_price, invoice_fee_percent, neo_link_fee_percent,
-        sale_price_markup_percent, calculated_sale_price
+        desired_profit_amount, calculated_sale_price
       ) VALUES (
         v_brand_id, v_category_id, v_data ->> 'nombre', v_data ->> 'slug',
         v_data ->> 'codigo_producto', NULLIF(v_data ->> 'descripcion', ''),
@@ -662,7 +670,11 @@ BEGIN
         COALESCE((v_data ->> 'costo')::NUMERIC, 0),
         COALESCE((v_data ->> 'porcentaje_factura')::NUMERIC, 0),
         COALESCE((v_data ->> 'porcentaje_neo_link')::NUMERIC, 0),
-        COALESCE((v_data ->> 'porcentaje_margen')::NUMERIC, 0),
+        COALESCE(
+          (v_data ->> 'ganancia_deseada')::NUMERIC,
+          (v_data ->> 'porcentaje_margen')::NUMERIC,
+          0
+        ),
         (v_data ->> 'precio_final_calculado')::NUMERIC
       ) RETURNING id INTO v_product_id;
     ELSE
@@ -676,7 +688,11 @@ BEGIN
         cost_price = COALESCE((v_data ->> 'costo')::NUMERIC, 0),
         invoice_fee_percent = COALESCE((v_data ->> 'porcentaje_factura')::NUMERIC, 0),
         neo_link_fee_percent = COALESCE((v_data ->> 'porcentaje_neo_link')::NUMERIC, 0),
-        sale_price_markup_percent = COALESCE((v_data ->> 'porcentaje_margen')::NUMERIC, 0),
+        desired_profit_amount = COALESCE(
+          (v_data ->> 'ganancia_deseada')::NUMERIC,
+          (v_data ->> 'porcentaje_margen')::NUMERIC,
+          0
+        ),
         calculated_sale_price = (v_data ->> 'precio_final_calculado')::NUMERIC,
         updated_at = now()
       WHERE id = v_product_id;

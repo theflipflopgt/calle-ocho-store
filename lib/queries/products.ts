@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import type { ProductWithDetails } from '@/types/product';
+import { sortAndLimitProductImages } from '@/lib/products/product-images';
 
 interface GetProductsOptions {
   gender?: 'hombre' | 'mujer' | 'ninos' | 'unisex';
@@ -319,7 +320,15 @@ export const getFeaturedProducts = cache(async function getFeaturedProducts(): P
 
 // Función auxiliar para transformar producto de BD a ProductWithDetails
 function transformProduct(product: any): ProductWithDetails {
-  const colors = product.colors || [];
+  const colors = [...(product.colors || [])]
+    .sort(
+      (a: any, b: any) =>
+        Number(a.display_order || 0) - Number(b.display_order || 0)
+    )
+    .map((color: any) => ({
+      ...color,
+      images: sortAndLimitProductImages(color.images || []),
+    }));
 
   // Calcular stock total
   let totalStock = 0;
@@ -358,6 +367,7 @@ function transformProduct(product: any): ProductWithDetails {
 
   return {
     ...product,
+    colors,
     totalStock,
     lowestPrice,
     hasDiscount,

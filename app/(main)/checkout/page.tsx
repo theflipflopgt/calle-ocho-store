@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/contexts/cart-context';
 import { useAuth } from '@/contexts/auth-context';
-import { formatPrice } from '@/lib/utils/currency';
+import { formatPrice, roundMoney } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { CouponInput } from '@/components/checkout/coupon-input';
@@ -99,7 +99,7 @@ export default function CheckoutPage() {
   const deliveryCoverage = getDeliveryCoverage(formData, subtotal);
   const shippingCost = deliveryCoverage.shippingCost;
   const discountAmount = appliedCoupon?.discount_amount || 0;
-  const total = subtotal + shippingCost - discountAmount;
+  const total = roundMoney(subtotal + shippingCost - discountAmount);
 
   // Cargar dirección guardada del usuario
   useEffect(() => {

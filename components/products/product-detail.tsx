@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, ShoppingBag, Minus, Plus, ChevronLeft, ChevronRight, Check, Truck, RotateCcw, Shield, Loader2, X } from 'lucide-react';
@@ -12,6 +12,7 @@ import { useCart } from '@/contexts/cart-context';
 import { useWishlistContext } from '@/contexts/wishlist-context';
 import type { ProductWithDetails } from '@/types/product';
 import { trackAddToCart, trackViewItem } from '@/lib/analytics';
+import { sortAndLimitProductImages } from '@/lib/products/product-images';
 
 interface ProductDetailProps {
   product: ProductWithDetails;
@@ -24,12 +25,17 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+  const touchStartX = useRef<number | null>(null);
 
   const { addItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlistContext();
 
   const selectedColor = product.colors[selectedColorIndex];
-  const images = selectedColor?.images || [];
+  const images = useMemo(
+    () =>
+      sortAndLimitProductImages(selectedColor?.images || []),
+    [selectedColor]
+  );
   const variants = useMemo(() => selectedColor?.variants || [], [selectedColor]);
 
   const availableVariants = useMemo(() =>
@@ -75,6 +81,16 @@ export function ProductDetail({ product }: ProductDetailProps) {
     setCurrentImageIndex(prev => prev === images.length - 1 ? 0 : prev + 1);
   };
 
+  const handleGalleryTouchEnd = (endX: number) => {
+    if (touchStartX.current === null || images.length < 2) return;
+    const distance = touchStartX.current - endX;
+    touchStartX.current = null;
+
+    if (Math.abs(distance) < 50) return;
+    if (distance > 0) handleNextImage();
+    else handlePrevImage();
+  };
+
   const handleAddToCart = async () => {
     if (!selectedVariantId || isAddingToCart) return;
     setIsAddingToCart(true);
@@ -104,104 +120,116 @@ export function ProductDetail({ product }: ProductDetailProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 xl:gap-16">
       {/* Image Gallery */}
-      <div className="space-y-3 sm:space-y-4">
-        {/* Main Image */}
-        <div className="relative aspect-square bg-gray-100 rounded-lg sm:rounded-xl overflow-hidden">
-          {images.length > 0 ? (
-            <>
-              <Image
-                src={images[currentImageIndex]?.image_url || ''}
-                alt={`${product.name} - Imagen ${currentImageIndex + 1}`}
-                fill
-                className="object-cover"
-                priority
-              />
-
-              {/* Navigation Arrows */}
-              {images.length > 1 && (
-                <>
-                  <button
-                    onClick={handlePrevImage}
-                    className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all"
-                    aria-label="Imagen anterior"
-                  >
-                    <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
-                  <button
-                    onClick={handleNextImage}
-                    className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all"
-                    aria-label="Imagen siguiente"
-                  >
-                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
-                </>
-              )}
-
-              {/* Image Counter - Mobile */}
-              {images.length > 1 && (
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-1 rounded-full sm:hidden">
-                  {currentImageIndex + 1} / {images.length}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
-              Sin imagen
+      <div className="space-y-3">
+        <div className="flex gap-3 sm:gap-4">
+          {/* Miniaturas verticales en escritorio */}
+          {images.length > 1 && (
+            <div className="hidden sm:flex w-16 md:w-20 flex-col gap-2">
+              {images.map((image, index) => (
+                <button
+                  key={image.id}
+                  type="button"
+                  onClick={() => setCurrentImageIndex(index)}
+                  className={cn(
+                    'relative aspect-square w-full flex-shrink-0 overflow-hidden rounded-md border transition-colors',
+                    currentImageIndex === index
+                      ? 'border-brand-black'
+                      : 'border-gray-200 hover:border-gray-400'
+                  )}
+                  aria-label={`Mostrar imagen ${index + 1} de ${images.length}`}
+                >
+                  <Image
+                    src={image.image_url}
+                    alt={image.alt_text || `${product.name} - Miniatura ${index + 1}`}
+                    fill
+                    className="object-contain p-1"
+                    sizes="80px"
+                  />
+                </button>
+              ))}
             </div>
           )}
 
-          {/* Badges */}
-          <div className="absolute top-3 left-3 flex flex-col gap-2">
-            {product.isNew && (
-              <Badge className="bg-brand-blue text-white font-semibold text-xs">
-                Nuevo
-              </Badge>
+          {/* Imagen principal */}
+          <div
+            className="relative min-w-0 flex-1 aspect-square overflow-hidden rounded-lg border border-gray-100 bg-white sm:rounded-xl"
+            onTouchStart={(event) => {
+              touchStartX.current = event.touches[0]?.clientX ?? null;
+            }}
+            onTouchEnd={(event) => {
+              handleGalleryTouchEnd(event.changedTouches[0]?.clientX ?? 0);
+            }}
+          >
+            {images.length > 0 ? (
+              <>
+                <Image
+                  src={images[currentImageIndex]?.image_url || ''}
+                  alt={images[currentImageIndex]?.alt_text || `${product.name} - Imagen ${currentImageIndex + 1}`}
+                  fill
+                  className="object-contain p-3 sm:p-5"
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                />
+
+                {images.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handlePrevImage}
+                      className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black text-white shadow-md transition-colors hover:bg-gray-800 sm:left-3 sm:h-10 sm:w-10"
+                      aria-label="Imagen anterior"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleNextImage}
+                      className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black text-white shadow-md transition-colors hover:bg-gray-800 sm:right-3 sm:h-10 sm:w-10"
+                      aria-label="Imagen siguiente"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  </>
+                )}
+
+                {images.length > 1 && (
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-2.5 py-1 text-xs text-white sm:hidden">
+                    {currentImageIndex + 1} / {images.length}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-gray-400">
+                Sin imagen
+              </div>
             )}
-            {product.hasDiscount && product.discountPercentage && (
-              <Badge className="bg-brand-red text-white font-semibold text-xs">
-                -{product.discountPercentage}%
-              </Badge>
-            )}
+
+            <div className="absolute left-3 top-3 flex flex-col gap-2">
+              {product.isNew && (
+                <Badge className="bg-brand-blue text-xs font-semibold text-white">
+                  Nuevo
+                </Badge>
+              )}
+              {product.hasDiscount && product.discountPercentage && (
+                <Badge className="bg-brand-red text-xs font-semibold text-white">
+                  -{product.discountPercentage}%
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Thumbnails - Desktop */}
+        {/* Indicadores tactiles en telefonos */}
         {images.length > 1 && (
-          <div className="hidden sm:flex gap-2 overflow-x-auto pb-2">
-            {images.map((image, index) => (
-              <button
-                key={image.id}
-                onClick={() => setCurrentImageIndex(index)}
-                className={cn(
-                  "relative w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all",
-                  currentImageIndex === index
-                    ? "border-brand-black"
-                    : "border-transparent hover:border-gray-300"
-                )}
-              >
-                <Image
-                  src={image.image_url}
-                  alt={`${product.name} - Miniatura ${index + 1}`}
-                  fill
-                  className="object-cover"
-                />
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Thumbnail Dots - Mobile */}
-        {images.length > 1 && (
-          <div className="flex sm:hidden justify-center gap-1.5">
+          <div className="flex justify-center gap-1.5 sm:hidden">
             {images.map((_, index) => (
               <button
                 key={index}
+                type="button"
                 onClick={() => setCurrentImageIndex(index)}
                 className={cn(
-                  "w-2 h-2 rounded-full transition-all",
-                  currentImageIndex === index
-                    ? "bg-brand-black w-4"
-                    : "bg-gray-300"
+                  'h-2 rounded-full transition-all',
+                  currentImageIndex === index ? 'w-4 bg-brand-black' : 'w-2 bg-gray-300'
                 )}
                 aria-label={`Ir a imagen ${index + 1}`}
               />

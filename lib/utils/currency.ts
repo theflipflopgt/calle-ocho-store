@@ -1,6 +1,11 @@
 /**
  * Formatea un número como precio en Quetzales
  */
+export function roundMoney(amount: number): number {
+  if (!Number.isFinite(amount)) return 0;
+  return Math.round((amount + Number.EPSILON) * 100) / 100;
+}
+
 export function formatPrice(amount: number): string {
   return new Intl.NumberFormat('es-GT', {
     style: 'currency',
