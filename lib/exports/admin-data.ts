@@ -15,6 +15,20 @@ export async function requireAdminExport() {
   return { db: auth.supabase as any };
 }
 
+export async function requireInventoryExport() {
+  const auth = await requireAuthenticatedUser();
+
+  if (!auth.user) {
+    return { error: Response.json({ error: 'No autorizado' }, { status: 401 }) };
+  }
+
+  if (!auth.isAdmin && !auth.isWarehouse) {
+    return { error: Response.json({ error: 'Permisos insuficientes' }, { status: 403 }) };
+  }
+
+  return { db: auth.supabase as any };
+}
+
 export async function getProductExportRows(db: any) {
   const { data, error } = await db
     .from('products')
@@ -39,7 +53,9 @@ export async function getProductExportRows(db: any) {
         product_variants (
           sku,
           size_us,
+          size_eu,
           stock_quantity,
+          low_stock_threshold,
           is_available,
           price_override
         )
@@ -73,6 +89,43 @@ export async function getProductExportRows(db: any) {
   }
 
   return rows;
+}
+
+export function inventoryRowsToXlsx(rows: any[]) {
+  return [
+    [
+      'SKU producto',
+      'Producto',
+      'Marca',
+      'Categoría',
+      'Color',
+      'SKU variante',
+      'Talla US',
+      'Talla EU',
+      'Stock',
+      'Stock mínimo',
+      'Estado talla',
+      'Estado producto',
+      'Precio base',
+      'Precio especial',
+    ],
+    ...rows.map(({ product, color, variant }) => [
+      product.sku || '',
+      product.name,
+      product.brands?.name || '',
+      product.categories?.name || '',
+      color?.color_name || '',
+      variant?.sku || '',
+      variant?.size_us ?? '',
+      variant?.size_eu ?? '',
+      variant?.stock_quantity ?? '',
+      variant?.low_stock_threshold ?? '',
+      variant ? (variant.is_available ? 'Disponible' : 'No disponible') : '',
+      product.status || '',
+      Number(product.base_price || 0),
+      variant?.price_override ? Number(variant.price_override) : '',
+    ]),
+  ];
 }
 
 export function productRowsToXlsx(rows: any[]) {
@@ -114,9 +167,42 @@ export function productRowsToXlsx(rows: any[]) {
   ];
 }
 
+function guatemalaDateParts(value = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Guatemala',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(value);
+  const get = (type: string) => parts.find((part) => part.type === type)?.value || '';
+  return { year: get('year'), month: get('month'), day: get('day') };
+}
+
+export function getSalesExportPeriod(url: URL) {
+  const today = guatemalaDateParts();
+  const requestedFrom = url.searchParams.get('from');
+  const requestedTo = url.searchParams.get('to');
+  const to = requestedTo || `${today.year}-${today.month}-${today.day}`;
+  const from = requestedFrom || `${to.slice(0, 7)}-01`;
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  const isValidDate = (value: string) => {
+    if (!datePattern.test(value)) return false;
+    const [year, month, day] = value.split('-').map(Number);
+    const parsed = new Date(Date.UTC(year, month - 1, day));
+    return parsed.getUTCFullYear() === year
+      && parsed.getUTCMonth() === month - 1
+      && parsed.getUTCDate() === day;
+  };
+
+  if (!isValidDate(from) || !isValidDate(to) || from > to) {
+    throw new Error('INVALID_SALES_EXPORT_PERIOD');
+  }
+
+  return { from, to };
+}
+
 export async function getSalesExportRows(db: any, url: URL) {
-  const from = url.searchParams.get('from');
-  const to = url.searchParams.get('to');
+  const period = getSalesExportPeriod(url);
   const status = url.searchParams.get('status');
 
   let query = db
@@ -147,8 +233,9 @@ export async function getSalesExportRows(db: any, url: URL) {
     `)
     .order('created_at', { ascending: false });
 
-  if (from) query = query.gte('created_at', `${from}T00:00:00`);
-  if (to) query = query.lte('created_at', `${to}T23:59:59`);
+  query = query
+    .gte('created_at', `${period.from}T00:00:00-06:00`)
+    .lte('created_at', `${period.to}T23:59:59.999-06:00`);
   if (status) query = query.eq('status', status);
 
   const { data, error } = await query;
@@ -167,7 +254,7 @@ export async function getSalesExportRows(db: any, url: URL) {
     }
   }
 
-  return rows;
+  return { rows, period };
 }
 
 export function salesRowsToXlsx(rows: any[]) {
@@ -175,6 +262,9 @@ export function salesRowsToXlsx(rows: any[]) {
     [
       'Pedido',
       'Fecha',
+      'Año',
+      'Mes',
+      'Día',
       'Estado',
       'Cliente',
       'Correo',
@@ -193,27 +283,36 @@ export function salesRowsToXlsx(rows: any[]) {
       'Envío',
       'Total pedido',
     ],
-    ...rows.map(({ order, item }) => [
-      order.order_number,
-      order.created_at ? new Date(order.created_at).toLocaleString('es-GT') : '',
-      order.status,
-      order.shipping_recipient_name || '',
-      (Array.isArray(order.profiles) ? order.profiles[0]?.email : order.profiles?.email) || order.guest_email || '',
-      order.shipping_phone || '',
-      order.shipping_city || '',
-      order.shipping_department || '',
-      item?.product_name || '',
-      item?.brand_name || '',
-      item?.color_name || '',
-      item?.size_us || '',
-      item?.quantity || '',
-      item ? Number(item.unit_price || 0) : '',
-      item ? Number(item.subtotal || 0) : '',
-      Number(order.subtotal || 0),
-      Number(order.discount_amount || 0),
-      Number(order.shipping_cost || 0),
-      Number(order.total || 0),
-    ]),
+    ...rows.map(({ order, item }) => {
+      const date = order.created_at ? new Date(order.created_at) : null;
+      const dateParts = date ? guatemalaDateParts(date) : { year: '', month: '', day: '' };
+      return [
+        order.order_number,
+        date
+          ? date.toLocaleString('es-GT', { timeZone: 'America/Guatemala' })
+          : '',
+        dateParts.year,
+        dateParts.month ? `${dateParts.year}-${dateParts.month}` : '',
+        dateParts.day,
+        order.status,
+        order.shipping_recipient_name || '',
+        (Array.isArray(order.profiles) ? order.profiles[0]?.email : order.profiles?.email) || order.guest_email || '',
+        order.shipping_phone || '',
+        order.shipping_city || '',
+        order.shipping_department || '',
+        item?.product_name || '',
+        item?.brand_name || '',
+        item?.color_name || '',
+        item?.size_us || '',
+        item?.quantity || '',
+        item ? Number(item.unit_price || 0) : '',
+        item ? Number(item.subtotal || 0) : '',
+        Number(order.subtotal || 0),
+        Number(order.discount_amount || 0),
+        Number(order.shipping_cost || 0),
+        Number(order.total || 0),
+      ];
+    }),
   ];
 }
 

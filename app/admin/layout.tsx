@@ -24,6 +24,7 @@ import {
   Truck,
   RotateCcw,
   BadgeDollarSign,
+  ClipboardList,
 } from 'lucide-react';
 
 const navigation = [
@@ -48,6 +49,7 @@ const navigation = [
   { name: 'Categorías', href: '/admin/categorias', icon: Tag },
   { name: 'Cupones', href: '/admin/cupones', icon: Ticket },
   { name: 'Media', href: '/admin/media', icon: ImageIcon },
+  { name: 'Auditoría', href: '/admin/auditoria', icon: ClipboardList },
   { name: 'Configuración', href: '/admin/configuracion', icon: Settings },
 ];
 
@@ -67,6 +69,7 @@ const warehouseNavigation = [
       { name: 'Inventario', href: '/admin/productos/inventario' },
     ],
   },
+  { name: 'Envíos', href: '/admin/envios', icon: Truck },
   { name: 'Marcas', href: '/admin/marcas', icon: Layers },
   { name: 'Categorías', href: '/admin/categorias', icon: Tag },
   { name: 'Media', href: '/admin/media', icon: ImageIcon },

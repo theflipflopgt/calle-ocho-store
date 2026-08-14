@@ -1,6 +1,6 @@
 import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { Search, Filter, AlertTriangle, Package, CheckCircle } from 'lucide-react';
+import { Search, Filter, AlertTriangle, Package, CheckCircle, Download, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
@@ -78,9 +78,32 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
   const auth = await requireAuthenticatedUser();
   const variants = await getInventory(filters);
   const movements = await getRecentMovements(auth);
+  const groupedProducts = Array.from(
+    variants.reduce((groups: Map<string, any>, variant: any) => {
+      const productId = variant.products?.id || `deleted-${variant.id}`;
+      const current = groups.get(productId) || {
+        id: productId,
+        product: variant.products,
+        variants: [],
+      };
+      current.variants.push(variant);
+      groups.set(productId, current);
+      return groups;
+    }, new Map<string, any>()).values()
+  ).map((group: any) => ({
+    ...group,
+    variants: group.variants.sort(
+      (a: any, b: any) =>
+        String(a.product_colors?.color_name || '').localeCompare(
+          String(b.product_colors?.color_name || ''),
+          'es'
+        ) || Number(a.size_us || 0) - Number(b.size_us || 0)
+    ),
+  }));
 
   const stats = {
-    total: variants.length,
+    totalProducts: groupedProducts.length,
+    totalVariants: variants.length,
     outOfStock: variants.filter((v: any) => v.stock_quantity === 0).length,
     lowStock: variants.filter((v: any) => v.stock_quantity > 0 && v.stock_quantity < 10).length,
     inStock: variants.filter((v: any) => v.stock_quantity >= 10).length,
@@ -89,9 +112,19 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-brand-black">Inventario</h1>
-        <p className="text-gray-600 mt-1">Control de stock por variante</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-black">Inventario</h1>
+          <p className="text-gray-600 mt-1">Productos agrupados con existencias por color y talla.</p>
+        </div>
+        {(auth.isAdmin || auth.isWarehouse) && (
+          <Link href="/api/admin/exports/inventory">
+            <Button variant="outline" className="w-full sm:w-auto">
+              <Download className="mr-2 h-4 w-4" />
+              Exportar inventario actual
+            </Button>
+          </Link>
+        )}
       </div>
 
       {auth.canManageProducts && <InventoryImportPanel />}
@@ -109,8 +142,9 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
               <Package className="h-5 w-5 text-gray-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-brand-black">{stats.total}</p>
-              <p className="text-sm text-gray-600">Total</p>
+              <p className="text-2xl font-bold text-brand-black">{stats.totalProducts}</p>
+              <p className="text-sm text-gray-600">Productos</p>
+              <p className="text-xs text-gray-500">{stats.totalVariants} tallas</p>
             </div>
           </div>
         </Link>
@@ -186,105 +220,103 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
         </form>
       </div>
 
-      {/* Inventory Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Producto
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Color
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Talla
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  SKU
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stock
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {variants.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                    <Package className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                    <p>No hay variantes de productos</p>
-                  </td>
-                </tr>
-              ) : (
-                variants.map((variant: any) => {
-                  const isOutOfStock = variant.stock_quantity === 0;
-                  const isLowStock = variant.stock_quantity > 0 && variant.stock_quantity < variant.low_stock_threshold;
+      {/* Inventory grouped by product */}
+      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        {groupedProducts.length === 0 ? (
+          <div className="px-6 py-12 text-center text-gray-500">
+            <Package className="mx-auto mb-2 h-8 w-8 text-gray-400" />
+            <p>No hay productos para este filtro.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-200">
+            {groupedProducts.map((group: any) => {
+              const totalStock = group.variants.reduce(
+                (sum: number, variant: any) => sum + Number(variant.stock_quantity || 0),
+                0
+              );
+              const colors = new Set(
+                group.variants.map((variant: any) => variant.product_colors?.color_name).filter(Boolean)
+              );
+              const hasAvailableStock = group.variants.some(
+                (variant: any) => Number(variant.stock_quantity || 0) > 0
+              );
 
-                  return (
-                    <tr key={variant.id} className={`hover:bg-gray-50 ${isOutOfStock ? 'bg-red-50/50' : ''}`}>
-                      <td className="px-6 py-4">
-                        <span className="font-medium text-brand-black">
-                          {variant.products?.name || 'Producto eliminado'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-4 h-4 rounded-full border border-gray-200"
-                            style={{ backgroundColor: variant.product_colors?.color_code }}
-                          />
-                          <span className="text-sm">{variant.product_colors?.color_name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <div>
-                          <span className="font-medium">US {variant.size_us}</span>
-                          <span className="text-gray-500 ml-2">EU {variant.size_eu}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">
-                          {variant.sku}
-                        </code>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`text-lg font-bold ${
-                            isOutOfStock
-                              ? 'text-red-600'
-                              : isLowStock
-                              ? 'text-orange-600'
-                              : 'text-green-600'
-                          }`}
-                        >
-                          {variant.stock_quantity}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            isOutOfStock
-                              ? 'bg-red-100 text-red-800'
-                              : isLowStock
-                              ? 'bg-orange-100 text-orange-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {isOutOfStock ? 'Agotado' : isLowStock ? 'Stock Bajo' : 'Disponible'}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+              return (
+                <details key={group.id} className="group">
+                  <summary className="grid cursor-pointer list-none gap-3 px-4 py-4 hover:bg-gray-50 sm:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr_auto] sm:items-center sm:px-6">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-brand-black">
+                        {group.product?.name || 'Producto eliminado'}
+                      </p>
+                      <p className="text-xs text-gray-500">{group.product?.sku}</p>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {colors.size} {colors.size === 1 ? 'color' : 'colores'}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {group.variants.length} {group.variants.length === 1 ? 'talla' : 'tallas'}
+                    </p>
+                    <div>
+                      <p className="font-semibold text-brand-black">{totalStock} pares</p>
+                      <p className={`text-xs ${hasAvailableStock ? 'text-green-700' : 'text-red-600'}`}>
+                        {hasAvailableStock ? 'Con existencias' : 'Agotado'}
+                      </p>
+                    </div>
+                    <ChevronDown className="h-5 w-5 text-gray-500 transition-transform group-open:rotate-180" />
+                  </summary>
+
+                  <div className="overflow-x-auto border-t border-gray-100 bg-gray-50/60">
+                    <table className="w-full min-w-[760px] text-sm">
+                      <thead className="text-xs uppercase text-gray-500">
+                        <tr>
+                          <th className="px-6 py-3 text-left font-medium">Color</th>
+                          <th className="px-6 py-3 text-left font-medium">Talla</th>
+                          <th className="px-6 py-3 text-left font-medium">SKU</th>
+                          <th className="px-6 py-3 text-right font-medium">Stock</th>
+                          <th className="px-6 py-3 text-left font-medium">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white">
+                        {group.variants.map((variant: any) => {
+                          const isOut = Number(variant.stock_quantity || 0) === 0;
+                          const isLow =
+                            !isOut &&
+                            Number(variant.stock_quantity || 0) <
+                              Number(variant.low_stock_threshold || 5);
+                          return (
+                            <tr key={variant.id} className={isOut ? 'bg-red-50/40' : ''}>
+                              <td className="px-6 py-3">
+                                <span className="inline-flex items-center gap-2">
+                                  <span
+                                    className="h-4 w-4 rounded-full border border-gray-300"
+                                    style={{ backgroundColor: variant.product_colors?.color_code || '#ffffff' }}
+                                  />
+                                  {variant.product_colors?.color_name || 'Sin color'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-3 font-medium">
+                                US {variant.size_us} <span className="ml-2 text-gray-500">EU {variant.size_eu}</span>
+                              </td>
+                              <td className="px-6 py-3"><code className="rounded bg-gray-100 px-2 py-1 text-xs">{variant.sku}</code></td>
+                              <td className={`px-6 py-3 text-right font-bold ${isOut ? 'text-red-600' : isLow ? 'text-orange-600' : 'text-green-700'}`}>
+                                {variant.stock_quantity}
+                              </td>
+                              <td className="px-6 py-3">
+                                <span className={`rounded-full px-2 py-1 text-xs font-medium ${isOut ? 'bg-red-100 text-red-800' : isLow ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'}`}>
+                                  {isOut ? 'Agotado' : isLow ? 'Stock bajo' : 'Disponible'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {(auth.isAdmin || auth.isWarehouse) && (
@@ -310,7 +342,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                   <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Aún no hay movimientos registrados.</td></tr>
                 ) : movements.map((movement: any) => (
                   <tr key={movement.id}>
-                    <td className="whitespace-nowrap px-4 py-3">{new Date(movement.created_at).toLocaleString('es-GT')}</td>
+                    <td className="whitespace-nowrap px-4 py-3">{new Date(movement.created_at).toLocaleString('es-GT', { timeZone: 'America/Guatemala' })}</td>
                     <td className="px-4 py-3">
                       <p className="font-medium">{movement.variant?.products?.name || 'Producto'}</p>
                       <p className="text-xs text-gray-500">{movement.variant?.sku} · US {movement.variant?.size_us}</p>
