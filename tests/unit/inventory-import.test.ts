@@ -12,6 +12,7 @@ const emptyReferences = {
   brandsByName: new Map(),
   categoriesByName: new Map(),
   variantsBySku: new Map(),
+  colorsByProductId: new Map(),
 };
 
 function inventoryRow(overrides: Record<string, string | number> = {}) {
@@ -193,4 +194,20 @@ describe('inventory import validation', () => {
 
     expect(results[1].errors[0]).toContain('estado y el precio final deben coincidir');
   });
+
+  it('rejects two different colors under the same product SKU', () => {
+    const results = normalizeInventoryRows(
+      [
+        [...INVENTORY_IMPORT_COLUMNS],
+        inventoryRow({ color: 'Negro', sku_variante: 'CO-0001-NEG-9' }),
+        inventoryRow({ color: 'Blanco', talla_us: 9.5, sku_variante: 'CO-0001-BLA-9.5' }),
+      ],
+      emptyReferences
+    );
+
+    expect(results[0].errors).toEqual([]);
+    expect(results[1].errors.join(' ')).toContain('Cada SKU debe corresponder a un solo color');
+    expect(results[1].action).toBe('skip');
+  });
+
 });

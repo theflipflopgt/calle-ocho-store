@@ -49,6 +49,7 @@ interface ReferenceData {
   brandsByName: Map<string, any>;
   categoriesByName: Map<string, any>;
   variantsBySku: Map<string, any>;
+  colorsByProductId: Map<string, string[]>;
 }
 
 const REQUIRED_COLUMNS: InventoryImportColumn[] = [
@@ -254,20 +255,33 @@ export function createInventoryTemplate() {
     ['seccion', 'hombre, mujer, ninos, unisex, calzado'],
     ['estado', 'draft, active, archived'],
     ['warehouse', 'Principal, Bodega 1, Bodega 2'],
-    ['nota', 'Cada fila representa una talla/variante. Repite el producto para cargar varias tallas.'],
+    ['nota', 'Cada fila representa una talla/variante. Repite el mismo SKU solo para sus tallas; si cambia el color, usa otro SKU de producto.'],
   ];
 
   return createXlsx(rows);
 }
 
 export async function getInventoryReferenceData(db: any): Promise<ReferenceData> {
-  const [{ data: products }, { data: brands }, { data: categories }, { data: variants }] =
-    await Promise.all([
-      db.from('products').select('id, sku, slug, name'),
-      db.from('brands').select('id, name, slug'),
-      db.from('categories').select('id, name, slug'),
-      db.from('product_variants').select('id, sku, product_id, product_color_id'),
-    ]);
+  const [
+    { data: products },
+    { data: brands },
+    { data: categories },
+    { data: variants },
+    { data: colors },
+  ] = await Promise.all([
+    db.from('products').select('id, sku, slug, name'),
+    db.from('brands').select('id, name, slug'),
+    db.from('categories').select('id, name, slug'),
+    db.from('product_variants').select('id, sku, product_id, product_color_id'),
+    db.from('product_colors').select('product_id, color_name'),
+  ]);
+
+  const colorsByProductId = new Map<string, string[]>();
+  for (const color of colors || []) {
+    const current = colorsByProductId.get(color.product_id) || [];
+    current.push(color.color_name);
+    colorsByProductId.set(color.product_id, current);
+  }
 
   return {
     productsBySku: new Map((products || []).map((item: any) => [item.sku, item])),
@@ -275,6 +289,7 @@ export async function getInventoryReferenceData(db: any): Promise<ReferenceData>
     brandsByName: new Map((brands || []).map((item: any) => [normalizeKey(item.name), item])),
     categoriesByName: new Map((categories || []).map((item: any) => [normalizeKey(item.name), item])),
     variantsBySku: new Map((variants || []).map((item: any) => [item.sku, item])),
+    colorsByProductId,
   };
 }
 
@@ -286,6 +301,7 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
   const uploadedVariantSkus = new Map<string, number>();
   const uploadedProductStates = new Map<string, { status: string; finalPrice: number; rowNumber: number }>();
   const uploadedColorImages = new Map<string, Set<string>>();
+  const uploadedProductColors = new Map<string, { normalizedColor: string; colorName: string; rowNumber: number }>();
 
   rows.slice(1).forEach((cells, index) => {
     const raw: Record<string, string | number | null> = {};
@@ -353,6 +369,32 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
     if (desiredProfit < 0) errors.push('La ganancia deseada no puede ser negativa.');
     if (toNumber(raw.porcentaje_factura) + toNumber(raw.porcentaje_neo_link) >= 100) {
       errors.push('La suma de factura y Neo Link debe ser menor al 100 %.');
+    }
+
+    const normalizedColorName = normalizeKey(colorName);
+    const previousProductColor = uploadedProductColors.get(normalizedProductSku);
+    if (previousProductColor && previousProductColor.normalizedColor !== normalizedColorName) {
+      errors.push(
+        `El SKU ${productSku} ya usa el color ${previousProductColor.colorName} en la fila ${previousProductColor.rowNumber}. Cada SKU debe corresponder a un solo color.`
+      );
+    } else if (!previousProductColor) {
+      uploadedProductColors.set(normalizedProductSku, {
+        normalizedColor: normalizedColorName,
+        colorName,
+        rowNumber: currentRowNumber,
+      });
+    }
+
+    const existingProduct = refs.productsBySku.get(productSku) || refs.productsBySlug.get(slug);
+    const existingColors = existingProduct ? refs.colorsByProductId.get(existingProduct.id) || [] : [];
+    const distinctExistingColors = [...new Set(existingColors.map((value) => normalizeKey(value)))];
+    if (
+      distinctExistingColors.length === 1 &&
+      distinctExistingColors[0] !== normalizedColorName
+    ) {
+      errors.push(
+        `El SKU ${productSku} ya existe con el color ${existingColors[0]}. Usa otro SKU para un color diferente.`
+      );
     }
 
     const colorImageKey = `${normalizedProductSku}:${normalizeKey(colorName)}`;
