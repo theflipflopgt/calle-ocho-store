@@ -3,8 +3,8 @@ import { Facebook, Instagram, Mail } from 'lucide-react';
 import { NewsletterForm } from './newsletter-form';
 
 export function Footer() {
-  const facebookUrl = process.env.NEXT_PUBLIC_FACEBOOK_URL?.trim();
-  const instagramUrl = process.env.NEXT_PUBLIC_INSTAGRAM_URL?.trim();
+  const facebookUrl = process.env.NEXT_PUBLIC_FACEBOOK_URL?.trim() || 'https://www.facebook.com/profile.php?id=100086381557070';
+  const instagramUrl = process.env.NEXT_PUBLIC_INSTAGRAM_URL?.trim() || 'https://www.instagram.com/calleochogt/?hl=es-la';
   return (
     <footer className="bg-brand-black text-white mt-12 sm:mt-16 md:mt-20">
       {/* Main Footer */}
