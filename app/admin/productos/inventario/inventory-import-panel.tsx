@@ -108,7 +108,7 @@ export function InventoryImportPanel() {
             <h2 className="font-semibold text-brand-black">Carga masiva por Excel</h2>
           </div>
           <p className="mt-1 text-sm text-gray-600">
-            Descarga la plantilla, completa productos/tallas/stock/Cloudinary y revisa antes de guardar.
+            Descarga la plantilla, completa productos/tallas/stock/Cloudinary y revisa antes de guardar. Los productos nuevos se importan archivados para que puedas prepararlos antes de publicarlos.
           </p>
         </div>
 
@@ -171,7 +171,7 @@ export function InventoryImportPanel() {
           {preview.errorRows === 0 && (
             <div className="flex gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
               <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-              Los productos con estado active y al menos una talla con stock mayor que cero quedaran publicados y disponibles para comprar.
+              Los productos nuevos quedaran archivados aunque el Excel indique active. Los productos que ya existen conservaran su estado actual. Podras publicar los nuevos desde la lista de inventario cuando termines de revisarlos.
             </div>
           )}
 
@@ -240,7 +240,7 @@ export function InventoryImportPanel() {
               disabled={!canCommit || isCommitting}
             >
               {isCommitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Confirmar importacion
+              Importar inventario
             </Button>
           </div>
         </div>
