@@ -43,6 +43,7 @@ interface PaymentMethodOption {
 
 interface ShippingFormData {
   customerEmail: string;
+  billingNit: string;
   recipientName: string;
   phone: string;
   streetAddress: string;
@@ -83,6 +84,7 @@ export default function CheckoutPage() {
 
   const [formData, setFormData] = useState<ShippingFormData>({
     customerEmail: '',
+    billingNit: '',
     recipientName: '',
     phone: '',
     streetAddress: '',
@@ -197,6 +199,11 @@ export default function CheckoutPage() {
   };
 
   const validateShipping = (): boolean => {
+    const billingNit = formData.billingNit.trim().toUpperCase();
+    if (billingNit && billingNit !== 'CF' && (!/^[0-9]+(?:-[0-9K])?$/i.test(billingNit) || billingNit.length > 20)) {
+      setError('Ingresa un NIT válido o CF.');
+      return false;
+    }
     if (!user && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.customerEmail.trim())) {
       setError('Por favor ingresa un correo válido para recibir la confirmación');
       return false;
@@ -254,6 +261,7 @@ export default function CheckoutPage() {
       checkoutAttemptKey.current ||= crypto.randomUUID();
       const payload: OrderCreateInput = {
         customerEmail: user?.email || formData.customerEmail.trim().toLowerCase(),
+        billingNit: formData.billingNit.trim().toUpperCase() || undefined,
         shipping: {
           recipientName: formData.recipientName,
           phone: formData.phone,
@@ -536,6 +544,24 @@ function ShippingForm({
           />
         </div>
 
+        {/* Billing NIT / FEL readiness */}
+        <div>
+          <Label htmlFor="billingNit">NIT para factura (opcional)</Label>
+          <Input
+            id="billingNit"
+            name="billingNit"
+            value={formData.billingNit}
+            onChange={onChange}
+            placeholder="Ej. 1234567-8 o CF"
+            className="mt-1 uppercase"
+            maxLength={20}
+            autoComplete="off"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Se guardará con este pedido para preparar la futura factura FEL. Puedes dejarlo vacío.
+          </p>
+        </div>
+
         {/* Phone */}
         <div>
           <Label htmlFor="phone">Teléfono *</Label>
@@ -753,6 +779,7 @@ function ReviewStep({
         <div className="text-sm text-gray-600 space-y-1">
           <p className="font-medium text-brand-black">{formData.recipientName}</p>
           <p>{formData.phone}</p>
+          {formData.billingNit && <p>NIT: {formData.billingNit.toUpperCase()}</p>}
           <p>{formData.streetAddress}</p>
           <p>
             {[formData.zone, formData.neighborhood].filter(Boolean).join(', ')}

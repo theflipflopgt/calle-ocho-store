@@ -313,6 +313,24 @@ export async function POST(request: NextRequest) {
 
   const orderResult = data as OrderCreateResult;
   const customerEmail = auth.user?.email || payload.customerEmail?.trim().toLowerCase();
+  const billingNit = payload.billingNit?.trim().toUpperCase() || null;
+
+  // FEL readiness: billing NIT is stored as an order snapshot, never only on the profile.
+  // The service-role client remains server-only and is used only for the order just created.
+  const billingDb = admin || db;
+  const { error: billingNitError } = await (billingDb as any)
+    .from('orders')
+    .update({ billing_nit: billingNit })
+    .eq('id', orderResult.orderId);
+
+  if (billingNitError) {
+    appLogger.warn('orders.create.billing_nit_save_failed', {
+      requestId,
+      userId: auth.user?.id || null,
+      orderId: orderResult.orderId,
+      error: billingNitError.message,
+    });
+  }
 
   if (customerEmail && !orderResult.replayed) {
     await sendOrderEmails({
