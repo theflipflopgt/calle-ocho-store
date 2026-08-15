@@ -287,3 +287,7 @@ $$;
 
 REVOKE ALL ON FUNCTION public.admin_create_return_request(TEXT, TEXT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.admin_create_return_request(TEXT, TEXT, TEXT) TO authenticated;
+
+-- Make the return-management RPC functions visible immediately after running
+-- this migration manually in the Supabase SQL Editor.
+NOTIFY pgrst, 'reload schema';

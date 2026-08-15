@@ -5,6 +5,10 @@ import { formatPrice } from '@/lib/utils/currency';
 import { Button } from '@/components/ui/button';
 import { ReturnStatusEditor } from './return-status-editor';
 import { createManualReturnRequest } from './actions';
+import {
+  listReturnRequestsForAdmin,
+  lookupOrderForReturn,
+} from '@/lib/admin/return-server-fallback';
 
 const typeLabels: Record<string, string> = {
   size_exchange: 'Cambio de talla',
@@ -17,7 +21,18 @@ const createErrors: Record<string, string> = {
   invalid: 'Completa el número de pedido, el tipo y un motivo de al menos 5 caracteres.',
   order: 'No se encontró ese número de pedido.',
   duplicate: 'Ese pedido ya tiene una gestión abierta.',
+  permission: 'Solo un administrador puede crear esta gestión.',
   save: 'No se pudo crear la gestión. Intenta nuevamente.',
+};
+
+const orderStatusLabels: Record<string, string> = {
+  pending: 'Pendiente de pago',
+  paid: 'Pagado',
+  processing: 'En preparación',
+  shipped: 'Enviado',
+  delivered: 'Entregado',
+  cancelled: 'Cancelado',
+  refunded: 'Reembolsado',
 };
 
 function formatDate(value?: string | null) {
@@ -43,7 +58,12 @@ export default async function AdminReturnsPage({
   const params = await searchParams;
   const query = String(params.q || '').trim().toLowerCase();
   const statusFilter = String(params.status || 'all');
-  const { data, error } = await (auth.supabase as any).rpc('admin_list_return_requests');
+  const orderNumber = String(params.orderNumber || '').trim();
+  const [returnResult, orderLookup] = await Promise.all([
+    listReturnRequestsForAdmin(auth),
+    orderNumber ? lookupOrderForReturn(auth, orderNumber) : Promise.resolve(null),
+  ]);
+  const { data, error } = returnResult;
 
   if (error) console.error('Error fetching return requests:', error);
 
@@ -95,26 +115,99 @@ export default async function AdminReturnsPage({
             <p className="text-sm text-gray-600">Busca el pedido exacto; el cliente y el pago se enlazan automáticamente.</p>
           </div>
         </div>
-        <form action={createManualReturnRequest} className="grid gap-4 lg:grid-cols-[180px_220px_1fr_auto] lg:items-end">
-          <label className="text-sm font-medium text-gray-700">
+        <form className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="flex-1 text-sm font-medium text-gray-700">
             Número de pedido
-            <input name="orderNumber" defaultValue={params.orderNumber || ''} placeholder="CO-2026..." required className="mt-1 h-10 w-full rounded-md border border-gray-300 px-3 font-normal" />
+            <input
+              name="orderNumber"
+              defaultValue={orderNumber}
+              placeholder="CO-2026..."
+              required
+              className="mt-1 h-10 w-full rounded-md border border-gray-300 px-3 font-normal uppercase"
+            />
           </label>
-          <label className="text-sm font-medium text-gray-700">
-            Tipo de gestión
-            <select name="requestType" className="mt-1 h-10 w-full rounded-md border border-gray-300 bg-white px-3 font-normal">
-              <option value="size_exchange">Cambio de talla</option>
-              <option value="return">Devolución</option>
-              <option value="damaged_item">Producto dañado</option>
-              <option value="wrong_item">Producto incorrecto</option>
-            </select>
-          </label>
-          <label className="text-sm font-medium text-gray-700">
-            Motivo y detalle
-            <input name="reason" minLength={5} required placeholder="Ej. solicita cambiar talla 8 por talla 9" className="mt-1 h-10 w-full rounded-md border border-gray-300 px-3 font-normal" />
-          </label>
-          <Button type="submit" className="h-10">Crear gestión</Button>
+          <Button type="submit" variant="outline" className="h-10 sm:w-auto">
+            <Search className="mr-2 h-4 w-4" />
+            Buscar pedido
+          </Button>
         </form>
+
+        {orderLookup && !orderLookup.order && (
+          <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            No se encontró el pedido. Copia el número completo, con o sin el símbolo #.
+          </div>
+        )}
+
+        {orderLookup?.order && (
+          <div className="mt-5 border-t border-gray-200 pt-5">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <p className="text-xs uppercase text-gray-500">Pedido</p>
+                <Link
+                  href={`/admin/ordenes/${orderLookup.order.id}`}
+                  className="font-semibold text-brand-blue hover:underline"
+                >
+                  #{orderLookup.order.order_number}
+                </Link>
+              </div>
+              <div>
+                <p className="text-xs uppercase text-gray-500">Cliente</p>
+                <p className="font-medium text-brand-black">
+                  {orderLookup.order.shipping_recipient_name || orderLookup.order.customer?.full_name || 'Sin nombre'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {orderLookup.order.guest_email || orderLookup.order.customer?.email || orderLookup.order.shipping_phone}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase text-gray-500">Estado</p>
+                <p className="font-medium text-brand-black">
+                  {orderStatusLabels[orderLookup.order.status] || orderLookup.order.status}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase text-gray-500">Total</p>
+                <p className="font-semibold text-brand-black">
+                  {formatPrice(Number(orderLookup.order.total || 0))}
+                </p>
+              </div>
+            </div>
+
+            {orderLookup.openRequest ? (
+              <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Este pedido ya tiene una gestión abierta con estado “{orderLookup.openRequest.status}”.
+              </div>
+            ) : (
+              <form
+                action={createManualReturnRequest}
+                className="mt-5 grid gap-4 lg:grid-cols-[220px_1fr_auto] lg:items-end"
+              >
+                <input type="hidden" name="orderNumber" value={orderLookup.order.order_number} />
+                <label className="text-sm font-medium text-gray-700">
+                  Tipo de gestión
+                  <select name="requestType" className="mt-1 h-10 w-full rounded-md border border-gray-300 bg-white px-3 font-normal">
+                    <option value="size_exchange">Cambio de talla</option>
+                    <option value="return">Devolución</option>
+                    <option value="damaged_item">Producto dañado</option>
+                    <option value="wrong_item">Producto incorrecto</option>
+                  </select>
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  Motivo y detalle
+                  <input
+                    name="reason"
+                    minLength={5}
+                    maxLength={1000}
+                    required
+                    placeholder="Ej. solicita cambiar talla 8 por talla 9"
+                    className="mt-1 h-10 w-full rounded-md border border-gray-300 px-3 font-normal"
+                  />
+                </label>
+                <Button type="submit" className="h-10">Crear gestión</Button>
+              </form>
+            )}
+          </div>
+        )}
       </section>
 
       <form className="grid gap-3 rounded-lg border border-gray-200 bg-white p-4 sm:grid-cols-[1fr_190px_auto]">
