@@ -248,7 +248,7 @@ export function createInventoryTemplate() {
       2,
       'Principal',
       'https://res.cloudinary.com/tu-cloud/image/upload/v1/producto.jpg',
-      'active',
+      'archived',
     ],
     [],
     ['Opciones validas'],
@@ -269,7 +269,7 @@ export async function getInventoryReferenceData(db: any): Promise<ReferenceData>
     { data: variants },
     { data: colors },
   ] = await Promise.all([
-    db.from('products').select('id, sku, slug, name'),
+    db.from('products').select('id, sku, slug, name, status'),
     db.from('brands').select('id, name, slug'),
     db.from('categories').select('id, name, slug'),
     db.from('product_variants').select('id, sku, product_id, product_color_id'),
@@ -386,7 +386,17 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
     }
 
     const existingProduct = refs.productsBySku.get(productSku) || refs.productsBySlug.get(slug);
+    // Carga masiva segura: los productos NUEVOS siempre se preparan archivados.
+    // Si el producto ya existe, su visibilidad actual se conserva para no ocultar
+    // accidentalmente mercaderia que ya esta publicada durante una reposicion.
+    const effectiveStatus = existingProduct ? cleanText(existingProduct.status) || status : 'archived';
     const existingColors = existingProduct ? refs.colorsByProductId.get(existingProduct.id) || [] : [];
+
+    if (!existingProduct && status !== 'archived') {
+      warnings.push('Producto nuevo: se importara como archivado aunque el Excel indique otro estado.');
+    } else if (existingProduct && status !== effectiveStatus) {
+      warnings.push(`Producto existente: se conservara su estado actual (${effectiveStatus}).`);
+    }
     const distinctExistingColors = [...new Set(existingColors.map((value) => normalizeKey(value)))];
     if (
       distinctExistingColors.length === 1 &&
@@ -415,13 +425,13 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
     const previousProductState = uploadedProductStates.get(normalizedProductSku);
     if (
       previousProductState &&
-      (previousProductState.status !== status || previousProductState.finalPrice !== finalPrice)
+      (previousProductState.status !== effectiveStatus || previousProductState.finalPrice !== finalPrice)
     ) {
       errors.push(
         `El estado y el precio final deben coincidir con la fila ${previousProductState.rowNumber} del mismo producto.`
       );
     } else if (!previousProductState) {
-      uploadedProductStates.set(normalizedProductSku, { status, finalPrice, rowNumber: currentRowNumber });
+      uploadedProductStates.set(normalizedProductSku, { status: effectiveStatus, finalPrice, rowNumber: currentRowNumber });
     }
     if (imageUrl && !/^https:\/\/res\.cloudinary\.com\//.test(imageUrl)) {
       warnings.push('El link de imagen no parece ser de Cloudinary.');
@@ -467,7 +477,7 @@ export function normalizeInventoryRows(rows: string[][], refs: ReferenceData): I
         stock_minimo: lowStockThreshold,
         warehouse: cleanText(raw.warehouse) || 'Principal',
         link_imagen_cloudinary: imageUrl,
-        estado: status,
+        estado: effectiveStatus,
         slug,
         colorSkuSuffix: skuSuffix,
         isAvailable: stock > 0,

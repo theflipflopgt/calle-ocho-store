@@ -182,17 +182,20 @@ describe('inventory import validation', () => {
     expect(results[1].action).toBe('skip');
   });
 
-  it('rejects inconsistent sale state across rows for one product', () => {
+  it('normalizes new product rows to archived regardless of workbook status', () => {
     const results = normalizeInventoryRows(
       [
         [...INVENTORY_IMPORT_COLUMNS],
-        inventoryRow(),
+        inventoryRow({ estado: 'active' }),
         inventoryRow({ talla_us: 9.5, sku_variante: 'CO-0001-NEG-9.5', estado: 'draft' }),
       ],
       emptyReferences
     );
 
-    expect(results[1].errors[0]).toContain('estado y el precio final deben coincidir');
+    expect(results[0].errors).toEqual([]);
+    expect(results[1].errors).toEqual([]);
+    expect(results[0].normalized.estado).toBe('archived');
+    expect(results[1].normalized.estado).toBe('archived');
   });
 
   it('rejects two different colors under the same product SKU', () => {

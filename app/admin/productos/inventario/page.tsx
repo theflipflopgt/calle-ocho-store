@@ -1,10 +1,11 @@
 import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { Search, Filter, AlertTriangle, Package, CheckCircle, Download, ChevronDown } from 'lucide-react';
+import { Search, Filter, AlertTriangle, Package, CheckCircle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { InventoryImportPanel } from './inventory-import-panel';
+import { InventoryProductList } from './inventory-product-list';
 
 interface InventoryPageProps {
   searchParams: Promise<{ stock?: string; q?: string }>;
@@ -221,103 +222,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
       </div>
 
       {/* Inventory grouped by product */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-        {groupedProducts.length === 0 ? (
-          <div className="px-6 py-12 text-center text-gray-500">
-            <Package className="mx-auto mb-2 h-8 w-8 text-gray-400" />
-            <p>No hay productos para este filtro.</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-200">
-            {groupedProducts.map((group: any) => {
-              const totalStock = group.variants.reduce(
-                (sum: number, variant: any) => sum + Number(variant.stock_quantity || 0),
-                0
-              );
-              const colors = new Set(
-                group.variants.map((variant: any) => variant.product_colors?.color_name).filter(Boolean)
-              );
-              const hasAvailableStock = group.variants.some(
-                (variant: any) => Number(variant.stock_quantity || 0) > 0
-              );
-
-              return (
-                <details key={group.id} className="group">
-                  <summary className="grid cursor-pointer list-none gap-3 px-4 py-4 hover:bg-gray-50 sm:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr_auto] sm:items-center sm:px-6">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-brand-black">
-                        {group.product?.name || 'Producto eliminado'}
-                      </p>
-                      <p className="text-xs text-gray-500">{group.product?.sku}</p>
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      {colors.size} {colors.size === 1 ? 'color' : 'colores'}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {group.variants.length} {group.variants.length === 1 ? 'talla' : 'tallas'}
-                    </p>
-                    <div>
-                      <p className="font-semibold text-brand-black">{totalStock} pares</p>
-                      <p className={`text-xs ${hasAvailableStock ? 'text-green-700' : 'text-red-600'}`}>
-                        {hasAvailableStock ? 'Con existencias' : 'Agotado'}
-                      </p>
-                    </div>
-                    <ChevronDown className="h-5 w-5 text-gray-500 transition-transform group-open:rotate-180" />
-                  </summary>
-
-                  <div className="overflow-x-auto border-t border-gray-100 bg-gray-50/60">
-                    <table className="w-full min-w-[760px] text-sm">
-                      <thead className="text-xs uppercase text-gray-500">
-                        <tr>
-                          <th className="px-6 py-3 text-left font-medium">Color</th>
-                          <th className="px-6 py-3 text-left font-medium">Talla</th>
-                          <th className="px-6 py-3 text-left font-medium">SKU</th>
-                          <th className="px-6 py-3 text-right font-medium">Stock</th>
-                          <th className="px-6 py-3 text-left font-medium">Estado</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 bg-white">
-                        {group.variants.map((variant: any) => {
-                          const isOut = Number(variant.stock_quantity || 0) === 0;
-                          const isLow =
-                            !isOut &&
-                            Number(variant.stock_quantity || 0) <
-                              Number(variant.low_stock_threshold || 5);
-                          return (
-                            <tr key={variant.id} className={isOut ? 'bg-red-50/40' : ''}>
-                              <td className="px-6 py-3">
-                                <span className="inline-flex items-center gap-2">
-                                  <span
-                                    className="h-4 w-4 rounded-full border border-gray-300"
-                                    style={{ backgroundColor: variant.product_colors?.color_code || '#ffffff' }}
-                                  />
-                                  {variant.product_colors?.color_name || 'Sin color'}
-                                </span>
-                              </td>
-                              <td className="px-6 py-3 font-medium">
-                                US {variant.size_us} <span className="ml-2 text-gray-500">EU {variant.size_eu}</span>
-                              </td>
-                              <td className="px-6 py-3"><code className="rounded bg-gray-100 px-2 py-1 text-xs">{variant.sku}</code></td>
-                              <td className={`px-6 py-3 text-right font-bold ${isOut ? 'text-red-600' : isLow ? 'text-orange-600' : 'text-green-700'}`}>
-                                {variant.stock_quantity}
-                              </td>
-                              <td className="px-6 py-3">
-                                <span className={`rounded-full px-2 py-1 text-xs font-medium ${isOut ? 'bg-red-100 text-red-800' : isLow ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'}`}>
-                                  {isOut ? 'Agotado' : isLow ? 'Stock bajo' : 'Disponible'}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </details>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <InventoryProductList groups={groupedProducts} isAdmin={auth.isAdmin} />
 
       {(auth.isAdmin || auth.isWarehouse) && (
         <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
