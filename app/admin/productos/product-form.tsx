@@ -14,7 +14,7 @@ import {
   hasValidProductImageCount,
   MAX_PRODUCT_IMAGES_PER_COLOR,
 } from '@/lib/products/product-images';
-import { Loader2, ArrowLeft, ChevronLeft, ChevronRight, Plus, Trash2, ImageIcon } from 'lucide-react';
+import { Loader2, ArrowLeft, ChevronLeft, ChevronRight, Plus, Trash2, ImageIcon, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 interface Brand {
@@ -109,6 +109,22 @@ function createEmptyProductImage(displayOrder = 0): ProductImage {
     alt_text: '',
     display_order: displayOrder,
     image_type: displayOrder === 0 ? 'front' : 'detail',
+  };
+}
+
+
+function createSingleProductColor(): ProductColor {
+  return {
+    color_name: '',
+    color_code: '#000000',
+    // La base de datos conserva product_colors por compatibilidad con catálogo,
+    // inventario y pedidos. Para productos nuevos usamos una sola presentación
+    // interna por SKU, por eso el sufijo ya no se pide al usuario.
+    sku_suffix: 'BASE',
+    is_available: true,
+    display_order: 0,
+    product_color_images: [createEmptyProductImage()],
+    product_variants: [],
   };
 }
 
@@ -259,8 +275,8 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     meta_description: product?.meta_description || '',
   });
 
-  const [colors, setColors] = useState<ProductColor[]>(
-    () =>
+  const [colors, setColors] = useState<ProductColor[]>(() => {
+    const existingColors =
       product?.product_colors.map((color) => ({
         ...color,
         product_color_images: [...color.product_color_images].sort(
@@ -269,8 +285,12 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
         product_variants: color.product_variants.filter(
           (variant) => variant.is_available !== false
         ),
-      })) || []
-  );
+      })) || [];
+
+    // No cambiamos el esquema de inventario: product_colors sigue siendo la capa
+    // que relaciona imágenes y tallas. Solo simplificamos el alta nueva a 1 SKU = 1 color.
+    return existingColors.length > 0 ? existingColors : [createSingleProductColor()];
+  });
   const [removedVariants, setRemovedVariants] = useState<RemovedVariant[]>(
     () =>
       product?.product_colors.flatMap((color) =>
@@ -284,6 +304,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
   );
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'info' | 'colors' | 'seo'>('info');
   const availableSizes = getSizesForGender(formData.gender);
@@ -307,36 +328,6 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
       slug: isEditing ? prev.slug : generateSlug(name),
       sku: isEditing ? prev.sku : generateBaseSKU(name),
     }));
-  };
-
-  const addColor = () => {
-    const newColor: ProductColor = {
-      color_name: '',
-      color_code: '#000000',
-      sku_suffix: '',
-      is_available: true,
-      display_order: colors.length,
-      product_color_images: [createEmptyProductImage()],
-      product_variants: [],
-    };
-    setColors([...colors, newColor]);
-  };
-
-  const removeColor = (index: number) => {
-    const color = colors[index];
-    const persistedVariants = color.product_variants.filter((variant) => variant.id);
-    if (persistedVariants.length > 0) {
-      setRemovedVariants((current) => {
-        const knownIds = new Set(current.map((item) => item.variant.id));
-        return [
-          ...current,
-          ...persistedVariants
-            .filter((variant) => !knownIds.has(variant.id))
-            .map((variant) => ({ colorId: color.id, variant })),
-        ];
-      });
-    }
-    setColors(colors.filter((_, i) => i !== index));
   };
 
   const updateColor = (index: number, updates: Partial<ProductColor>) => {
@@ -489,6 +480,50 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     });
   };
 
+  const selectedBrandName = brands.find((brand) => brand.id === formData.brand_id)?.name || '';
+  const selectedCategoryName = categories.find((category) => category.id === formData.category_id)?.name || '';
+  const primaryColorName = colors[0]?.color_name || '';
+  const hasLegacyMultipleColors = colors.length > 1;
+
+  const handleGenerateDescription = async () => {
+    if (!formData.name.trim()) {
+      setError('Escribe primero el nombre del producto para generar la descripción.');
+      return;
+    }
+
+    setIsGeneratingDescription(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/admin/products/generate-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          brand: selectedBrandName,
+          category: selectedCategoryName,
+          color: primaryColorName,
+          gender: formData.gender,
+        }),
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !data?.description) {
+        throw new Error(data?.error || 'No se pudo generar la descripción.');
+      }
+
+      setFormData((current) => ({ ...current, description: data.description }));
+    } catch (generationError) {
+      setError(
+        generationError instanceof Error
+          ? generationError.message
+          : 'No se pudo generar la descripción.'
+      );
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -498,7 +533,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     }
 
     if (colors.length === 0) {
-      setError('El producto debe tener al menos un color con una imagen.');
+      setError('El producto debe tener una presentación para asociar sus tallas e imágenes.');
       return;
     }
 
@@ -609,7 +644,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
               : 'text-gray-600 hover:text-brand-black'
           }`}
         >
-          Colores y Variantes
+          Imágenes y Tallas
         </button>
         <button
           type="button"
@@ -660,9 +695,23 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                   <Input
                     id="sku"
                     value={formData.sku}
-                    onChange={(e) =>
-                      setFormData({ ...formData, sku: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const nextSku = e.target.value.toUpperCase();
+                      setFormData({ ...formData, sku: nextSku });
+                      setColors((current) =>
+                        current.map((color) => ({
+                          ...color,
+                          product_variants: color.product_variants.map((variant) =>
+                            variant.id
+                              ? variant
+                              : {
+                                  ...variant,
+                                  sku: `${nextSku}-${color.sku_suffix || 'BASE'}-${variant.size_us}`.toUpperCase(),
+                                }
+                          ),
+                        }))
+                      );
+                    }}
                     placeholder="NAM90"
                     required
                   />
@@ -670,8 +719,22 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <Label htmlFor="description">Descripción</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateDescription}
+                    disabled={isGeneratingDescription || !formData.name.trim()}
+                  >
+                    {isGeneratingDescription ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="mr-2 h-4 w-4" />
+                    )}
+                    Generar descripción
+                  </Button>
                 </div>
                 <Textarea
                   id="description"
@@ -679,12 +742,12 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  placeholder="Descripción del producto... o usa IA para generarla automáticamente"
+                  placeholder="Descripción del producto..."
                   rows={6}
-                  className="font-mono text-sm"
+                  className="text-sm"
                 />
                 <p className="text-xs text-gray-500">
-                  La IA generará una descripción profesional basada en el nombre, marca y colores del producto.
+                  Genera un borrador usando nombre, marca, categoría, color y género. Siempre puedes editarlo antes de guardar.
                 </p>
               </div>
             </div>
@@ -977,29 +1040,30 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
               key={colorIndex}
               className="bg-white rounded-xl border border-gray-200 p-6 space-y-6"
             >
-              <div className="flex items-center justify-between">
+              <div className="space-y-1">
                 <h3 className="font-semibold text-brand-black">
-                  Color {colorIndex + 1}: {color.color_name || 'Sin nombre'}
+                  {hasLegacyMultipleColors
+                    ? `Presentación heredada ${colorIndex + 1}: ${color.color_name || 'Sin nombre'}`
+                    : 'Presentación del producto'}
                 </h3>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeColor(colorIndex)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <p className="text-sm text-gray-600">
+                  {hasLegacyMultipleColors
+                    ? 'Este producto ya tenía varios colores en la estructura anterior. Se conservan para no alterar inventario ni pedidos existentes.'
+                    : 'Un SKU corresponde a un solo modelo/color. Las tallas de abajo comparten este color, precio e imágenes.'}
+                </p>
               </div>
 
-              {/* Color Info */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Product presentation info */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Nombre del Color *</Label>
                   <Input
                     value={color.color_name}
                     onChange={(e) =>
-                      updateColor(colorIndex, { color_name: e.target.value })
+                      updateColor(colorIndex, {
+                        color_name: e.target.value,
+                        sku_suffix: color.id ? color.sku_suffix : 'BASE',
+                      })
                     }
                     placeholder="Negro/Blanco"
                     required
@@ -1025,19 +1089,6 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Sufijo SKU *</Label>
-                  <Input
-                    value={color.sku_suffix}
-                    onChange={(e) =>
-                      updateColor(colorIndex, {
-                        sku_suffix: e.target.value.toUpperCase(),
-                      })
-                    }
-                    placeholder="BLK"
-                    required
-                  />
-                </div>
                 <div className="flex items-end">
                   <div className="flex items-center gap-2">
                     <Switch
@@ -1057,7 +1108,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                   <div>
                     <Label>Imágenes</Label>
                     <p className="text-xs text-gray-500">
-                      {color.product_color_images.length}/{MAX_PRODUCT_IMAGES_PER_COLOR} para este color
+                      {color.product_color_images.length}/{MAX_PRODUCT_IMAGES_PER_COLOR} para este producto
                     </p>
                   </div>
                   <Button
@@ -1165,7 +1216,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                   <div>
                     <Label>Variantes (Tallas)</Label>
                     <p className="text-xs text-gray-500">
-                      Guía aplicada: {sizeGuideLabel}. Selecciona solo las tallas que tienes para este color.
+                      Guía aplicada: {sizeGuideLabel}. Selecciona solo las tallas disponibles para este SKU.
                     </p>
                   </div>
                   <span className="text-xs font-medium text-gray-500">
@@ -1204,7 +1255,6 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                         <tr>
                           <th className="px-3 py-2 text-left">US</th>
                           <th className="px-3 py-2 text-left">EU</th>
-                          <th className="px-3 py-2 text-left">SKU</th>
                           <th className="px-3 py-2 text-left">Stock</th>
                           <th className="px-3 py-2 text-left">Disponible</th>
                           <th className="px-3 py-2 text-right">Acciones</th>
@@ -1215,11 +1265,6 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                           <tr key={variantIndex}>
                             <td className="px-3 py-2">{variant.size_us}</td>
                             <td className="px-3 py-2">{variant.size_eu}</td>
-                            <td className="px-3 py-2">
-                              <code className="text-xs bg-gray-100 px-1 rounded">
-                                {variant.sku}
-                              </code>
-                            </td>
                             <td className="px-3 py-2">
                               <Input
                                 type="number"
@@ -1264,15 +1309,11 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
             </div>
           ))}
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addColor}
-            className="w-full"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Agregar Color
-          </Button>
+          {!hasLegacyMultipleColors && (
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+              Si el mismo modelo llega en otro color con otro SKU, créalo como un producto separado. Así el inventario queda alineado con el código real de mercadería.
+            </div>
+          )}
         </div>
       )}
 
