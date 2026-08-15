@@ -58,6 +58,29 @@ describe('inventory import validation', () => {
     expect(rows[1][stockIndex]).toBe('4');
   });
 
+  it('accepts rows without a Cloudinary image', () => {
+    const [result] = normalizeInventoryRows(
+      [[...INVENTORY_IMPORT_COLUMNS], inventoryRow({ link_imagen_cloudinary: '' })],
+      emptyReferences
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.normalized.link_imagen_cloudinary).toBe('');
+  });
+
+  it('allows one image on one size and no image on the other sizes', () => {
+    const results = normalizeInventoryRows(
+      [
+        [...INVENTORY_IMPORT_COLUMNS],
+        inventoryRow(),
+        inventoryRow({ talla_us: 9.5, sku_variante: 'CO-0001-NEG-9.5', link_imagen_cloudinary: '' }),
+      ],
+      emptyReferences
+    );
+
+    expect(results.every((row) => row.errors.length === 0)).toBe(true);
+  });
+
   it('accepts a product ready for sale', () => {
     const [result] = normalizeInventoryRows(
       [[...INVENTORY_IMPORT_COLUMNS], inventoryRow()],
