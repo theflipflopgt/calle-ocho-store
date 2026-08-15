@@ -4,6 +4,7 @@ import { Footer } from "@/components/layout/footer";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { WhatsAppButton } from "@/components/ui/whatsapp-button";
 import { PromoTicker } from "@/components/home/promo-ticker";
+import { createClient } from "@/lib/supabase/server";
 
 const defaultUrl = "https://calleochostore.com";
 
@@ -49,18 +50,32 @@ export const metadata: Metadata = {
   },
 };
 
-export default function MainLayout({
+export default async function MainLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let whatsappNumber = "50252498898";
+  try {
+    const supabase = await createClient();
+    const { data } = await (supabase as any)
+      .from("site_settings")
+      .select("value")
+      .eq("key", "storefront_whatsapp_number")
+      .maybeSingle();
+    const configured = String(data?.value || "").replace(/\D/g, "");
+    if (configured) whatsappNumber = configured;
+  } catch {
+    // Keep the current business number as a safe fallback before migration.
+  }
+
   return (
     <>
       <PromoTicker />
       <Header />
       <main className="min-h-screen">{children}</main>
       <CartDrawer />
-      <WhatsAppButton phoneNumber="50252498898" />
+      <WhatsAppButton phoneNumber={whatsappNumber} />
       <Footer />
     </>
   );

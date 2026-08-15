@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Settings, ShieldCheck, Mail, Globe, ExternalLink } from 'lucide-react';
 import { PaymentMethodsPanel } from './payment-methods-panel';
+import { WhatsAppBubblePanel } from './whatsapp-bubble-panel';
 
 const settings = [
   {
@@ -59,6 +60,8 @@ export default function AdminConfiguracionPage() {
           ))}
         </div>
       </div>
+
+      <WhatsAppBubblePanel />
 
       <PaymentMethodsPanel />
 
