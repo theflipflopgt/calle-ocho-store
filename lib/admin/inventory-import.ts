@@ -59,7 +59,6 @@ const REQUIRED_COLUMNS: InventoryImportColumn[] = [
   'talla_us',
   'color',
   'stock',
-  'link_imagen_cloudinary',
 ];
 
 const VALID_SECTIONS = new Set(['calzado', 'hombre', 'mujer', 'ninos', 'unisex']);

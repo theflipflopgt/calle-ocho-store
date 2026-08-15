@@ -10,6 +10,7 @@ import { OrderAdjustmentsEditor } from './order-adjustments-editor';
 import { PaymentLinkManager } from './payment-link-manager';
 import { ShipmentManager } from './shipment-manager';
 import type { OrderStatus } from '@/types/order-workflow';
+import { getOrderWithServerFallback } from '@/lib/admin/order-server-fallback';
 
 interface OrderDetailPageProps {
   params: Promise<{ id: string }>;
@@ -19,9 +20,7 @@ async function getOrder(id: string) {
   const auth = await requireAuthenticatedUser();
   if (!auth.user) return null;
 
-  const { data: order, error } = await (auth.supabase as any).rpc('staff_get_order', {
-    p_order_id: id,
-  });
+  const { data: order, error } = await getOrderWithServerFallback(id, auth);
 
   if (error || !order) {
     return null;

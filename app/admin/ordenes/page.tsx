@@ -4,6 +4,7 @@ import { Download, Eye, Search, Filter, Package, Clock, Truck } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatPrice } from '@/lib/utils/currency';
+import { listOrdersWithServerFallback } from '@/lib/admin/order-server-fallback';
 
 interface OrdersPageProps {
   searchParams: Promise<{ status?: string; q?: string; from?: string; to?: string }>;
@@ -15,12 +16,7 @@ async function getOrders(
 ) {
   if (!auth.user) return { orders: [], hasError: true };
 
-  const { data: orders, error } = await (auth.supabase as any).rpc('staff_list_orders', {
-    p_status: filters.status || null,
-    p_query: filters.q?.trim() || null,
-    p_from: filters.from || null,
-    p_to: filters.to || null,
-  });
+  const { data: orders, error } = await listOrdersWithServerFallback(filters, auth);
 
   if (error) {
     console.error('Error fetching orders:', error);
