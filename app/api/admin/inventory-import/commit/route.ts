@@ -31,7 +31,11 @@ export async function POST(request: NextRequest) {
       error: error.message,
     });
     return NextResponse.json(
-      { error: 'No se guardó ninguna fila. Revisa el lote completo e inténtalo de nuevo.' },
+      {
+        error: 'No se guardó ninguna fila. Revisa el lote completo e inténtalo de nuevo.',
+        code: error.code || null,
+        detail: process.env.NODE_ENV === 'development' ? error.message : null,
+      },
       { status: 400 }
     );
   }
