@@ -311,6 +311,10 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
               {order.profiles?.phone && (
                 <p className="text-gray-600">{order.profiles.phone}</p>
               )}
+              <div className="mt-3 border-t border-gray-100 pt-3">
+                <p className="text-xs font-medium uppercase text-gray-500">NIT para factura</p>
+                <p className="mt-1 font-semibold text-brand-black">{order.billing_nit || 'No proporcionado'}</p>
+              </div>
             </div>
           </div>
 

@@ -44,12 +44,34 @@ export function validateShippingInput(input: ShippingInput): ValidationResult {
   return { valid: true };
 }
 
+export function validateBillingNit(value: string | undefined): ValidationResult {
+  if (!value || !value.trim()) {
+    return { valid: true };
+  }
+
+  const nit = value.trim().toUpperCase();
+  if (nit === 'CF') {
+    return { valid: true };
+  }
+
+  if (!/^[0-9]+(?:-[0-9K])?$/i.test(nit) || nit.length > 20) {
+    return { valid: false, error: 'Ingresa un NIT válido o CF.' };
+  }
+
+  return { valid: true };
+}
+
 export function validateOrderCreateInput(input: Partial<OrderCreateInput>): ValidationResult {
   if (input.customerEmail) {
     const email = input.customerEmail.trim().toLowerCase();
     if (!emailRegex.test(email) || email.length > 254) {
       return { valid: false, error: 'Ingresa un correo válido.' };
     }
+  }
+
+  const billingNitValidation = validateBillingNit(input.billingNit);
+  if (!billingNitValidation.valid) {
+    return billingNitValidation;
   }
 
   if (!input.shipping) {

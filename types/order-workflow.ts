@@ -29,6 +29,7 @@ export type CheckoutPaymentMethod =
 
 export interface OrderCreateInput {
   customerEmail?: string;
+  billingNit?: string;
   shipping: ShippingInput;
   customerNotes?: string;
   couponCode?: string;
