@@ -41,13 +41,14 @@ export function Header() {
       {/* Main Header */}
       <div className="container mx-auto px-3 sm:px-4">
         <div className="flex items-center justify-between h-24 sm:h-28 md:h-32">
-          <Link href="/" className="flex-shrink-0">
+          <Link href="/" aria-label="Ir al inicio de Calle Ocho Store" className="group flex flex-shrink-0 items-center">
             <Image
-              src="/logo.png"
+              src="/logo-header.png"
               alt="Calle Ocho Store"
-              width={260}
-              height={260}
-              className="h-20 w-20 object-contain sm:h-24 sm:w-24 md:h-28 md:w-28"
+              width={900}
+              height={751}
+              sizes="(max-width: 639px) 96px, (max-width: 767px) 115px, 135px"
+              className="h-20 w-auto object-contain transition-transform duration-200 ease-out group-hover:scale-[1.025] sm:h-24 md:h-28"
               priority
             />
           </Link>
