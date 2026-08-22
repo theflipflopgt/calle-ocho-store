@@ -1,13 +1,20 @@
-import { createClient } from '@/lib/supabase/server';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { BrandForm } from '../brand-form';
+import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 interface EditBrandPageProps {
   params: Promise<{ id: string }>;
 }
 
 async function getBrand(id: string) {
-  const supabase = await createClient();
+  const auth = await requireAuthenticatedUser();
+
+  if (!auth.canManageProducts) {
+    redirect('/');
+  }
+
+  const supabase = createAdminClient() || auth.supabase;
 
   const { data: brand, error } = await supabase
     .from('brands')

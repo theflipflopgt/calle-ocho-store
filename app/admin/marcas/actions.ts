@@ -1,8 +1,9 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 interface BrandData {
   name: string;
@@ -14,8 +15,22 @@ interface BrandData {
   is_active: boolean;
 }
 
+async function getAuthorizedBrandClient() {
+  const auth = await requireAuthenticatedUser();
+
+  if (!auth.canManageProducts) {
+    return null;
+  }
+
+  return createAdminClient() || auth.supabase;
+}
+
 export async function createBrand(data: BrandData) {
-  const supabase = await createClient();
+  const supabase = await getAuthorizedBrandClient();
+
+  if (!supabase) {
+    return { error: 'No tienes permisos para crear marcas.' };
+  }
 
   const { error } = await supabase.from('brands').insert(data);
 
@@ -29,7 +44,11 @@ export async function createBrand(data: BrandData) {
 }
 
 export async function updateBrand(id: string, data: BrandData) {
-  const supabase = await createClient();
+  const supabase = await getAuthorizedBrandClient();
+
+  if (!supabase) {
+    return { error: 'No tienes permisos para actualizar marcas.' };
+  }
 
   const { error } = await supabase.from('brands').update(data).eq('id', id);
 
@@ -43,7 +62,11 @@ export async function updateBrand(id: string, data: BrandData) {
 }
 
 export async function deleteBrand(id: string) {
-  const supabase = await createClient();
+  const supabase = await getAuthorizedBrandClient();
+
+  if (!supabase) {
+    return { error: 'No tienes permisos para eliminar marcas.' };
+  }
 
   const { error } = await supabase.from('brands').delete().eq('id', id);
 

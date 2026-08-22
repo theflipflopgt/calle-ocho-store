@@ -1,11 +1,21 @@
-import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Plus, Pencil, Globe, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DeleteBrandButton } from './delete-button';
+import { requireAuthenticatedUser } from '@/lib/auth/server-auth';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { redirect } from 'next/navigation';
 
 async function getBrands() {
-  const supabase = await createClient();
+  const auth = await requireAuthenticatedUser();
+
+  if (!auth.canManageProducts) {
+    redirect('/');
+  }
+
+  // El cliente administrativo se usa solo despues de validar el rol. Asi el
+  // panel puede gestionar tanto marcas activas como inactivas.
+  const supabase = createAdminClient() || auth.supabase;
 
   const { data: brands, error } = await supabase
     .from('brands')
@@ -14,14 +24,14 @@ async function getBrands() {
 
   if (error) {
     console.error('Error fetching brands:', error);
-    return [];
+    return { brands: [], hasError: true };
   }
 
-  return brands;
+  return { brands: brands || [], hasError: false };
 }
 
 export default async function BrandsPage() {
-  const brands = await getBrands();
+  const { brands, hasError } = await getBrands();
 
   return (
     <div className="space-y-6">
@@ -39,9 +49,15 @@ export default async function BrandsPage() {
         </Link>
       </div>
 
+      {hasError && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          No fue posible cargar las marcas. Revisa los logs de la aplicacion y la configuracion de Supabase.
+        </div>
+      )}
+
       {/* Brands - Mobile Cards */}
       <div className="md:hidden space-y-4">
-        {brands.length === 0 ? (
+        {!hasError && brands.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
             <Layers className="h-8 w-8 mx-auto mb-2 text-gray-400" />
             <p>No hay marcas registradas.{' '}
@@ -135,7 +151,7 @@ export default async function BrandsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {brands.length === 0 ? (
+            {!hasError && brands.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                   <Layers className="h-8 w-8 mx-auto mb-2 text-gray-400" />

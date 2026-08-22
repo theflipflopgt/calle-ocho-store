@@ -9,11 +9,18 @@ import { createClient } from '@/lib/supabase/server';
 export async function BrandsGrid() {
   const supabase = await createClient();
 
-  // Obtener marcas con productos activos
-  const { data: brands } = await supabase
+  // El filtro debe ser explicito: una sesion administrativa puede leer tambien
+  // las marcas inactivas por RLS, pero nunca deben mostrarse en la tienda.
+  const { data: brands, error } = await supabase
     .from('brands')
     .select('id, name, slug, logo_url')
+    .eq('is_active', true)
     .order('name');
+
+  if (error) {
+    console.error('Error fetching storefront brands:', error);
+    return null;
+  }
 
   if (!brands || brands.length === 0) return null;
 
