@@ -24,6 +24,7 @@ export async function generateMetadata({ params }: PageProps) {
     .from('brands')
     .select('name, description')
     .eq('slug', slug)
+    .eq('is_active', true)
     .single();
 
   if (!brand) {
