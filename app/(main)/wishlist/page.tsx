@@ -21,6 +21,7 @@ interface WishlistProduct {
     id: string;
     color_name: string;
     color_code: string;
+    is_available: boolean;
     images: { image_url: string }[];
     variants: { id: string; size_us: number; stock_quantity: number; is_available: boolean; price_override: number | null }[];
   }[];
@@ -64,6 +65,7 @@ export default function WishlistPage() {
               id,
               color_name,
               color_code,
+              is_available,
               images:product_color_images(image_url),
               variants:product_variants(id, size_us, stock_quantity, is_available, price_override)
             )
@@ -77,7 +79,23 @@ export default function WishlistPage() {
         }
 
         const productsById = new Map(
-          (data || []).map((product) => [product.id, product as unknown as WishlistProduct])
+          (data || []).map((product) => {
+            const normalizedProduct = product as unknown as WishlistProduct;
+            return [
+              product.id,
+              {
+                ...normalizedProduct,
+                colors: normalizedProduct.colors
+                  .filter((color) => color.is_available !== false)
+                  .map((color) => ({
+                    ...color,
+                    variants: color.variants.filter(
+                      (variant) => variant.is_available !== false
+                    ),
+                  })),
+              },
+            ] as const;
+          })
         );
 
         setProducts(
