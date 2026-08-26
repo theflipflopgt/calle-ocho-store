@@ -141,11 +141,15 @@ export function ProductCard({
               <Button
                 size="icon"
                 variant="secondary"
-                className="bg-white/90 hover:bg-white"
+                className="bg-white/90 text-brand-black shadow-sm hover:bg-white hover:text-brand-black"
                 asChild
               >
-                <Link href={`/producto/${product.slug}`}>
-                  <Eye className="h-4 w-4" />
+                <Link
+                  href={`/producto/${product.slug}`}
+                  aria-label={`Ver detalles de ${product.name}`}
+                  title="Ver producto"
+                >
+                  <Eye className="h-4 w-4 text-brand-black" />
                 </Link>
               </Button>
             </div>

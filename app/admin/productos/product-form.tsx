@@ -221,7 +221,12 @@ const toDatabaseGender = (gender: string) => {
 };
 
 const getProductSaveErrorMessage = (error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error || '');
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'object' && error !== null && 'message' in error
+        ? String(error.message || '')
+        : String(error || '');
   if (message.includes('PRODUCT_COLOR_REQUIRES_1_TO_5_IMAGES')) {
     return 'Cada color debe tener entre 1 y 5 imágenes.';
   }
@@ -286,10 +291,17 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
           (variant) => variant.is_available !== false
         ),
       })) || [];
+    const availableExistingColors = existingColors.filter(
+      (color) => color.is_available !== false
+    );
 
     // No cambiamos el esquema de inventario: product_colors sigue siendo la capa
     // que relaciona imágenes y tallas. Solo simplificamos el alta nueva a 1 SKU = 1 color.
-    return existingColors.length > 0 ? existingColors : [createSingleProductColor()];
+    // Las presentaciones retiradas permanecen en la base de datos para proteger el
+    // historial de pedidos, pero ya no vuelven a mostrarse en el editor.
+    if (availableExistingColors.length > 0) return availableExistingColors;
+    if (existingColors.length > 0) return existingColors;
+    return [createSingleProductColor()];
   });
   const [removedVariants, setRemovedVariants] = useState<RemovedVariant[]>(
     () =>
@@ -334,6 +346,35 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
     setColors(
       colors.map((color, i) => (i === index ? { ...color, ...updates } : color))
     );
+  };
+
+  const removeColor = (colorIndex: number) => {
+    if (colors.length <= 1) {
+      setError('El producto debe conservar al menos una presentación.');
+      return;
+    }
+
+    const color = colors[colorIndex];
+    const stockToRemove = color.product_variants.reduce(
+      (total, variant) => total + Number(variant.stock_quantity || 0),
+      0
+    );
+    const confirmationMessage = stockToRemove > 0
+      ? `Esta presentación tiene ${stockToRemove} pares en existencia. Al guardar quedará no disponible y su existencia pasará a 0. Los pedidos anteriores no se modificarán. ¿Deseas continuar?`
+      : 'Esta presentación quedará no disponible al guardar. Los pedidos anteriores no se modificarán. ¿Deseas continuar?';
+
+    if (!window.confirm(confirmationMessage)) return;
+
+    setRemovedVariants((current) => {
+      const removedIds = new Set(current.map((item) => item.variant.id).filter(Boolean));
+      const variantsToRemove = color.product_variants
+        .filter((variant) => variant.id && !removedIds.has(variant.id))
+        .map((variant) => ({ colorId: color.id, variant }));
+
+      return [...current, ...variantsToRemove];
+    });
+    setColors((current) => current.filter((_, index) => index !== colorIndex));
+    setError(null);
   };
 
   const addImageToColor = (colorIndex: number) => {
@@ -1037,20 +1078,34 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
         <div className="space-y-6">
           {colors.map((color, colorIndex) => (
             <div
-              key={colorIndex}
+              key={color.id || `new-color-${colorIndex}`}
               className="bg-white rounded-xl border border-gray-200 p-6 space-y-6"
             >
-              <div className="space-y-1">
-                <h3 className="font-semibold text-brand-black">
-                  {hasLegacyMultipleColors
-                    ? `Presentación heredada ${colorIndex + 1}: ${color.color_name || 'Sin nombre'}`
-                    : 'Presentación del producto'}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {hasLegacyMultipleColors
-                    ? 'Este producto ya tenía varios colores en la estructura anterior. Se conservan para no alterar inventario ni pedidos existentes.'
-                    : 'Un SKU corresponde a un solo modelo/color. Las tallas de abajo comparten este color, precio e imágenes.'}
-                </p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-1">
+                  <h3 className="font-semibold text-brand-black">
+                    {hasLegacyMultipleColors
+                      ? `Presentación heredada ${colorIndex + 1}: ${color.color_name || 'Sin nombre'}`
+                      : 'Presentación del producto'}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {hasLegacyMultipleColors
+                      ? 'Puedes conservarla, marcarla como no disponible o retirarla. Los pedidos anteriores mantienen sus datos.'
+                      : 'Un SKU corresponde a un solo modelo/color. Las tallas de abajo comparten este color, precio e imágenes.'}
+                  </p>
+                </div>
+                {colors.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeColor(colorIndex)}
+                    className="shrink-0 border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Quitar presentación
+                  </Button>
+                )}
               </div>
 
               {/* Product presentation info */}

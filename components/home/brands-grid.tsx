@@ -31,47 +31,29 @@ export async function BrandsGrid() {
       </h2>
 
       <div className="mx-auto flex max-w-6xl flex-wrap justify-center gap-4 lg:gap-6">
-        {brands.map((brand) => {
-          const isSvg = brand.logo_url?.endsWith('.svg');
-
-          return (
-            <Link
-              key={brand.id}
-              href={`/marcas/${brand.slug}`}
-              className="group flex aspect-square w-[145px] items-center justify-center rounded-lg border border-gray-200 bg-white p-5 transition-all duration-300 hover:border-brand-blue hover:shadow-lg sm:w-[165px]"
-            >
-              {brand.logo_url ? (
-                isSvg ? (
-                  // Para SVG usar img directamente con crossOrigin para evitar problemas CORS
-                  <img
-                    src={brand.logo_url}
-                    alt={brand.name}
-                    loading="lazy"
-                    crossOrigin="anonymous"
-                    referrerPolicy="no-referrer"
-                    className="h-full w-full object-contain brightness-0 transition-all duration-300 group-hover:brightness-100"
-                    style={{ filter: 'brightness(0)' }}
-                  />
-                ) : (
-                  <div className="relative w-full h-full">
-                    <Image
-                      src={brand.logo_url}
-                      alt={brand.name}
-                      fill
-                      sizes="(max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
-                    className="object-contain brightness-0 transition-all duration-300 group-hover:brightness-100"
-                      style={{ filter: 'brightness(0)' }}
-                    />
-                  </div>
-                )
-              ) : (
-                <span className="text-sm lg:text-base font-semibold text-gray-600 group-hover:text-brand-black transition-colors text-center">
-                  {brand.name}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+        {brands.map((brand) => (
+          <Link
+            key={brand.id}
+            href={`/marcas/${brand.slug}`}
+            className="group flex aspect-square w-[145px] items-center justify-center rounded-lg border border-gray-200 bg-white p-5 transition-all duration-300 hover:border-brand-blue hover:shadow-lg sm:w-[165px]"
+          >
+            {brand.logo_url ? (
+              <div className="relative h-full w-full">
+                <Image
+                  src={brand.logo_url}
+                  alt={brand.name}
+                  fill
+                  sizes="(max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
+                  className="object-contain transition-transform duration-300 group-hover:scale-110"
+                />
+              </div>
+            ) : (
+              <span className="text-sm lg:text-base font-semibold text-gray-600 group-hover:text-brand-black transition-colors text-center">
+                {brand.name}
+              </span>
+            )}
+          </Link>
+        ))}
       </div>
     </section>
   );
