@@ -12,12 +12,15 @@ Fecha: 2026-08-25
 - Los errores de Supabase que incluyen un campo `message` ya no se muestran como `[object Object]`.
 - El botón para ver el producto usa un icono oscuro con nombre accesible y tooltip.
 - Los logos de la página principal conservan sus colores y fondos originales, igual que en la página de marcas.
+- La tienda filtra expresamente colores y tallas no disponibles, incluso cuando se navega con una sesión administrativa.
 
 ## Archivos modificados
 
 - `app/admin/productos/product-form.tsx`
 - `components/products/product-card.tsx`
 - `components/home/brands-grid.tsx`
+- `lib/queries/products.ts`
+- `app/(main)/wishlist/page.tsx`
 
 ## Prueba local
 

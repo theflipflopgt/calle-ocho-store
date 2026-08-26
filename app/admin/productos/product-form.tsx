@@ -221,12 +221,24 @@ const toDatabaseGender = (gender: string) => {
 };
 
 const getProductSaveErrorMessage = (error: unknown) => {
-  const message =
-    error instanceof Error
-      ? error.message
-      : typeof error === 'object' && error !== null && 'message' in error
-        ? String(error.message || '')
-        : String(error || '');
+  const errorData =
+    typeof error === 'object' && error !== null
+      ? (error as Record<string, unknown>)
+      : null;
+  const messageParts = [
+    error instanceof Error ? error.message : null,
+    errorData?.message,
+    errorData?.details,
+    errorData?.hint,
+    errorData?.code,
+    typeof error === 'string' ? error : null,
+  ]
+    .filter((value) => value !== null && value !== undefined && value !== '')
+    .map((value) =>
+      typeof value === 'string' ? value : JSON.stringify(value)
+    )
+    .filter(Boolean);
+  const message = Array.from(new Set(messageParts)).join(' · ');
   if (message.includes('PRODUCT_COLOR_REQUIRES_1_TO_5_IMAGES')) {
     return 'Cada color debe tener entre 1 y 5 imágenes.';
   }
@@ -236,7 +248,7 @@ const getProductSaveErrorMessage = (error: unknown) => {
   if (message.includes('INVALID_COMMERCIAL_AMOUNT')) {
     return 'Los montos comerciales no pueden ser negativos.';
   }
-  return message || 'Error al guardar el producto';
+  return message || 'No se pudo guardar el producto. Revisa los logs de la función admin_save_product.';
 };
 
 export function ProductForm({ product, brands, categories }: ProductFormProps) {

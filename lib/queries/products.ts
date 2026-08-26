@@ -321,6 +321,10 @@ export const getFeaturedProducts = cache(async function getFeaturedProducts(): P
 // Función auxiliar para transformar producto de BD a ProductWithDetails
 function transformProduct(product: any): ProductWithDetails {
   const colors = [...(product.colors || [])]
+    // RLS permite a un administrador leer registros inactivos. La tienda debe
+    // filtrarlos de forma explícita para que la vista pública sea idéntica con
+    // o sin una sesión administrativa abierta.
+    .filter((color: any) => color.is_available !== false)
     .sort(
       (a: any, b: any) =>
         Number(a.display_order || 0) - Number(b.display_order || 0)
@@ -328,6 +332,9 @@ function transformProduct(product: any): ProductWithDetails {
     .map((color: any) => ({
       ...color,
       images: sortAndLimitProductImages(color.images || []),
+      variants: (color.variants || []).filter(
+        (variant: any) => variant.is_available !== false
+      ),
     }));
 
   // Calcular stock total
