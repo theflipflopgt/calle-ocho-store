@@ -13,6 +13,7 @@ import { formatPrice } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
 import { HeroDesignEditor } from '@/components/admin/hero-design-editor';
 import { normalizeHeroCarouselDesign, type HeroCarouselDesign } from '@/lib/hero-carousel-design';
+import type { Json } from '@/types/database.types';
 
 interface FeaturedProduct {
   id: string;
@@ -156,7 +157,7 @@ export default function HeroCarouselPage() {
         .update({
           display_order: item.display_order,
           is_active: item.is_active,
-          design_config: item.design_config,
+          design_config: item.design_config as unknown as Json,
           background_text: item.background_text || null,
           badge_text: item.badge_text || null,
           brand_text: item.brand_text || null,
@@ -220,7 +221,7 @@ export default function HeroCarouselPage() {
         product_id: productId,
         display_order: maxOrder + 1,
         is_active: true,
-        design_config: normalizeHeroCarouselDesign(null),
+        design_config: normalizeHeroCarouselDesign(null) as unknown as Json,
       })
       .select(`
         id,
