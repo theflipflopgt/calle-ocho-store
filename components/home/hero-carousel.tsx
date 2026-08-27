@@ -1,60 +1,71 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, ShoppingBag, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { ArrowRight, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/utils/currency';
-import { cn } from '@/lib/utils';
-import type { ProductWithDetails } from '@/types/product';
+import type { HeroProductWithDetails } from '@/types/product';
 
 interface HeroCarouselProps {
-  products: ProductWithDetails[];
+  products: HeroProductWithDetails[];
 }
+
+const AUTOPLAY_DELAY = 5000;
 
 export function HeroCarousel({ products }: HeroCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  const [direction, setDirection] = useState<'left' | 'right'>('right');
-
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const shouldReduceMotion = useReducedMotion();
   const visibleProducts = products.slice(0, 5);
 
+  const changeSlide = useCallback(
+    (nextIndex: number, nextDirection: 1 | -1) => {
+      if (visibleProducts.length <= 1) return;
+      setDirection(nextDirection);
+      setCurrentIndex((nextIndex + visibleProducts.length) % visibleProducts.length);
+    },
+    [visibleProducts.length]
+  );
+
   const nextSlide = useCallback(() => {
-    if (visibleProducts.length === 0) return;
-    setDirection('right');
-    setCurrentIndex((prev) => (prev + 1) % visibleProducts.length);
-  }, [visibleProducts.length]);
+    changeSlide(currentIndex + 1, 1);
+  }, [changeSlide, currentIndex]);
 
   const prevSlide = useCallback(() => {
-    if (visibleProducts.length === 0) return;
-    setDirection('left');
-    setCurrentIndex((prev) => (prev - 1 + visibleProducts.length) % visibleProducts.length);
-  }, [visibleProducts.length]);
+    changeSlide(currentIndex - 1, -1);
+  }, [changeSlide, currentIndex]);
 
-  const goToSlide = (index: number) => {
-    setDirection(index > currentIndex ? 'right' : 'left');
-    setCurrentIndex(index);
-    setIsAutoPlaying(false);
-  };
+  const stopAutoplay = () => setIsAutoPlaying(false);
 
-  // Auto-play carousel
   useEffect(() => {
-    if (!isAutoPlaying) return;
+    if (!isAutoPlaying || shouldReduceMotion || visibleProducts.length <= 1) return;
 
-    const interval = setInterval(() => {
-      nextSlide();
-    }, 5000);
+    const interval = window.setInterval(nextSlide, AUTOPLAY_DELAY);
+    return () => window.clearInterval(interval);
+  }, [isAutoPlaying, nextSlide, shouldReduceMotion, visibleProducts.length]);
 
-    return () => clearInterval(interval);
-  }, [isAutoPlaying, nextSlide]);
+  useEffect(() => {
+    if (currentIndex >= visibleProducts.length && visibleProducts.length > 0) {
+      setCurrentIndex(0);
+    }
+  }, [currentIndex, visibleProducts.length]);
 
-  if (visibleProducts.length === 0) {
-    return null;
-  }
+  if (visibleProducts.length === 0) return null;
 
-  const currentProduct = visibleProducts[currentIndex];
+  const activeIndex = Math.min(currentIndex, visibleProducts.length - 1);
+  const currentProduct = visibleProducts[activeIndex];
+  const heroContent = currentProduct.heroContent;
+  const displayBrand = heroContent?.brandText?.trim() || currentProduct.brand.name;
+  const displayTitle = heroContent?.titleText?.trim() || currentProduct.name;
+  const displayPrice = heroContent?.priceText?.trim() || formatPrice(currentProduct.lowestPrice);
+  const primaryButtonText = heroContent?.primaryButtonText?.trim() || 'Comprar ahora';
+  const secondaryButtonText = heroContent?.secondaryButtonText?.trim() || 'Ver detalles';
+  const customBadge = heroContent?.badgeText?.trim();
   const mainImage = currentProduct.colors
     .flatMap((color) =>
       [...(color.images || [])].sort(
@@ -63,192 +74,241 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
     )
     .find((image) => Boolean(image.image_url))?.image_url;
 
-  // Get background gradient based on product
-  const getGradient = (index: number) => {
-    const gradients = [
-      'from-blue-600/20 to-purple-600/20',
-      'from-red-600/20 to-orange-600/20',
-      'from-green-600/20 to-teal-600/20',
-      'from-purple-600/20 to-pink-600/20',
-      'from-orange-600/20 to-yellow-600/20',
-    ];
-    return gradients[index % gradients.length];
-  };
+  const imageMotion = shouldReduceMotion
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
+    : {
+        initial: { opacity: 0, x: direction * 70, scale: 0.96 },
+        animate: { opacity: 1, x: 0, scale: 1 },
+        exit: { opacity: 0, x: direction * -45, scale: 0.98 },
+      };
+
+  const textMotion = shouldReduceMotion
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
+    : {
+        initial: { opacity: 0, y: 18 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: -12 },
+      };
 
   return (
-    <section className="relative h-[calc(100vh-4rem)] max-h-[700px] sm:max-h-[750px] lg:max-h-[800px] bg-gradient-to-br from-gray-900 via-black to-gray-900 overflow-hidden">
-      {/* Animated Background Gradient */}
-      <div
-        className={cn(
-          "absolute inset-0 bg-gradient-to-br transition-all duration-1000",
-          getGradient(currentIndex)
-        )}
-      />
+    <section
+      className="relative h-[620px] overflow-hidden bg-[#0b1024] text-white sm:h-[660px] lg:h-[min(720px,calc(100svh-8rem))] lg:min-h-[600px]"
+      aria-roledescription="carrusel"
+      aria-label="Productos destacados"
+      onMouseEnter={() => setIsAutoPlaying(false)}
+      onMouseLeave={() => setIsAutoPlaying(true)}
+      onFocusCapture={() => setIsAutoPlaying(false)}
+    >
+      <div className="absolute inset-x-0 top-0 h-[54%] bg-[#eef0f5] lg:inset-y-0 lg:left-auto lg:h-auto lg:w-[54%] lg:[clip-path:polygon(13%_0,100%_0,100%_100%,0_100%)]" />
+      <div className="absolute inset-x-0 top-[54%] h-px bg-white/10 lg:left-[48%] lg:top-0 lg:h-full lg:w-px lg:rotate-[6deg] lg:bg-white/15" />
 
-      {/* Grid Pattern Overlay */}
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-50" />
+      <div className="container relative z-10 mx-auto h-full px-4 sm:px-6 lg:px-8">
+        <div className="grid h-full grid-rows-[54%_46%] lg:grid-cols-[43%_57%] lg:grid-rows-1">
+          <div className="relative row-start-2 flex min-w-0 flex-col justify-center pb-14 pt-5 sm:pb-16 sm:pt-7 lg:row-start-1 lg:justify-center lg:pb-24 lg:pr-8 lg:pt-10 xl:pr-14">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={currentProduct.id}
+                {...textMotion}
+                transition={{ duration: shouldReduceMotion ? 0.15 : 0.38, ease: 'easeOut' }}
+                className="min-w-0"
+              >
+                {heroContent?.showBadge !== false && (
+                  <div className="mb-2 flex min-h-5 flex-wrap items-center gap-2 sm:mb-3">
+                    {customBadge ? (
+                      <Badge className="border-0 bg-brand-orange text-white">{customBadge}</Badge>
+                    ) : (
+                      <>
+                        {currentProduct.isNew && (
+                          <Badge className="border-0 bg-white text-[#0b1024]">NUEVO</Badge>
+                        )}
+                        {currentProduct.hasDiscount && (
+                          <Badge className="border-0 bg-brand-red text-white">
+                            -{currentProduct.discountPercentage}%
+                          </Badge>
+                        )}
+                        {currentProduct.isLowStock && (
+                          <Badge className="border-0 bg-brand-orange text-white">
+                            ÚLTIMAS UNIDADES
+                          </Badge>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
 
-      <div className="container mx-auto px-4 h-full relative z-10">
-        {/* Mobile: Stack image on top, content below */}
-        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 lg:gap-12 items-center h-full py-4 lg:py-12">
-          {/* Product Image - Order first on mobile, second on desktop */}
-          <div className="relative w-full h-1/2 lg:h-full lg:order-2 flex items-center justify-center">
+                {heroContent?.showBrand !== false && (
+                  <p className="mb-1 text-xs font-semibold uppercase text-white/60 sm:text-sm">
+                    {displayBrand}
+                  </p>
+                )}
+                {heroContent?.showTitle !== false && (
+                  <h1 className="line-clamp-2 max-w-xl text-2xl font-bold leading-[1.05] sm:text-4xl lg:text-5xl xl:text-6xl">
+                    {displayTitle}
+                  </h1>
+                )}
+                {heroContent?.showSubtitle !== false && heroContent?.subtitleText?.trim() && (
+                  <p className="mt-2 line-clamp-2 max-w-lg text-sm leading-relaxed text-white/70 sm:mt-3 sm:text-base">
+                    {heroContent.subtitleText.trim()}
+                  </p>
+                )}
+
+                {heroContent?.showPrice !== false && (
+                  <div className="mt-3 flex items-baseline gap-3 sm:mt-5">
+                    <span className="text-2xl font-bold sm:text-3xl lg:text-4xl">
+                      {displayPrice}
+                    </span>
+                    {!heroContent?.priceText?.trim() && currentProduct.hasDiscount && currentProduct.compare_at_price && (
+                      <span className="text-sm text-white/45 line-through sm:text-lg">
+                        {formatPrice(currentProduct.compare_at_price)}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {(heroContent?.showPrimaryButton !== false || heroContent?.showSecondaryButton !== false) && (
+                  <div className="mt-4 flex flex-wrap items-center gap-2 sm:mt-7 sm:gap-3">
+                    {heroContent?.showPrimaryButton !== false && (
+                      <Button
+                        className="h-11 bg-white px-4 font-bold text-[#0b1024] hover:bg-brand-orange hover:text-white sm:h-12 sm:px-6"
+                        asChild
+                      >
+                        <Link href={`/producto/${currentProduct.slug}`}>
+                          {primaryButtonText}
+                          <ArrowRight aria-hidden="true" />
+                        </Link>
+                      </Button>
+                    )}
+                    {heroContent?.showSecondaryButton !== false && (
+                      <Button
+                        variant="outline"
+                        className="h-11 border-white/40 bg-transparent px-4 font-semibold text-white hover:border-white hover:bg-white/10 hover:text-white sm:h-12 sm:px-5"
+                        asChild
+                      >
+                        <Link href={`/producto/${currentProduct.slug}`}>
+                          <Eye aria-hidden="true" />
+                          <span>{secondaryButtonText}</span>
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          <div className="relative row-start-1 min-w-0 lg:col-start-2 lg:row-start-1">
             <div
-              className={cn(
-                "relative w-full h-full max-w-md lg:max-w-none transition-all duration-700 transform",
-                direction === 'right' ? 'animate-in slide-in-from-right-10' : 'animate-in slide-in-from-left-10'
-              )}
+              className="pointer-events-none absolute inset-x-0 top-4 text-center text-[3.5rem] font-black uppercase leading-none text-[#dfe2e9] sm:top-6 sm:text-8xl lg:left-[10%] lg:top-[10%] lg:text-[7.5rem] xl:text-[9.5rem]"
+              aria-hidden="true"
             >
-              {mainImage ? (
-                <div className="relative w-full h-full group">
+              {heroContent?.showBrand !== false ? displayBrand : ''}
+            </div>
+
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={`${currentProduct.id}-${mainImage}`}
+                {...imageMotion}
+                transition={{ duration: shouldReduceMotion ? 0.15 : 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-x-7 bottom-4 top-12 sm:inset-x-16 sm:bottom-6 sm:top-16 lg:inset-x-[8%] lg:bottom-[10%] lg:top-[16%]"
+              >
+                {mainImage ? (
                   <Image
                     src={mainImage}
                     alt={currentProduct.name}
                     fill
-                    className="object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-105 group-hover:rotate-3"
+                    sizes="(max-width: 1023px) 90vw, 54vw"
+                    className="object-contain mix-blend-multiply [filter:drop-shadow(0_28px_24px_rgba(10,15,35,0.22))]"
                     priority
                   />
-                  {/* Glow Effect */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent blur-3xl -z-10 group-hover:from-white/30 transition-all duration-500" />
-                </div>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-white/10 rounded-lg backdrop-blur-sm">
-                  <span className="text-white/50 text-xl">Sin imagen</span>
-                </div>
-              )}
-            </div>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm font-medium text-[#0b1024]/50">
+                    Imagen no disponible
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
 
-            {/* Floating Elements */}
-            <div className="absolute top-4 right-4 bg-white/10 backdrop-blur-md rounded-full px-3 py-1.5 text-white text-xs font-medium border border-white/20">
-              {currentProduct.totalStock > 0 ? `${currentProduct.totalStock} disponibles` : 'Agotado'}
-            </div>
-          </div>
-
-          {/* Product Info - Order second on mobile, first on desktop */}
-          <div className="flex flex-col justify-center space-y-3 lg:space-y-6 h-1/2 lg:h-full lg:order-1">
-            {/* Badges */}
-            <div className="flex flex-wrap gap-2">
-              {currentProduct.isNew && (
-                <Badge className="bg-brand-blue text-white px-2 py-0.5 text-xs font-semibold">
-                  NUEVO
-                </Badge>
-              )}
-              {currentProduct.hasDiscount && (
-                <Badge className="bg-brand-red text-white px-2 py-0.5 text-xs font-semibold">
-                  -{currentProduct.discountPercentage}% OFF
-                </Badge>
-              )}
-              {currentProduct.isLowStock && (
-                <Badge className="bg-brand-orange text-white px-2 py-0.5 text-xs font-semibold">
-                  ÚLTIMAS UNIDADES
-                </Badge>
-              )}
-            </div>
-
-            {/* Brand & Product Name */}
-            <div className="space-y-1">
-              <p className="text-white/70 text-xs sm:text-sm uppercase tracking-wider font-medium">
-                {currentProduct.brand.name}
-              </p>
-              <h1 className="text-xl sm:text-3xl lg:text-5xl font-bold text-white leading-tight">
-                {currentProduct.name}
-              </h1>
-            </div>
-
-            {/* Price */}
-            <div className="flex items-baseline gap-2 sm:gap-3">
-              <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">
-                {formatPrice(currentProduct.lowestPrice)}
+            <div className="absolute right-0 top-4 flex items-center gap-2 text-xs font-bold text-[#0b1024] sm:top-6 lg:right-2 lg:top-8">
+              <span className="tabular-nums">{String(activeIndex + 1).padStart(2, '0')}</span>
+              <span className="h-px w-7 bg-[#0b1024]/25" />
+              <span className="text-[#0b1024]/45 tabular-nums">
+                {String(visibleProducts.length).padStart(2, '0')}
               </span>
-              {currentProduct.hasDiscount && currentProduct.compare_at_price && (
-                <span className="text-lg sm:text-xl text-white/50 line-through">
-                  {formatPrice(currentProduct.compare_at_price)}
-                </span>
-              )}
             </div>
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-              <Button
-                size="sm"
-                className="bg-white text-brand-black hover:bg-gray-100 text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-6 font-semibold lg:text-lg lg:h-14 lg:px-8"
-                asChild
-              >
-                <Link href={`/producto/${currentProduct.slug}`}>
-                  <ShoppingBag className="w-4 h-4 mr-2" />
-                  Comprar Ahora
-                </Link>
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-2 border-white bg-white text-brand-black hover:bg-gray-100 hover:text-brand-black text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-6 font-semibold lg:text-lg lg:h-14 lg:px-8"
-                asChild
-              >
-                <Link href={`/producto/${currentProduct.slug}`}>
-                  <Eye className="w-4 h-4 mr-2" />
-                  Ver Detalles
-                </Link>
-              </Button>
-            </div>
+            {visibleProducts.length > 1 && (
+              <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-between lg:left-[7%] lg:right-0">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-11 border border-[#0b1024]/15 bg-white/70 text-[#0b1024] shadow-sm backdrop-blur-sm hover:bg-white sm:h-12 sm:w-12"
+                  onClick={() => {
+                    prevSlide();
+                    stopAutoplay();
+                  }}
+                  aria-label="Producto anterior"
+                >
+                  <ChevronLeft aria-hidden="true" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-11 border border-[#0b1024]/15 bg-white/70 text-[#0b1024] shadow-sm backdrop-blur-sm hover:bg-white sm:h-12 sm:w-12"
+                  onClick={() => {
+                    nextSlide();
+                    stopAutoplay();
+                  }}
+                  aria-label="Siguiente producto"
+                >
+                  <ChevronRight aria-hidden="true" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Navigation Controls */}
-      <div className="absolute bottom-8 left-0 right-0 z-20">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between">
-            {/* Arrow Buttons */}
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 w-12 h-12"
+      {visibleProducts.length > 1 && (
+        <div className="absolute bottom-5 left-4 right-4 z-20 sm:bottom-6 sm:left-6 sm:right-6 lg:left-[max(2rem,calc((100vw-1280px)/2+2rem))] lg:right-auto lg:w-[36%]">
+          <div className="flex gap-2" role="tablist" aria-label="Elegir producto destacado">
+            {visibleProducts.map((product, index) => (
+              <button
+                key={product.id}
+                type="button"
+                role="tab"
+                aria-selected={index === activeIndex}
+                aria-label={`Ver ${product.name}`}
                 onClick={() => {
-                  prevSlide();
-                  setIsAutoPlaying(false);
+                  changeSlide(index, index > activeIndex ? 1 : -1);
+                  stopAutoplay();
                 }}
+                className="relative h-6 flex-1 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
-                <ChevronLeft className="w-6 h-6" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 w-12 h-12"
-                onClick={() => {
-                  nextSlide();
-                  setIsAutoPlaying(false);
-                }}
-              >
-                <ChevronRight className="w-6 h-6" />
-              </Button>
-            </div>
-
-            {/* Dot Indicators */}
-            <div className="flex gap-2">
-              {visibleProducts.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => goToSlide(index)}
-                  className={cn(
-                    "h-2 rounded-full transition-all duration-300",
-                    index === currentIndex
-                      ? "w-8 bg-white"
-                      : "w-2 bg-white/40 hover:bg-white/60"
+                <span className="block h-0.5 overflow-hidden bg-white/25">
+                  {index === activeIndex && (
+                    <motion.span
+                      key={`${currentProduct.id}-${isAutoPlaying}`}
+                      className="block h-full bg-white"
+                      initial={{ width: isAutoPlaying && !shouldReduceMotion ? '0%' : '100%' }}
+                      animate={{ width: '100%' }}
+                      transition={{
+                        duration: isAutoPlaying && !shouldReduceMotion ? AUTOPLAY_DELAY / 1000 : 0,
+                        ease: 'linear',
+                      }}
+                    />
                   )}
-                  aria-label={`Go to slide ${index + 1}`}
-                />
-              ))}
-            </div>
-
-            {/* Counter */}
-            <div className="text-white/70 text-sm font-medium min-w-[60px] text-right">
-              {currentIndex + 1} / {visibleProducts.length}
-            </div>
+                </span>
+              </button>
+            ))}
           </div>
         </div>
-      </div>
+      )}
+
+      <p className="sr-only" aria-live="polite">
+        Mostrando {currentProduct.name}, producto {activeIndex + 1} de {visibleProducts.length}
+      </p>
     </section>
   );
 }

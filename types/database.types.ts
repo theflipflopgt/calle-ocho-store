@@ -383,27 +383,69 @@ export type Database = {
       }
       featured_products: {
         Row: {
+          badge_text: string | null
+          brand_text: string | null
           created_at: string
           display_order: number
           id: string
           is_active: boolean
+          price_text: string | null
+          primary_button_text: string | null
           product_id: string
+          secondary_button_text: string | null
+          show_badge: boolean
+          show_brand: boolean
+          show_price: boolean
+          show_primary_button: boolean
+          show_secondary_button: boolean
+          show_subtitle: boolean
+          show_title: boolean
+          subtitle_text: string | null
+          title_text: string | null
           updated_at: string
         }
         Insert: {
+          badge_text?: string | null
+          brand_text?: string | null
           created_at?: string
           display_order?: number
           id?: string
           is_active?: boolean
+          price_text?: string | null
+          primary_button_text?: string | null
           product_id: string
+          secondary_button_text?: string | null
+          show_badge?: boolean
+          show_brand?: boolean
+          show_price?: boolean
+          show_primary_button?: boolean
+          show_secondary_button?: boolean
+          show_subtitle?: boolean
+          show_title?: boolean
+          subtitle_text?: string | null
+          title_text?: string | null
           updated_at?: string
         }
         Update: {
+          badge_text?: string | null
+          brand_text?: string | null
           created_at?: string
           display_order?: number
           id?: string
           is_active?: boolean
+          price_text?: string | null
+          primary_button_text?: string | null
           product_id?: string
+          secondary_button_text?: string | null
+          show_badge?: boolean
+          show_brand?: boolean
+          show_price?: boolean
+          show_primary_button?: boolean
+          show_secondary_button?: boolean
+          show_subtitle?: boolean
+          show_title?: boolean
+          subtitle_text?: string | null
+          title_text?: string | null
           updated_at?: string
         }
         Relationships: [

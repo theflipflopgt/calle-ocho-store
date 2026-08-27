@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Plus, GripVertical, Eye, EyeOff, Trash2, Search, Package, Save } from 'lucide-react';
+import { Plus, GripVertical, Eye, EyeOff, Trash2, Search, Package, Save, Pencil, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils/currency';
@@ -15,6 +17,20 @@ interface FeaturedProduct {
   product_id: string;
   display_order: number;
   is_active: boolean;
+  badge_text: string | null;
+  brand_text: string | null;
+  title_text: string | null;
+  subtitle_text: string | null;
+  price_text: string | null;
+  primary_button_text: string | null;
+  secondary_button_text: string | null;
+  show_badge: boolean;
+  show_brand: boolean;
+  show_title: boolean;
+  show_subtitle: boolean;
+  show_price: boolean;
+  show_primary_button: boolean;
+  show_secondary_button: boolean;
   product: {
     id: string;
     name: string;
@@ -46,6 +62,7 @@ export default function HeroCarouselPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const supabase = createClient();
 
   // Load featured products
@@ -62,6 +79,20 @@ export default function HeroCarouselPage() {
         product_id,
         display_order,
         is_active,
+        badge_text,
+        brand_text,
+        title_text,
+        subtitle_text,
+        price_text,
+        primary_button_text,
+        secondary_button_text,
+        show_badge,
+        show_brand,
+        show_title,
+        show_subtitle,
+        show_price,
+        show_primary_button,
+        show_secondary_button,
         product:products (
           id,
           name,
@@ -119,6 +150,20 @@ export default function HeroCarouselPage() {
         .update({
           display_order: item.display_order,
           is_active: item.is_active,
+          badge_text: item.badge_text || null,
+          brand_text: item.brand_text || null,
+          title_text: item.title_text || null,
+          subtitle_text: item.subtitle_text || null,
+          price_text: item.price_text || null,
+          primary_button_text: item.primary_button_text || null,
+          secondary_button_text: item.secondary_button_text || null,
+          show_badge: item.show_badge,
+          show_brand: item.show_brand,
+          show_title: item.show_title,
+          show_subtitle: item.show_subtitle,
+          show_price: item.show_price,
+          show_primary_button: item.show_primary_button,
+          show_secondary_button: item.show_secondary_button,
         })
         .eq('id', item.id);
 
@@ -173,6 +218,20 @@ export default function HeroCarouselPage() {
         product_id,
         display_order,
         is_active,
+        badge_text,
+        brand_text,
+        title_text,
+        subtitle_text,
+        price_text,
+        primary_button_text,
+        secondary_button_text,
+        show_badge,
+        show_brand,
+        show_title,
+        show_subtitle,
+        show_price,
+        show_primary_button,
+        show_secondary_button,
         product:products (
           id,
           name,
@@ -240,6 +299,17 @@ export default function HeroCarouselPage() {
     );
     setMessageType('success');
     setMessage('Estado del producto actualizado.');
+  };
+
+  const updateFeaturedProduct = (
+    featuredProductId: string,
+    updates: Partial<FeaturedProduct>
+  ) => {
+    setFeaturedProducts((current) =>
+      current.map((item) =>
+        item.id === featuredProductId ? { ...item, ...updates } : item
+      )
+    );
   };
 
   const filteredAvailableProducts = availableProducts.filter(
@@ -378,6 +448,23 @@ export default function HeroCarouselPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  onClick={() =>
+                                    setEditingProductId(
+                                      editingProductId === item.id ? null : item.id
+                                    )
+                                  }
+                                  title="Editar textos"
+                                  aria-label={`Editar textos de ${item.product.name}`}
+                                >
+                                  {editingProductId === item.id ? (
+                                    <X className="w-4 h-4 text-brand-blue" />
+                                  ) : (
+                                    <Pencil className="w-4 h-4 text-brand-blue" />
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
                                   onClick={() => toggleActive(item.id, item.is_active)}
                                   title={item.is_active ? 'Desactivar' : 'Activar'}
                                 >
@@ -397,6 +484,186 @@ export default function HeroCarouselPage() {
                                 </Button>
                               </div>
                             </div>
+
+                            {editingProductId === item.id && (
+                              <div className="mt-4 border-t border-gray-200 pt-4">
+                                <div className="mb-4">
+                                  <h3 className="text-sm font-semibold text-brand-black">
+                                    Textos de este slide
+                                  </h3>
+                                  <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                                    Deja un campo vacío para usar el dato original del producto. Apaga su interruptor para ocultarlo.
+                                  </p>
+                                </div>
+
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                  <div className="space-y-2 sm:col-span-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <Label htmlFor={`badge-${item.id}`}>Etiqueta</Label>
+                                      <Switch
+                                        checked={item.show_badge}
+                                        onCheckedChange={(checked) =>
+                                          updateFeaturedProduct(item.id, { show_badge: checked })
+                                        }
+                                        aria-label="Mostrar etiqueta"
+                                      />
+                                    </div>
+                                    <Input
+                                      id={`badge-${item.id}`}
+                                      value={item.badge_text || ''}
+                                      maxLength={40}
+                                      disabled={!item.show_badge}
+                                      placeholder="Automática: Nuevo, oferta o últimas unidades"
+                                      onChange={(event) =>
+                                        updateFeaturedProduct(item.id, { badge_text: event.target.value })
+                                      }
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <Label htmlFor={`brand-${item.id}`}>Marca</Label>
+                                      <Switch
+                                        checked={item.show_brand}
+                                        onCheckedChange={(checked) =>
+                                          updateFeaturedProduct(item.id, { show_brand: checked })
+                                        }
+                                        aria-label="Mostrar marca"
+                                      />
+                                    </div>
+                                    <Input
+                                      id={`brand-${item.id}`}
+                                      value={item.brand_text || ''}
+                                      maxLength={60}
+                                      disabled={!item.show_brand}
+                                      placeholder={item.product.brand.name}
+                                      onChange={(event) =>
+                                        updateFeaturedProduct(item.id, { brand_text: event.target.value })
+                                      }
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <Label htmlFor={`price-${item.id}`}>Precio mostrado</Label>
+                                      <Switch
+                                        checked={item.show_price}
+                                        onCheckedChange={(checked) =>
+                                          updateFeaturedProduct(item.id, { show_price: checked })
+                                        }
+                                        aria-label="Mostrar precio"
+                                      />
+                                    </div>
+                                    <Input
+                                      id={`price-${item.id}`}
+                                      value={item.price_text || ''}
+                                      maxLength={40}
+                                      disabled={!item.show_price}
+                                      placeholder={formatPrice(item.product.base_price)}
+                                      onChange={(event) =>
+                                        updateFeaturedProduct(item.id, { price_text: event.target.value })
+                                      }
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2 sm:col-span-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <Label htmlFor={`title-${item.id}`}>Título</Label>
+                                      <Switch
+                                        checked={item.show_title}
+                                        onCheckedChange={(checked) =>
+                                          updateFeaturedProduct(item.id, { show_title: checked })
+                                        }
+                                        aria-label="Mostrar título"
+                                      />
+                                    </div>
+                                    <Input
+                                      id={`title-${item.id}`}
+                                      value={item.title_text || ''}
+                                      maxLength={100}
+                                      disabled={!item.show_title}
+                                      placeholder={item.product.name}
+                                      onChange={(event) =>
+                                        updateFeaturedProduct(item.id, { title_text: event.target.value })
+                                      }
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2 sm:col-span-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <Label htmlFor={`subtitle-${item.id}`}>Texto adicional</Label>
+                                      <Switch
+                                        checked={item.show_subtitle}
+                                        onCheckedChange={(checked) =>
+                                          updateFeaturedProduct(item.id, { show_subtitle: checked })
+                                        }
+                                        aria-label="Mostrar texto adicional"
+                                      />
+                                    </div>
+                                    <Input
+                                      id={`subtitle-${item.id}`}
+                                      value={item.subtitle_text || ''}
+                                      maxLength={160}
+                                      disabled={!item.show_subtitle}
+                                      placeholder="Opcional: envío, promoción o mensaje corto"
+                                      onChange={(event) =>
+                                        updateFeaturedProduct(item.id, { subtitle_text: event.target.value })
+                                      }
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <Label htmlFor={`primary-button-${item.id}`}>Botón principal</Label>
+                                      <Switch
+                                        checked={item.show_primary_button}
+                                        onCheckedChange={(checked) =>
+                                          updateFeaturedProduct(item.id, { show_primary_button: checked })
+                                        }
+                                        aria-label="Mostrar botón principal"
+                                      />
+                                    </div>
+                                    <Input
+                                      id={`primary-button-${item.id}`}
+                                      value={item.primary_button_text || ''}
+                                      maxLength={32}
+                                      disabled={!item.show_primary_button}
+                                      placeholder="Comprar ahora"
+                                      onChange={(event) =>
+                                        updateFeaturedProduct(item.id, { primary_button_text: event.target.value })
+                                      }
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <Label htmlFor={`secondary-button-${item.id}`}>Botón secundario</Label>
+                                      <Switch
+                                        checked={item.show_secondary_button}
+                                        onCheckedChange={(checked) =>
+                                          updateFeaturedProduct(item.id, { show_secondary_button: checked })
+                                        }
+                                        aria-label="Mostrar botón secundario"
+                                      />
+                                    </div>
+                                    <Input
+                                      id={`secondary-button-${item.id}`}
+                                      value={item.secondary_button_text || ''}
+                                      maxLength={32}
+                                      disabled={!item.show_secondary_button}
+                                      placeholder="Ver detalles"
+                                      onChange={(event) =>
+                                        updateFeaturedProduct(item.id, { secondary_button_text: event.target.value })
+                                      }
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="mt-4 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
+                                  El precio personalizado solo cambia este anuncio. El carrito y el checkout siempre usan el precio real del producto.
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </Draggable>
@@ -490,11 +757,12 @@ export default function HeroCarouselPage() {
 
       {/* Info Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-medium text-brand-black mb-2">💡 Consejos</h3>
+        <h3 className="font-medium text-brand-black mb-2">Consejos</h3>
         <ul className="text-sm text-gray-600 space-y-1">
           <li>• Arrastra los productos para cambiar su orden en el carrusel</li>
+          <li>• Usa el lápiz para cambiar, agregar u ocultar textos de cada slide</li>
           <li>• Usa el ícono de ojo para activar/desactivar sin eliminar</li>
-          <li>• Recomendado: 5-8 productos destacados para mejor experiencia</li>
+          <li>• Recomendado: 3-5 productos destacados para una navegación breve</li>
           <li>• Los productos inactivos no se muestran en el carrusel público</li>
         </ul>
       </div>
