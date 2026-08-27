@@ -24,6 +24,27 @@ export interface ProductWithDetails extends Product {
   isLowStock: boolean;
 }
 
+export interface HeroProductContent {
+  badgeText: string | null;
+  brandText: string | null;
+  titleText: string | null;
+  subtitleText: string | null;
+  priceText: string | null;
+  primaryButtonText: string | null;
+  secondaryButtonText: string | null;
+  showBadge: boolean;
+  showBrand: boolean;
+  showTitle: boolean;
+  showSubtitle: boolean;
+  showPrice: boolean;
+  showPrimaryButton: boolean;
+  showSecondaryButton: boolean;
+}
+
+export interface HeroProductWithDetails extends ProductWithDetails {
+  heroContent?: HeroProductContent;
+}
+
 // Props para el ProductCard
 export interface ProductCardProps {
   product: ProductWithDetails;

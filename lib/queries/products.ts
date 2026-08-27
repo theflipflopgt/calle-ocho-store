@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
-import type { ProductWithDetails } from '@/types/product';
+import type { HeroProductWithDetails, ProductWithDetails } from '@/types/product';
 import { sortAndLimitProductImages } from '@/lib/products/product-images';
 
 interface GetProductsOptions {
@@ -257,13 +257,27 @@ export const getCategories = cache(async function getCategories() {
   return data || [];
 });
 
-export const getFeaturedProducts = cache(async function getFeaturedProducts(): Promise<ProductWithDetails[]> {
+export const getFeaturedProducts = cache(async function getFeaturedProducts(): Promise<HeroProductWithDetails[]> {
   const supabase = await createClient();
 
   const { data: carouselRows, error: carouselError } = await supabase
     .from('featured_products')
     .select(`
       display_order,
+      badge_text,
+      brand_text,
+      title_text,
+      subtitle_text,
+      price_text,
+      primary_button_text,
+      secondary_button_text,
+      show_badge,
+      show_brand,
+      show_title,
+      show_subtitle,
+      show_price,
+      show_primary_button,
+      show_secondary_button,
       product:products!inner(
         *,
         brand:brands!inner(*),
@@ -282,9 +296,26 @@ export const getFeaturedProducts = cache(async function getFeaturedProducts(): P
 
   if (!carouselError && carouselRows && carouselRows.length > 0) {
     return carouselRows
-      .map((row: any) => row.product)
-      .filter(Boolean)
-      .map(transformProduct);
+      .filter((row: any) => Boolean(row.product))
+      .map((row: any) => ({
+        ...transformProduct(row.product),
+        heroContent: {
+          badgeText: row.badge_text,
+          brandText: row.brand_text,
+          titleText: row.title_text,
+          subtitleText: row.subtitle_text,
+          priceText: row.price_text,
+          primaryButtonText: row.primary_button_text,
+          secondaryButtonText: row.secondary_button_text,
+          showBadge: row.show_badge !== false,
+          showBrand: row.show_brand !== false,
+          showTitle: row.show_title !== false,
+          showSubtitle: row.show_subtitle !== false,
+          showPrice: row.show_price !== false,
+          showPrimaryButton: row.show_primary_button !== false,
+          showSecondaryButton: row.show_secondary_button !== false,
+        },
+      }));
   }
 
   if (carouselError) {
