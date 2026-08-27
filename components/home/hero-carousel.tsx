@@ -61,6 +61,9 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
   const currentProduct = visibleProducts[activeIndex];
   const heroContent = currentProduct.heroContent;
   const displayBrand = heroContent?.brandText?.trim() || currentProduct.brand.name;
+  const defaultBackgroundText =
+    displayBrand.trim().toLowerCase() === 'polo' ? 'POLO CLUB' : displayBrand;
+  const backgroundText = heroContent?.backgroundText?.trim() || defaultBackgroundText;
   const displayTitle = heroContent?.titleText?.trim() || currentProduct.name;
   const displayPrice = heroContent?.priceText?.trim() || formatPrice(currentProduct.lowestPrice);
   const primaryButtonText = heroContent?.primaryButtonText?.trim() || 'Comprar ahora';
@@ -197,19 +200,27 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
           </div>
 
           <div className="relative row-start-1 min-w-0 lg:col-start-2 lg:row-start-1">
-            <div
-              className="pointer-events-none absolute inset-x-0 top-4 text-center text-[3.5rem] font-black uppercase leading-none text-[#dfe2e9] sm:top-6 sm:text-8xl lg:left-[10%] lg:top-[10%] lg:text-[7.5rem] xl:text-[9.5rem]"
-              aria-hidden="true"
-            >
-              {heroContent?.showBrand !== false ? displayBrand : ''}
-            </div>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={`${currentProduct.id}-${backgroundText}`}
+                initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                transition={{ duration: shouldReduceMotion ? 0.1 : 0.18, ease: 'easeOut' }}
+                className="pointer-events-none absolute inset-x-0 top-[13%] z-10 text-center text-5xl font-black uppercase leading-[0.85] text-white sm:text-7xl lg:left-[8%] lg:top-[15%] lg:text-8xl xl:text-9xl"
+                style={{ WebkitTextStroke: '2px #111111', paintOrder: 'stroke fill' }}
+                aria-hidden="true"
+              >
+                {backgroundText}
+              </motion.div>
+            </AnimatePresence>
 
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={`${currentProduct.id}-${mainImage}`}
                 {...imageMotion}
                 transition={{ duration: shouldReduceMotion ? 0.15 : 0.55, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-x-7 bottom-4 top-12 sm:inset-x-16 sm:bottom-6 sm:top-16 lg:inset-x-[8%] lg:bottom-[10%] lg:top-[16%]"
+                className="absolute inset-x-7 bottom-4 top-12 z-0 sm:inset-x-16 sm:bottom-6 sm:top-16 lg:inset-x-[8%] lg:bottom-[10%] lg:top-[16%]"
               >
                 {mainImage ? (
                   <Image
@@ -228,7 +239,7 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
               </motion.div>
             </AnimatePresence>
 
-            <div className="absolute right-0 top-4 flex items-center gap-2 text-xs font-bold text-[#0b1024] sm:top-6 lg:right-2 lg:top-8">
+            <div className="absolute right-0 top-4 z-20 flex items-center gap-2 text-xs font-bold text-[#0b1024] sm:top-6 lg:right-2 lg:top-8">
               <span className="tabular-nums">{String(activeIndex + 1).padStart(2, '0')}</span>
               <span className="h-px w-7 bg-[#0b1024]/25" />
               <span className="text-[#0b1024]/45 tabular-nums">
@@ -237,7 +248,7 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
             </div>
 
             {visibleProducts.length > 1 && (
-              <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-between lg:left-[7%] lg:right-0">
+              <div className="absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 justify-between lg:left-[7%] lg:right-0">
                 <Button
                   type="button"
                   variant="ghost"

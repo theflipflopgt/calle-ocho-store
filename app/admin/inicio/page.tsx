@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ImageIcon, Loader2, Plus, Save, Trash2, Video } from 'lucide-react';
+import { ImageIcon, LayoutPanelTop, Loader2, Plus, Save, Trash2, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   DEFAULT_HOME_CONTENT,
   type HomeCategoryContent,
@@ -27,6 +28,37 @@ const footerPageLabels: {
   { key: 'terminos', label: 'Términos de uso' },
   { key: 'privacidad', label: 'Política de privacidad' },
 ];
+
+const footerLayoutOptions: Array<{
+  value: HomeContent['footer']['layout'];
+  label: string;
+  description: string;
+}> = [
+  { value: 'classic', label: 'Clásico', description: 'Columnas y datos al pie.' },
+  { value: 'centered', label: 'Centrado', description: 'Contenido alineado al centro.' },
+  { value: 'minimal', label: 'Minimal', description: 'Solo redes y textos finales.' },
+];
+
+function relativeLuminance(hex: string) {
+  const channels = hex
+    .replace('#', '')
+    .match(/.{2}/g)
+    ?.map((channel) => Number.parseInt(channel, 16) / 255);
+  if (!channels || channels.length !== 3) return 0;
+
+  const [red, green, blue] = channels.map((channel) =>
+    channel <= 0.03928
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4
+  );
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+}
+
+function contrastRatio(first: string, second: string) {
+  const light = Math.max(relativeLuminance(first), relativeLuminance(second));
+  const dark = Math.min(relativeLuminance(first), relativeLuminance(second));
+  return (light + 0.05) / (dark + 0.05);
+}
 
 function blankCategory(order: number): HomeCategoryContent {
   return {
@@ -58,6 +90,10 @@ export default function AdminHomeContentPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const footerContrast = contrastRatio(
+    content.footer.backgroundColor,
+    content.footer.textColor
+  );
 
   useEffect(() => {
     async function loadContent() {
@@ -86,6 +122,13 @@ export default function AdminHomeContentPage() {
     setContent((current) => ({
       ...current,
       hero: { ...current.hero, ...updates },
+    }));
+  };
+
+  const updateFooter = (updates: Partial<HomeContent['footer']>) => {
+    setContent((current) => ({
+      ...current,
+      footer: { ...current.footer, ...updates },
     }));
   };
 
@@ -333,6 +376,202 @@ export default function AdminHomeContentPage() {
               onChange={(event) => updateHero({ buttonHref: event.target.value })}
               placeholder="/hombre"
             />
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-gray-200 bg-white p-6">
+        <div className="mb-5 flex items-start gap-3">
+          <LayoutPanelTop className="mt-0.5 h-5 w-5 text-brand-blue" />
+          <div>
+            <h2 className="font-semibold text-brand-black">Diseño y textos del pie de página</h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Los campos vacíos no se muestran. Los cambios se aplican a toda la tienda.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Label>Diseño</Label>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {footerLayoutOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => updateFooter({ layout: option.value })}
+                  className={`rounded-lg border p-4 text-left transition-colors ${
+                    content.footer.layout === option.value
+                      ? 'border-brand-blue bg-blue-50 text-brand-blue'
+                      : 'border-gray-200 text-gray-700 hover:border-brand-blue'
+                  }`}
+                >
+                  <span className="block text-sm font-semibold">{option.label}</span>
+                  <span className="mt-1 block text-xs">{option.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            {([
+              ['backgroundColor', 'Color de fondo'],
+              ['textColor', 'Color del texto'],
+              ['accentColor', 'Color de acento'],
+            ] as const).map(([key, label]) => (
+              <div key={key} className="space-y-2">
+                <Label htmlFor={`footer-${key}`}>{label}</Label>
+                <div className="flex h-10 items-center gap-3 rounded-md border border-gray-300 px-3">
+                  <input
+                    id={`footer-${key}`}
+                    type="color"
+                    value={content.footer[key]}
+                    onChange={(event) =>
+                      updateFooter({ [key]: event.target.value } as Partial<HomeContent['footer']>)
+                    }
+                    className="h-7 w-9 cursor-pointer border-0 bg-transparent p-0"
+                  />
+                  <span className="text-sm uppercase text-gray-600">{content.footer[key]}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {footerContrast < 4.5 && (
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              El fondo y el texto tienen poco contraste. Elige colores más diferentes para que el contenido sea legible.
+            </p>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {([
+              ['showNavigation', 'Mostrar navegación'],
+              ['showNewsletter', 'Mostrar boletín'],
+              ['showSocialLinks', 'Mostrar redes y correo'],
+            ] as const).map(([key, label]) => (
+              <div
+                key={key}
+                className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-4 py-3"
+              >
+                <Label htmlFor={`footer-${key}`} className="cursor-pointer">{label}</Label>
+                <Switch
+                  id={`footer-${key}`}
+                  checked={content.footer[key]}
+                  onCheckedChange={(checked) =>
+                    updateFooter({ [key]: checked } as Partial<HomeContent['footer']>)
+                  }
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="footer-shop-title">Título de compras</Label>
+              <Input
+                id="footer-shop-title"
+                value={content.footer.shopTitle}
+                maxLength={40}
+                onChange={(event) => updateFooter({ shopTitle: event.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="footer-help-title">Título de ayuda</Label>
+              <Input
+                id="footer-help-title"
+                value={content.footer.helpTitle}
+                maxLength={40}
+                onChange={(event) => updateFooter({ helpTitle: event.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="footer-about-title">Título institucional</Label>
+              <Input
+                id="footer-about-title"
+                value={content.footer.aboutTitle}
+                maxLength={40}
+                onChange={(event) => updateFooter({ aboutTitle: event.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="footer-newsletter-title">Título del boletín</Label>
+              <Input
+                id="footer-newsletter-title"
+                value={content.footer.newsletterTitle}
+                maxLength={40}
+                onChange={(event) => updateFooter({ newsletterTitle: event.target.value })}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="footer-newsletter-text">Texto del boletín</Label>
+              <Input
+                id="footer-newsletter-text"
+                value={content.footer.newsletterText}
+                maxLength={120}
+                onChange={(event) => updateFooter({ newsletterText: event.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="space-y-2 lg:col-span-2">
+              <Label htmlFor="footer-copyright">Primera línea</Label>
+              <Input
+                id="footer-copyright"
+                value={content.footer.copyrightText}
+                maxLength={160}
+                placeholder="Usa {year} para mostrar el año actual"
+                onChange={(event) => updateFooter({ copyrightText: event.target.value })}
+              />
+            </div>
+            <div className="space-y-2 lg:col-span-2">
+              <Label htmlFor="footer-commercial">Segunda línea</Label>
+              <Input
+                id="footer-commercial"
+                value={content.footer.commercialText}
+                maxLength={200}
+                onChange={(event) => updateFooter({ commercialText: event.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="footer-developer">Texto con enlace</Label>
+              <Input
+                id="footer-developer"
+                value={content.footer.developerText}
+                maxLength={120}
+                onChange={(event) => updateFooter({ developerText: event.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="footer-developer-url">Enlace HTTPS</Label>
+              <Input
+                id="footer-developer-url"
+                type="url"
+                value={content.footer.developerUrl}
+                placeholder="https://..."
+                onChange={(event) => updateFooter({ developerUrl: event.target.value })}
+              />
+            </div>
+            <div className="space-y-2 lg:col-span-2">
+              <Label htmlFor="footer-extra">Línea adicional</Label>
+              <Input
+                id="footer-extra"
+                value={content.footer.extraText}
+                maxLength={200}
+                placeholder="Opcional"
+                onChange={(event) => updateFooter({ extraText: event.target.value })}
+              />
+            </div>
+            <div className="space-y-2 lg:col-span-2">
+              <Label htmlFor="footer-email">Correo del icono</Label>
+              <Input
+                id="footer-email"
+                type="email"
+                value={content.footer.email}
+                maxLength={160}
+                onChange={(event) => updateFooter({ email: event.target.value })}
+              />
+            </div>
           </div>
         </div>
       </section>

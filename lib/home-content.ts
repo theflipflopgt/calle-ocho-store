@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import {
   DEFAULT_HOME_CONTENT,
@@ -6,6 +7,7 @@ import {
 
 function mergeHomeContent(content: Partial<HomeContent> | null | undefined): HomeContent {
   const incomingHero: Partial<HomeContent['hero']> = content?.hero || {};
+  const incomingFooter: Partial<HomeContent['footer']> = content?.footer || {};
 
   return {
     hero: {
@@ -29,7 +31,11 @@ function mergeHomeContent(content: Partial<HomeContent> | null | undefined): Hom
         : DEFAULT_HOME_CONTENT.categories,
     footer: {
       ...DEFAULT_HOME_CONTENT.footer,
-      ...(content?.footer || {}),
+      ...incomingFooter,
+      layout:
+        incomingFooter.layout === 'centered' || incomingFooter.layout === 'minimal'
+          ? incomingFooter.layout
+          : 'classic',
     },
     footerPages: {
       seguimiento: {
@@ -68,7 +74,7 @@ function mergeHomeContent(content: Partial<HomeContent> | null | undefined): Hom
   };
 }
 
-export async function getHomeContent(): Promise<HomeContent> {
+export const getHomeContent = cache(async function getHomeContent(): Promise<HomeContent> {
   try {
     const supabase = await createClient();
     const { data, error } = await (supabase as any)
@@ -85,4 +91,4 @@ export async function getHomeContent(): Promise<HomeContent> {
   } catch {
     return DEFAULT_HOME_CONTENT;
   }
-}
+});

@@ -26,6 +26,7 @@ export interface ProductWithDetails extends Product {
 
 export interface HeroProductContent {
   badgeText: string | null;
+  backgroundText: string | null;
   brandText: string | null;
   titleText: string | null;
   subtitleText: string | null;

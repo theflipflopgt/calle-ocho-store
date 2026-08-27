@@ -383,6 +383,7 @@ export type Database = {
       }
       featured_products: {
         Row: {
+          background_text: string | null
           badge_text: string | null
           brand_text: string | null
           created_at: string
@@ -405,6 +406,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          background_text?: string | null
           badge_text?: string | null
           brand_text?: string | null
           created_at?: string
@@ -427,6 +429,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          background_text?: string | null
           badge_text?: string | null
           brand_text?: string | null
           created_at?: string

@@ -264,6 +264,7 @@ export const getFeaturedProducts = cache(async function getFeaturedProducts(): P
     .from('featured_products')
     .select(`
       display_order,
+      background_text,
       badge_text,
       brand_text,
       title_text,
@@ -301,6 +302,7 @@ export const getFeaturedProducts = cache(async function getFeaturedProducts(): P
         ...transformProduct(row.product),
         heroContent: {
           badgeText: row.badge_text,
+          backgroundText: row.background_text,
           brandText: row.brand_text,
           titleText: row.title_text,
           subtitleText: row.subtitle_text,
