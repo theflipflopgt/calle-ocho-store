@@ -1,4 +1,5 @@
 import type { Tables } from './database.types';
+import type { HeroCarouselDesign } from '@/lib/hero-carousel-design';
 
 export type Product = Tables<'products'>;
 export type Brand = Tables<'brands'>;
@@ -25,6 +26,7 @@ export interface ProductWithDetails extends Product {
 }
 
 export interface HeroProductContent {
+  design: HeroCarouselDesign;
   badgeText: string | null;
   backgroundText: string | null;
   brandText: string | null;

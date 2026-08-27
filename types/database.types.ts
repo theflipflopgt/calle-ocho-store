@@ -383,6 +383,7 @@ export type Database = {
       }
       featured_products: {
         Row: {
+          design_config: Json
           background_text: string | null
           badge_text: string | null
           brand_text: string | null
@@ -406,6 +407,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          design_config?: Json
           background_text?: string | null
           badge_text?: string | null
           brand_text?: string | null
@@ -429,6 +431,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          design_config?: Json
           background_text?: string | null
           badge_text?: string | null
           brand_text?: string | null

@@ -11,12 +11,16 @@ import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
+import { HeroDesignEditor } from '@/components/admin/hero-design-editor';
+import { normalizeHeroCarouselDesign, type HeroCarouselDesign } from '@/lib/hero-carousel-design';
+import type { Json } from '@/types/database.types';
 
 interface FeaturedProduct {
   id: string;
   product_id: string;
   display_order: number;
   is_active: boolean;
+  design_config: HeroCarouselDesign;
   background_text: string | null;
   badge_text: string | null;
   brand_text: string | null;
@@ -80,6 +84,7 @@ export default function HeroCarouselPage() {
         product_id,
         display_order,
         is_active,
+        design_config,
         background_text,
         badge_text,
         brand_text,
@@ -112,7 +117,7 @@ export default function HeroCarouselPage() {
       setMessageType('error');
       setMessage(`No se pudieron cargar los productos destacados: ${error.message}`);
     } else if (data) {
-      setFeaturedProducts(data as any);
+      setFeaturedProducts((data as any[]).map((item) => ({ ...item, design_config: normalizeHeroCarouselDesign(item.design_config) })) as FeaturedProduct[]);
     }
     setIsLoading(false);
   };
@@ -152,6 +157,7 @@ export default function HeroCarouselPage() {
         .update({
           display_order: item.display_order,
           is_active: item.is_active,
+          design_config: item.design_config as unknown as Json,
           background_text: item.background_text || null,
           badge_text: item.badge_text || null,
           brand_text: item.brand_text || null,
@@ -215,12 +221,14 @@ export default function HeroCarouselPage() {
         product_id: productId,
         display_order: maxOrder + 1,
         is_active: true,
+        design_config: normalizeHeroCarouselDesign(null) as unknown as Json,
       })
       .select(`
         id,
         product_id,
         display_order,
         is_active,
+        design_config,
         background_text,
         badge_text,
         brand_text,
@@ -250,7 +258,7 @@ export default function HeroCarouselPage() {
       .single();
 
     if (!error && data) {
-      setFeaturedProducts([...featuredProducts, data as any]);
+      setFeaturedProducts([...featuredProducts, { ...(data as any), design_config: normalizeHeroCarouselDesign((data as any).design_config) }]);
       setMessageType('success');
       setMessage('Producto agregado al HeroCarousel.');
     } else if (error) {
@@ -690,6 +698,14 @@ export default function HeroCarouselPage() {
                                 <div className="mt-4 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
                                   El precio personalizado solo cambia este anuncio. El carrito y el checkout siempre usan el precio real del producto.
                                 </div>
+                                <HeroDesignEditor
+                                  design={normalizeHeroCarouselDesign(item.design_config)}
+                                  imageUrl={item.product.colors[0]?.images[0]?.image_url}
+                                  title={item.title_text || item.product.name}
+                                  brand={item.brand_text || item.product.brand.name}
+                                  price={item.price_text || formatPrice(item.product.base_price)}
+                                  onChange={(design) => updateFeaturedProduct(item.id, { design_config: design })}
+                                />
                               </div>
                             )}
                           </div>

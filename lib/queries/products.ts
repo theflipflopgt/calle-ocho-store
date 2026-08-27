@@ -2,6 +2,7 @@ import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import type { HeroProductWithDetails, ProductWithDetails } from '@/types/product';
 import { sortAndLimitProductImages } from '@/lib/products/product-images';
+import { normalizeHeroCarouselDesign } from '@/lib/hero-carousel-design';
 
 interface GetProductsOptions {
   gender?: 'hombre' | 'mujer' | 'ninos' | 'unisex';
@@ -264,6 +265,7 @@ export const getFeaturedProducts = cache(async function getFeaturedProducts(): P
     .from('featured_products')
     .select(`
       display_order,
+      design_config,
       background_text,
       badge_text,
       brand_text,
@@ -301,6 +303,7 @@ export const getFeaturedProducts = cache(async function getFeaturedProducts(): P
       .map((row: any) => ({
         ...transformProduct(row.product),
         heroContent: {
+          design: normalizeHeroCarouselDesign(row.design_config),
           badgeText: row.badge_text,
           backgroundText: row.background_text,
           brandText: row.brand_text,
