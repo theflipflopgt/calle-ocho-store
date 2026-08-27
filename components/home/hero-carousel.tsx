@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/utils/currency';
 import type { HeroProductWithDetails } from '@/types/product';
+import { normalizeHeroCarouselDesign } from '@/lib/hero-carousel-design';
 
 interface HeroCarouselProps {
   products: HeroProductWithDetails[];
@@ -60,6 +61,7 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
   const activeIndex = Math.min(currentIndex, visibleProducts.length - 1);
   const currentProduct = visibleProducts[activeIndex];
   const heroContent = currentProduct.heroContent;
+  const design = normalizeHeroCarouselDesign(heroContent?.design);
   const displayBrand = heroContent?.brandText?.trim() || currentProduct.brand.name;
   const defaultBackgroundText =
     displayBrand.trim().toLowerCase() === 'polo' ? 'POLO CLUB' : displayBrand;
@@ -95,14 +97,15 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
 
   return (
     <section
-      className="relative h-[620px] overflow-hidden bg-[#0b1024] text-white sm:h-[660px] lg:h-[min(720px,calc(100svh-8rem))] lg:min-h-[600px]"
+      className="relative h-[620px] overflow-hidden text-white sm:h-[660px] lg:h-[min(720px,calc(100svh-8rem))] lg:min-h-[600px]"
+      style={{ backgroundColor: design.leftBackground, color: design.textColor, fontFamily: design.fontFamily }}
       aria-roledescription="carrusel"
       aria-label="Productos destacados"
       onMouseEnter={() => setIsAutoPlaying(false)}
       onMouseLeave={() => setIsAutoPlaying(true)}
       onFocusCapture={() => setIsAutoPlaying(false)}
     >
-      <div className="absolute inset-x-0 top-0 h-[54%] bg-[#eef0f5] lg:inset-y-0 lg:left-auto lg:h-auto lg:w-[54%] lg:[clip-path:polygon(13%_0,100%_0,100%_100%,0_100%)]" />
+      <div className="absolute inset-x-0 top-0 h-[54%] lg:inset-y-0 lg:left-auto lg:h-auto lg:w-[54%] lg:[clip-path:polygon(13%_0,100%_0,100%_100%,0_100%)]" style={{ backgroundColor: design.rightBackground }} />
       <div className="absolute inset-x-0 top-[54%] h-px bg-white/10 lg:left-[48%] lg:top-0 lg:h-full lg:w-px lg:rotate-[6deg] lg:bg-white/15" />
 
       <div className="container relative z-10 mx-auto h-full px-4 sm:px-6 lg:px-8">
@@ -114,11 +117,12 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
                 {...textMotion}
                 transition={{ duration: shouldReduceMotion ? 0.15 : 0.38, ease: 'easeOut' }}
                 className="min-w-0"
+                style={{ translate: `${design.contentX}px ${design.contentY}px` }}
               >
                 {heroContent?.showBadge !== false && (
                   <div className="mb-2 flex min-h-5 flex-wrap items-center gap-2 sm:mb-3">
                     {customBadge ? (
-                      <Badge className="border-0 bg-brand-orange text-white">{customBadge}</Badge>
+                      <Badge className="border-0 text-white" style={{ backgroundColor: design.accentColor }}>{customBadge}</Badge>
                     ) : (
                       <>
                         {currentProduct.isNew && (
@@ -140,17 +144,17 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
                 )}
 
                 {heroContent?.showBrand !== false && (
-                  <p className="mb-1 text-xs font-semibold uppercase text-white/60 sm:text-sm">
+                  <p className="mb-1 text-xs font-semibold uppercase sm:text-sm" style={{ color: design.mutedTextColor }}>
                     {displayBrand}
                   </p>
                 )}
                 {heroContent?.showTitle !== false && (
-                  <h1 className="line-clamp-2 max-w-xl text-2xl font-bold leading-[1.05] sm:text-4xl lg:text-5xl xl:text-6xl">
+                  <h1 className="line-clamp-2 max-w-xl font-bold leading-[1.05]" style={{ fontSize: `clamp(1.5rem, 5vw, ${design.titleSize}px)` }}>
                     {displayTitle}
                   </h1>
                 )}
                 {heroContent?.showSubtitle !== false && heroContent?.subtitleText?.trim() && (
-                  <p className="mt-2 line-clamp-2 max-w-lg text-sm leading-relaxed text-white/70 sm:mt-3 sm:text-base">
+                  <p className="mt-2 line-clamp-2 max-w-lg text-sm leading-relaxed sm:mt-3 sm:text-base" style={{ color: design.mutedTextColor }}>
                     {heroContent.subtitleText.trim()}
                   </p>
                 )}
@@ -172,7 +176,8 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
                   <div className="mt-4 flex flex-wrap items-center gap-2 sm:mt-7 sm:gap-3">
                     {heroContent?.showPrimaryButton !== false && (
                       <Button
-                        className="h-11 bg-white px-4 font-bold text-[#0b1024] hover:bg-brand-orange hover:text-white sm:h-12 sm:px-6"
+                        className="h-11 px-4 font-bold sm:h-12 sm:px-6"
+                        style={{ backgroundColor: design.primaryButtonBackground, color: design.primaryButtonText }}
                         asChild
                       >
                         <Link href={`/producto/${currentProduct.slug}`}>
@@ -184,7 +189,8 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
                     {heroContent?.showSecondaryButton !== false && (
                       <Button
                         variant="outline"
-                        className="h-11 border-white/40 bg-transparent px-4 font-semibold text-white hover:border-white hover:bg-white/10 hover:text-white sm:h-12 sm:px-5"
+                        className="h-11 bg-transparent px-4 font-semibold hover:bg-white/10 sm:h-12 sm:px-5"
+                        style={{ borderColor: design.secondaryButtonBorder, color: design.textColor }}
                         asChild
                       >
                         <Link href={`/producto/${currentProduct.slug}`}>
@@ -207,11 +213,10 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
                 transition={{ duration: shouldReduceMotion ? 0.1 : 0.18, ease: 'easeOut' }}
-                className="pointer-events-none absolute inset-x-0 top-[13%] z-10 text-center text-5xl font-black uppercase leading-[0.85] text-white sm:text-7xl lg:left-[8%] lg:top-[15%] lg:text-8xl xl:text-9xl"
-                style={{ WebkitTextStroke: '2px #111111', paintOrder: 'stroke fill' }}
+                className="pointer-events-none absolute inset-x-0 top-[13%] z-10 text-center font-black uppercase leading-[0.85] sm:text-7xl lg:left-[8%] lg:top-[15%]"
                 aria-hidden="true"
               >
-                {backgroundText}
+                <span style={{ display: 'inline-block', color: design.backgroundTextColor, fontSize: `clamp(3rem, 8vw, ${design.backgroundTextSize}px)`, WebkitTextStroke: `2px ${design.backgroundTextStroke}`, paintOrder: 'stroke fill', transform: `translate(${design.backgroundTextX}px, ${design.backgroundTextY}px)` }}>{backgroundText}</span>
               </motion.div>
             </AnimatePresence>
 
@@ -223,14 +228,9 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
                 className="absolute inset-x-7 bottom-4 top-12 z-0 sm:inset-x-16 sm:bottom-6 sm:top-16 lg:inset-x-[8%] lg:bottom-[10%] lg:top-[16%]"
               >
                 {mainImage ? (
-                  <Image
-                    src={mainImage}
-                    alt={currentProduct.name}
-                    fill
-                    sizes="(max-width: 1023px) 90vw, 54vw"
-                    className="object-contain mix-blend-multiply [filter:drop-shadow(0_28px_24px_rgba(10,15,35,0.22))]"
-                    priority
-                  />
+                  <div className="absolute inset-0" style={{ transform: `translate(${design.imageX}px, ${design.imageY}px) scale(${design.imageScale / 100})` }}>
+                    <Image src={mainImage} alt={currentProduct.name} fill sizes="(max-width: 1023px) 90vw, 54vw" className="object-contain mix-blend-multiply [filter:drop-shadow(0_28px_24px_rgba(10,15,35,0.22))]" priority />
+                  </div>
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm font-medium text-[#0b1024]/50">
                     Imagen no disponible
