@@ -7,6 +7,7 @@ import {
 
 function mergeHomeContent(content: Partial<HomeContent> | null | undefined): HomeContent {
   const incomingHero: Partial<HomeContent['hero']> = content?.hero || {};
+  const incomingFooter: Partial<HomeContent['footer']> = content?.footer || {};
 
   return {
     hero: {
@@ -30,7 +31,11 @@ function mergeHomeContent(content: Partial<HomeContent> | null | undefined): Hom
         : DEFAULT_HOME_CONTENT.categories,
     footer: {
       ...DEFAULT_HOME_CONTENT.footer,
-      ...(content?.footer || {}),
+      ...incomingFooter,
+      layout:
+        incomingFooter.layout === 'centered' || incomingFooter.layout === 'minimal'
+          ? incomingFooter.layout
+          : 'classic',
     },
     footerPages: {
       seguimiento: {

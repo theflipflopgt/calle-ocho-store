@@ -36,6 +36,24 @@ export interface HomeContent {
   footer: {
     image: string;
     alt: string;
+    layout: 'classic' | 'centered' | 'minimal';
+    backgroundColor: string;
+    textColor: string;
+    accentColor: string;
+    showNavigation: boolean;
+    showNewsletter: boolean;
+    showSocialLinks: boolean;
+    shopTitle: string;
+    helpTitle: string;
+    aboutTitle: string;
+    newsletterTitle: string;
+    newsletterText: string;
+    copyrightText: string;
+    commercialText: string;
+    developerText: string;
+    developerUrl: string;
+    extraText: string;
+    email: string;
   };
   footerPages: {
     seguimiento: HomeFooterPageContent;
@@ -138,6 +156,24 @@ export const DEFAULT_HOME_CONTENT: HomeContent = {
     image:
       'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1200&auto=format&fit=crop',
     alt: 'Calzado calleOCHO',
+    layout: 'classic',
+    backgroundColor: '#1a1a1a',
+    textColor: '#ffffff',
+    accentColor: '#2563eb',
+    showNavigation: true,
+    showNewsletter: true,
+    showSocialLinks: true,
+    shopTitle: 'Comprar',
+    helpTitle: 'Ayuda',
+    aboutTitle: 'Sobre nosotros',
+    newsletterTitle: 'Boletín',
+    newsletterText: 'Recibe ofertas exclusivas y novedades',
+    copyrightText: '© {year} Calle Ocho Store. Guatemala.',
+    commercialText: 'Calle Ocho Store es el nombre comercial de TheFlipFlop.',
+    developerText: 'Desarrollada por Soluciones Web 2025',
+    developerUrl: 'https://www.solucionesweb-2025.com',
+    extraText: '',
+    email: 'info@calleochostore.com',
   },
   footerPages: {
     seguimiento: {

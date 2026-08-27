@@ -17,6 +17,7 @@ interface FeaturedProduct {
   product_id: string;
   display_order: number;
   is_active: boolean;
+  background_text: string | null;
   badge_text: string | null;
   brand_text: string | null;
   title_text: string | null;
@@ -79,6 +80,7 @@ export default function HeroCarouselPage() {
         product_id,
         display_order,
         is_active,
+        background_text,
         badge_text,
         brand_text,
         title_text,
@@ -150,6 +152,7 @@ export default function HeroCarouselPage() {
         .update({
           display_order: item.display_order,
           is_active: item.is_active,
+          background_text: item.background_text || null,
           badge_text: item.badge_text || null,
           brand_text: item.brand_text || null,
           title_text: item.title_text || null,
@@ -218,6 +221,7 @@ export default function HeroCarouselPage() {
         product_id,
         display_order,
         is_active,
+        background_text,
         badge_text,
         brand_text,
         title_text,
@@ -497,6 +501,30 @@ export default function HeroCarouselPage() {
                                 </div>
 
                                 <div className="grid gap-4 sm:grid-cols-2">
+                                  <div className="space-y-2 sm:col-span-2">
+                                    <Label htmlFor={`background-text-${item.id}`}>
+                                      Texto grande sobre el calzado
+                                    </Label>
+                                    <Input
+                                      id={`background-text-${item.id}`}
+                                      value={item.background_text || ''}
+                                      maxLength={60}
+                                      placeholder={
+                                        item.product.brand.name.toLowerCase() === 'polo'
+                                          ? 'POLO CLUB'
+                                          : item.product.brand.name
+                                      }
+                                      onChange={(event) =>
+                                        updateFeaturedProduct(item.id, {
+                                          background_text: event.target.value,
+                                        })
+                                      }
+                                    />
+                                    <p className="text-xs text-gray-500">
+                                      Este texto es independiente de la marca pequeña y puede quedar vacío para usar la marca automática.
+                                    </p>
+                                  </div>
+
                                   <div className="space-y-2 sm:col-span-2">
                                     <div className="flex items-center justify-between gap-3">
                                       <Label htmlFor={`badge-${item.id}`}>Etiqueta</Label>
