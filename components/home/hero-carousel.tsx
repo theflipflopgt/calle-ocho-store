@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +19,7 @@ interface HeroCarouselProps {
 const AUTOPLAY_DELAY = 5000;
 
 export function HeroCarousel({ products }: HeroCarouselProps) {
+  const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -45,6 +47,13 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
   }, [changeSlide, currentIndex]);
 
   const stopAutoplay = () => setIsAutoPlaying(false);
+
+  // Safari móvil puede restaurar la portada desde su caché de navegación.
+  // Una actualización del árbol de servidor al montar garantiza que el total
+  // de slides coincida con el estado activo actual del administrador.
+  useEffect(() => {
+    router.refresh();
+  }, [router]);
 
   useEffect(() => {
     if (!isAutoPlaying || shouldReduceMotion || visibleProducts.length <= 1) return;
@@ -100,7 +109,7 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
 
   return (
     <section
-      className="relative h-[620px] overflow-hidden text-white sm:h-[660px] lg:h-[min(720px,calc(100svh-8rem))] lg:min-h-[600px]"
+      className="relative h-[650px] overflow-hidden text-white sm:h-[680px] lg:h-[min(720px,calc(100svh-8rem))] lg:min-h-[600px]"
       style={{ backgroundColor: design.leftBackground, color: design.textColor, fontFamily: design.fontFamily }}
       aria-roledescription="carrusel"
       aria-label="Productos destacados"
@@ -108,19 +117,26 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
       onMouseLeave={() => setIsAutoPlaying(true)}
       onFocusCapture={() => setIsAutoPlaying(false)}
     >
-      <div className="absolute inset-x-0 top-0 h-[54%] lg:inset-y-0 lg:left-auto lg:h-auto lg:w-[54%] lg:[clip-path:polygon(13%_0,100%_0,100%_100%,0_100%)]" style={{ backgroundColor: design.rightBackground }} />
-      <div className="absolute inset-x-0 top-[54%] h-px bg-white/10 lg:left-[48%] lg:top-0 lg:h-full lg:w-px lg:rotate-[6deg] lg:bg-white/15" />
+      {/* En móvil toda la zona de fotografía es blanca: las imágenes con fondo
+          blanco se integran sin formar una tarjeta. En escritorio se conserva
+          el color configurable y el corte diagonal. */}
+      <div className="absolute inset-x-0 top-0 h-[48%] bg-white lg:hidden" />
+      <div className="absolute inset-y-0 right-0 hidden w-[54%] lg:block lg:[clip-path:polygon(13%_0,100%_0,100%_100%,0_100%)]" style={{ backgroundColor: design.rightBackground }} />
+      <div className="absolute inset-x-0 top-[48%] h-px bg-white/10 lg:left-[48%] lg:top-0 lg:h-full lg:w-px lg:rotate-[6deg] lg:bg-white/15" />
 
       <div className="container relative z-10 mx-auto h-full px-4 sm:px-6 lg:px-8">
-        <div className="grid h-full grid-rows-[54%_46%] lg:grid-cols-[43%_57%] lg:grid-rows-1">
-          <div className="relative row-start-2 flex min-w-0 flex-col justify-center pb-14 pt-5 sm:pb-16 sm:pt-7 lg:row-start-1 lg:justify-center lg:pb-24 lg:pr-8 lg:pt-10 xl:pr-14">
+        <div className="grid h-full grid-rows-[48%_52%] lg:grid-cols-[43%_57%] lg:grid-rows-1">
+          <div className="relative row-start-2 flex min-w-0 flex-col justify-center pb-14 pt-4 sm:pb-16 sm:pt-6 lg:row-start-1 lg:justify-center lg:pb-24 lg:pr-8 lg:pt-10 xl:pr-14">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={currentProduct.id}
                 {...textMotion}
                 transition={{ duration: shouldReduceMotion ? 0.15 : 0.38, ease: 'easeOut' }}
-                className="min-w-0"
-                style={{ translate: `${design.contentX}px ${design.contentY}px` }}
+                className="hero-carousel-content min-w-0"
+                style={{
+                  '--hero-content-x': `${design.contentX}px`,
+                  '--hero-content-y': `${design.contentY}px`,
+                } as CSSProperties}
               >
                 {heroContent?.showBadge !== false && (
                   <div className="mb-2 flex min-h-5 flex-wrap items-center gap-2 sm:mb-3">
@@ -219,7 +235,19 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
                 className="pointer-events-none absolute inset-x-0 top-[13%] z-10 text-center font-black uppercase leading-[0.85] sm:text-7xl lg:left-[8%] lg:top-[15%]"
                 aria-hidden="true"
               >
-                <span style={{ display: 'inline-block', color: design.backgroundTextColor, fontSize: `clamp(3rem, 8vw, ${design.backgroundTextSize}px)`, WebkitTextStroke: `2px ${design.backgroundTextStroke}`, paintOrder: 'stroke fill', transform: `translate(${design.backgroundTextX}px, ${design.backgroundTextY}px)` }}>{backgroundText}</span>
+                <span
+                  className="hero-carousel-background-text"
+                  style={{
+                    '--hero-background-x': `${design.backgroundTextX}px`,
+                    '--hero-background-y': `${design.backgroundTextY}px`,
+                    '--hero-background-size': `${design.backgroundTextSize}px`,
+                    color: design.backgroundTextColor,
+                    WebkitTextStroke: `2px ${design.backgroundTextStroke}`,
+                    paintOrder: 'stroke fill',
+                  } as CSSProperties}
+                >
+                  {backgroundText}
+                </span>
               </motion.div>
             </AnimatePresence>
 
@@ -228,12 +256,16 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
                 key={`${currentProduct.id}-${mainImage}`}
                 {...imageMotion}
                 transition={{ duration: shouldReduceMotion ? 0.15 : 0.55, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-x-7 bottom-4 top-12 z-0 sm:inset-x-16 sm:bottom-6 sm:top-16 lg:inset-x-[8%] lg:bottom-[10%] lg:top-[16%]"
+                className="absolute inset-x-2 bottom-3 top-12 z-0 sm:inset-x-10 sm:bottom-5 sm:top-14 lg:inset-x-[8%] lg:bottom-[10%] lg:top-[16%]"
               >
                 {mainImage ? (
                   <div
-                    className="absolute inset-0"
-                    style={{ transform: `translate(${design.imageX}px, ${design.imageY}px) scale(${design.imageScale / 100})` }}
+                    className="hero-carousel-product absolute inset-0"
+                    style={{
+                      '--hero-image-x': `${design.imageX}px`,
+                      '--hero-image-y': `${design.imageY}px`,
+                      '--hero-image-scale': String(design.imageScale / 100),
+                    } as CSSProperties}
                   >
                     <Image
                       src={mainImage}

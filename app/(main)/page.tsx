@@ -10,6 +10,7 @@ import { getFeaturedProducts, getNewReleaseProducts } from "@/lib/queries/produc
 // La portada siempre debe reflejar inmediatamente los slides activos del administrador.
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 /**
  * Homepage Calle Ocho Store
