@@ -30,7 +30,7 @@ export interface HeroCarouselDesign {
 }
 
 export const DEFAULT_HERO_CAROUSEL_DESIGN: HeroCarouselDesign = {
-  fontFamily: 'inherit', leftBackground: '#0b1024', rightBackground: '#eef0f5',
+  fontFamily: 'inherit', leftBackground: '#0b1024', rightBackground: '#ffffff',
   textColor: '#ffffff', mutedTextColor: '#aeb3c1', accentColor: '#f97316',
   primaryButtonBackground: '#ffffff', primaryButtonText: '#0b1024',
   secondaryButtonBorder: '#ffffff', backgroundTextColor: '#ffffff',
