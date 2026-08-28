@@ -2,6 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* El editor visual controla el diseño de escritorio. En móvil se aplican
+   valores estables para que un ajuste desktop no saque elementos de pantalla. */
+.hero-carousel-content {
+  translate: 0 0;
+}
+
+.hero-carousel-product {
+  transform: scale(0.94);
+  transform-origin: center;
+}
+
+.hero-carousel-background-text {
+  display: inline-block;
+  max-width: 94vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(2.25rem, 11vw, 3.25rem);
+  transform: none;
+}
+
+@media (min-width: 1024px) {
+  .hero-carousel-content {
+    translate: var(--hero-content-x) var(--hero-content-y);
+  }
+
+  .hero-carousel-product {
+    transform: translate(var(--hero-image-x), var(--hero-image-y)) scale(var(--hero-image-scale));
+  }
+
+  .hero-carousel-background-text {
+    max-width: none;
+    overflow: visible;
+    font-size: clamp(3rem, 8vw, var(--hero-background-size));
+    transform: translate(var(--hero-background-x), var(--hero-background-y));
+  }
+}
+
 @layer base {
   :root {
     /* Calle Ocho Store Brand Colors */
