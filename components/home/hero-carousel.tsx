@@ -22,7 +22,10 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [direction, setDirection] = useState<1 | -1>(1);
   const shouldReduceMotion = useReducedMotion();
-  const visibleProducts = products.slice(0, 5);
+  // El servidor ya entrega exactamente los productos activos y ordenados.
+  // No se recorta la colección en el navegador para que todos los dispositivos
+  // muestren el mismo total de slides.
+  const visibleProducts = products;
 
   const changeSlide = useCallback(
     (nextIndex: number, nextDirection: 1 | -1) => {
@@ -228,8 +231,25 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
                 className="absolute inset-x-7 bottom-4 top-12 z-0 sm:inset-x-16 sm:bottom-6 sm:top-16 lg:inset-x-[8%] lg:bottom-[10%] lg:top-[16%]"
               >
                 {mainImage ? (
-                  <div className="absolute inset-0" style={{ transform: `translate(${design.imageX}px, ${design.imageY}px) scale(${design.imageScale / 100})` }}>
-                    <Image src={mainImage} alt={currentProduct.name} fill sizes="(max-width: 1023px) 90vw, 54vw" className="object-contain mix-blend-multiply [filter:drop-shadow(0_28px_24px_rgba(10,15,35,0.22))]" priority />
+                  <div
+                    className="absolute inset-0 overflow-hidden"
+                    style={{
+                      backgroundColor: design.rightBackground,
+                      transform: `translate(${design.imageX}px, ${design.imageY}px) scale(${design.imageScale / 100})`,
+                    }}
+                  >
+                    <Image
+                      src={mainImage}
+                      alt={currentProduct.name}
+                      fill
+                      sizes="(max-width: 1023px) 90vw, 54vw"
+                      className="object-contain [mix-blend-mode:multiply] [filter:drop-shadow(0_24px_20px_rgba(4,4,93,0.18))]"
+                      style={{
+                        WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)',
+                        maskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)',
+                      }}
+                      priority={activeIndex === 0}
+                    />
                   </div>
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm font-medium text-[#0b1024]/50">

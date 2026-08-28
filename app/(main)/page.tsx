@@ -7,6 +7,10 @@ import { HeroCarousel } from "@/components/home/hero-carousel";
 import { getHomeContent } from "@/lib/home-content";
 import { getFeaturedProducts, getNewReleaseProducts } from "@/lib/queries/products";
 
+// La portada siempre debe reflejar inmediatamente los slides activos del administrador.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * Homepage Calle Ocho Store
  * Diseño inspirado en Kicks.com.gt pero mejorado y adaptado

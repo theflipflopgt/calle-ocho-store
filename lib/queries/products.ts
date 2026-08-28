@@ -258,7 +258,7 @@ export const getCategories = cache(async function getCategories() {
   return data || [];
 });
 
-export const getFeaturedProducts = cache(async function getFeaturedProducts(): Promise<HeroProductWithDetails[]> {
+export async function getFeaturedProducts(): Promise<HeroProductWithDetails[]> {
   const supabase = await createClient();
 
   const { data: carouselRows, error: carouselError } = await supabase
@@ -294,12 +294,17 @@ export const getFeaturedProducts = cache(async function getFeaturedProducts(): P
     `)
     .eq('is_active', true)
     .eq('product.status', 'active')
-    .order('display_order', { ascending: true })
-    .limit(5);
+    .order('display_order', { ascending: true });
 
   if (!carouselError && carouselRows && carouselRows.length > 0) {
+    const seenProductIds = new Set<string>();
     return carouselRows
       .filter((row: any) => Boolean(row.product))
+      .filter((row: any) => {
+        if (seenProductIds.has(row.product.id)) return false;
+        seenProductIds.add(row.product.id);
+        return true;
+      })
       .map((row: any) => ({
         ...transformProduct(row.product),
         heroContent: {
@@ -352,7 +357,7 @@ export const getFeaturedProducts = cache(async function getFeaturedProducts(): P
   }
 
   return (legacyProducts || []).map(transformProduct);
-});
+}
 
 // Función auxiliar para transformar producto de BD a ProductWithDetails
 function transformProduct(product: any): ProductWithDetails {
