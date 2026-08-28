@@ -232,22 +232,15 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
               >
                 {mainImage ? (
                   <div
-                    className="absolute inset-0 overflow-hidden"
-                    style={{
-                      backgroundColor: design.rightBackground,
-                      transform: `translate(${design.imageX}px, ${design.imageY}px) scale(${design.imageScale / 100})`,
-                    }}
+                    className="absolute inset-0"
+                    style={{ transform: `translate(${design.imageX}px, ${design.imageY}px) scale(${design.imageScale / 100})` }}
                   >
                     <Image
                       src={mainImage}
                       alt={currentProduct.name}
                       fill
                       sizes="(max-width: 1023px) 90vw, 54vw"
-                      className="object-contain [mix-blend-mode:multiply] [filter:drop-shadow(0_24px_20px_rgba(4,4,93,0.18))]"
-                      style={{
-                        WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)',
-                        maskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)',
-                      }}
+                      className="object-contain [filter:drop-shadow(0_22px_18px_rgba(4,4,93,0.16))]"
                       priority={activeIndex === 0}
                     />
                   </div>
