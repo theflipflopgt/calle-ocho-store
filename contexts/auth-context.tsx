@@ -126,6 +126,11 @@ export function AuthProvider({
     const expectedUserId = authUser.id;
     activeUserIdRef.current = expectedUserId;
 
+    // Resolve the server identity immediately as the authoritative source for
+    // staff roles. Do not wait for the browser profile query to time out first,
+    // otherwise the Admin link can disappear for several seconds.
+    const serverIdentityPromise = fetchServerIdentity(expectedUserId);
+
     try {
       const { data, error } = await withTimeout(
         supabase
@@ -149,7 +154,7 @@ export function AuthProvider({
       setProfile((current) => current?.id === expectedUserId ? current : getFallbackProfile(authUser));
     }
 
-    void fetchServerIdentity(expectedUserId);
+    await serverIdentityPromise;
   }, [fetchServerIdentity, getFallbackProfile, supabase]);
 
   const applySession = useCallback((nextSession: Session | null) => {
@@ -176,17 +181,27 @@ export function AuthProvider({
   const signOut = useCallback(async () => {
     // Supabase owns the auth cookies. Do not manually delete refresh-token storage,
     // because doing so can leave different tabs with stale/invalid tokens.
-    await Promise.allSettled([
-      withTimeout(supabase.auth.signOut({ scope: 'local' }), 6000),
-      withTimeout(
+    // Clear the server cookie first and then the browser session. Running both
+    // operations concurrently can let a token refresh rewrite a cookie that the
+    // other operation has just removed.
+    try {
+      await withTimeout(
         fetch('/api/auth/signout', {
           method: 'POST',
           credentials: 'include',
           cache: 'no-store',
         }),
         6000
-      ),
-    ]);
+      );
+    } catch {
+      // The browser sign-out below remains a safe fallback.
+    }
+
+    try {
+      await withTimeout(supabase.auth.signOut({ scope: 'local' }), 6000);
+    } catch {
+      // Local React state is cleared below even if Supabase is temporarily unavailable.
+    }
 
     activeUserIdRef.current = null;
     setSession(null);

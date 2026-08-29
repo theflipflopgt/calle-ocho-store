@@ -54,13 +54,22 @@ export async function proxy(request: NextRequest) {
       return copyCookies(response, NextResponse.redirect(url));
     }
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', userId)
       .maybeSingle();
 
-    const role = profile?.role || null;
+    // The SECURITY DEFINER function is the reliable fallback if a profile RLS
+    // policy blocks the direct lookup. Without it, a real administrator can be
+    // redirected to the storefront even though their session is valid.
+    let role = profile?.role || null;
+    if (!role || profileError) {
+      const { data: secureProfile } = await supabase.rpc('current_authenticated_profile');
+      role = typeof secureProfile === 'object' && secureProfile !== null && 'role' in secureProfile
+        ? String(secureProfile.role)
+        : null;
+    }
 
     if (!['admin', 'seller', 'warehouse'].includes(role)) {
       const url = request.nextUrl.clone();
