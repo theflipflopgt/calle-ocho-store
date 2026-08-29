@@ -1,5 +1,5 @@
-import { cache } from 'react';
-import { createClient } from '@/lib/supabase/server';
+import { unstable_cache } from 'next/cache';
+import { createPublicClient } from '@/lib/supabase/public';
 import {
   DEFAULT_HOME_CONTENT,
   type HomeContent,
@@ -74,9 +74,9 @@ function mergeHomeContent(content: Partial<HomeContent> | null | undefined): Hom
   };
 }
 
-export const getHomeContent = cache(async function getHomeContent(): Promise<HomeContent> {
+export const getHomeContent = unstable_cache(async function getHomeContent(): Promise<HomeContent> {
   try {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data, error } = await (supabase as any)
       .from('site_content')
       .select('content')
@@ -91,4 +91,4 @@ export const getHomeContent = cache(async function getHomeContent(): Promise<Hom
   } catch {
     return DEFAULT_HOME_CONTENT;
   }
-});
+}, ['storefront-home-content'], { revalidate: 60 });

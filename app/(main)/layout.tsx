@@ -4,9 +4,24 @@ import { Footer } from "@/components/layout/footer";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { WhatsAppButton } from "@/components/ui/whatsapp-button";
 import { PromoTicker } from "@/components/home/promo-ticker";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
+import { unstable_cache } from "next/cache";
 
 const defaultUrl = "https://calleochostore.com";
+
+const getStorefrontWhatsappNumber = unstable_cache(async () => {
+  try {
+    const supabase = createPublicClient();
+    const { data } = await (supabase as any)
+      .from("site_settings")
+      .select("value")
+      .eq("key", "storefront_whatsapp_number")
+      .maybeSingle();
+    return String(data?.value || "").replace(/\D/g, "") || "50252498898";
+  } catch {
+    return "50252498898";
+  }
+}, ["storefront-whatsapp-number"], { revalidate: 300 });
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
@@ -55,19 +70,7 @@ export default async function MainLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let whatsappNumber = "50252498898";
-  try {
-    const supabase = await createClient();
-    const { data } = await (supabase as any)
-      .from("site_settings")
-      .select("value")
-      .eq("key", "storefront_whatsapp_number")
-      .maybeSingle();
-    const configured = String(data?.value || "").replace(/\D/g, "");
-    if (configured) whatsappNumber = configured;
-  } catch {
-    // Keep the current business number as a safe fallback before migration.
-  }
+  const whatsappNumber = await getStorefrontWhatsappNumber();
 
   return (
     <>

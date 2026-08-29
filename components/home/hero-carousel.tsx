@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +18,6 @@ interface HeroCarouselProps {
 const AUTOPLAY_DELAY = 5000;
 
 export function HeroCarousel({ products }: HeroCarouselProps) {
-  const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -47,13 +45,6 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
   }, [changeSlide, currentIndex]);
 
   const stopAutoplay = () => setIsAutoPlaying(false);
-
-  // Safari móvil puede restaurar la portada desde su caché de navegación.
-  // Una actualización del árbol de servidor al montar garantiza que el total
-  // de slides coincida con el estado activo actual del administrador.
-  useEffect(() => {
-    router.refresh();
-  }, [router]);
 
   useEffect(() => {
     if (!isAutoPlaying || shouldReduceMotion || visibleProducts.length <= 1) return;

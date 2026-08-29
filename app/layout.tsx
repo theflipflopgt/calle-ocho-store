@@ -1,10 +1,8 @@
 import type { Metadata } from 'next';
 import { ThemeProvider } from 'next-themes';
-import { AuthProvider, type Profile } from '@/contexts/auth-context';
+import { AuthProvider } from '@/contexts/auth-context';
 import { CartProvider } from '@/contexts/cart-context';
 import { WishlistProvider } from '@/contexts/wishlist-context';
-import { createClient } from '@/lib/supabase/server';
-import { getServerProfile } from '@/lib/auth/server-profile';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
 import { GoogleTagManager } from '@/components/analytics/google-tag-manager';
 import './globals.css';
@@ -45,15 +43,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  let initialProfile: Profile | null = null;
-  if (user) {
-    initialProfile = await getServerProfile(supabase, user.id);
-  }
-
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" suppressHydrationWarning>
       <body className="antialiased">
@@ -66,12 +56,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           enableSystem={false}
           disableTransitionOnChange
         >
-          <AuthProvider
-            initialUser={user}
-            initialProfile={initialProfile}
-            initialIsAdmin={initialProfile?.role === 'admin'}
-            initialCanAccessAdmin={['admin', 'seller', 'warehouse'].includes(initialProfile?.role || '')}
-          >
+          <AuthProvider>
             <CartProvider>
               <WishlistProvider>{children}</WishlistProvider>
             </CartProvider>
