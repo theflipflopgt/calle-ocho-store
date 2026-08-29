@@ -1,5 +1,8 @@
 'use client';
 
+// La cuenta depende de la sesión actual y siempre debe resolverse por solicitud.
+export const dynamic = 'force-dynamic';
+
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';

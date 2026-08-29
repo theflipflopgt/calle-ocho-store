@@ -7,10 +7,10 @@ import { HeroCarousel } from "@/components/home/hero-carousel";
 import { getHomeContent } from "@/lib/home-content";
 import { getFeaturedProducts, getNewReleaseProducts } from "@/lib/queries/products";
 
-// La portada siempre debe reflejar inmediatamente los slides activos del administrador.
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+// Mantiene la portada rápida sin dejar obsoleto el contenido administrable.
+// Los cambios del catálogo se reflejan automáticamente en un máximo de 60 s.
+export const dynamic = 'force-static';
+export const revalidate = 60;
 
 /**
  * Homepage Calle Ocho Store

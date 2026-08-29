@@ -1,5 +1,6 @@
 import { cache } from 'react';
-import { createClient } from '@/lib/supabase/server';
+import { unstable_cache } from 'next/cache';
+import { createPublicClient } from '@/lib/supabase/public';
 import type { HeroProductWithDetails, ProductWithDetails } from '@/types/product';
 import { sortAndLimitProductImages } from '@/lib/products/product-images';
 import { normalizeHeroCarouselDesign } from '@/lib/hero-carousel-design';
@@ -22,7 +23,7 @@ interface GetNewReleaseProductsOptions {
 
 
 export const getProducts = cache(async function getProducts(options: GetProductsOptions = {}): Promise<ProductWithDetails[]> {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   let query = supabase
     .from('products')
@@ -160,10 +161,10 @@ function normalizeSearch(value: string): string {
 }
 
 
-export const getNewReleaseProducts = cache(async function getNewReleaseProducts(
+export const getNewReleaseProducts = unstable_cache(async function getNewReleaseProducts(
   options: GetNewReleaseProductsOptions = {}
 ): Promise<ProductWithDetails[]> {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const now = new Date().toISOString();
 
   let query = supabase
@@ -195,10 +196,10 @@ export const getNewReleaseProducts = cache(async function getNewReleaseProducts(
   }
 
   return (data || []).map(transformProduct);
-});
+}, ['storefront-new-release-products'], { revalidate: 60 });
 
 export const getProductBySlug = cache(async function getProductBySlug(slug: string): Promise<ProductWithDetails | null> {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const { data, error } = await supabase
     .from('products')
@@ -225,7 +226,7 @@ export const getProductBySlug = cache(async function getProductBySlug(slug: stri
 });
 
 export const getBrands = cache(async function getBrands() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const { data, error } = await supabase
     .from('brands')
@@ -242,7 +243,7 @@ export const getBrands = cache(async function getBrands() {
 });
 
 export const getCategories = cache(async function getCategories() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const { data, error } = await supabase
     .from('categories')
@@ -258,8 +259,8 @@ export const getCategories = cache(async function getCategories() {
   return data || [];
 });
 
-export async function getFeaturedProducts(): Promise<HeroProductWithDetails[]> {
-  const supabase = await createClient();
+export const getFeaturedProducts = unstable_cache(async function getFeaturedProducts(): Promise<HeroProductWithDetails[]> {
+  const supabase = createPublicClient();
 
   const { data: carouselRows, error: carouselError } = await supabase
     .from('featured_products')
@@ -357,7 +358,7 @@ export async function getFeaturedProducts(): Promise<HeroProductWithDetails[]> {
   }
 
   return (legacyProducts || []).map(transformProduct);
-}
+}, ['storefront-featured-products'], { revalidate: 60 });
 
 // Función auxiliar para transformar producto de BD a ProductWithDetails
 function transformProduct(product: any): ProductWithDetails {

@@ -59,6 +59,7 @@ export function ProductCard({
                 src={mainImage}
                 alt={product.name}
                 fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 className={cn(
                   "object-cover transition-opacity duration-300",
                   isHovered && hoverImage ? "opacity-0" : "opacity-100"
@@ -69,6 +70,7 @@ export function ProductCard({
                   src={hoverImage}
                   alt={`${product.name} - vista 2`}
                   fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                   className={cn(
                     "object-cover transition-opacity duration-300",
                     isHovered ? "opacity-100" : "opacity-0"

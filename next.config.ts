@@ -39,12 +39,6 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: '/',
-        headers: [
-          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate, max-age=0' },
-        ],
-      },
-      {
         source: '/:path*',
         headers: securityHeaders,
       },

@@ -1,5 +1,8 @@
 'use client';
 
+// El panel contiene información privada y nunca debe prerenderizarse ni cachearse.
+export const dynamic = 'force-dynamic';
+
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';

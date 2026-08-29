@@ -102,18 +102,15 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  const authPaths = ['/auth/login', '/auth/registro', '/auth/sign-up'];
-  if (userId && authPaths.some((path) => pathname.startsWith(path))) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/';
-    return copyCookies(response, NextResponse.redirect(url));
-  }
-
   return response;
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$|api).*)',
+    '/admin/:path*',
+    '/cuenta/:path*',
+    '/account/:path*',
+    '/pedidos/:path*',
+    '/orders/:path*',
   ],
 };
